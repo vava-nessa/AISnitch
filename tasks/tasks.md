@@ -24,20 +24,22 @@
 
 ## 🟡 Todo
 
-| # | Tâche | Progression | Priorité |
-|---|-------|-------------|----------|
-| 1 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 2 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+Aucune pour l'instant. Le reste est soit livré, soit en validation externe.
 
 ---
 
 ## 🔵 In Progress
-- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 3/4 — Gemini/Codex + Goose/Copilot + Aider/PTY livrés, OpenClaw à suivre
+- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 3/4 — OpenClaw livré techniquement, validation sur vrai binaire encore pending
+- [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 0/2 — packaging/docs/community prêts, publication et validation GitHub externes encore pending
 
 ---
 
 ## ✅ Done
 
+- [🧪 Testing & E2E](./07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
+- [01 — Unit & Integration Tests](./07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%
+- [02 — Mock Command](./07-testing/02_testing_mock-command_DONE.md) — `aisnitch mock`, scénarios réalistes, `start --mock`, tests dédiés
+- [03 — E2E Smoke avec OpenCode](./07-testing/03_testing_e2e-smoke_DONE.md) — `pnpm test:e2e`, config séparée, vrai `opencode run`, et plugin renforcé pour le mode non interactif
 - [01 — Gemini CLI & Codex](./06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
 - [02 — Goose & Copilot CLI](./06-adapters-secondary/02_adapters-secondary_goose-copilot_DONE.md) — polling `goosed` + SSE + fallback SQLite, hooks Copilot + session-state + setup repo-local
 - [03 — Aider & Generic PTY](./06-adapters-secondary/03_adapters-secondary_aider-pty_DONE.md) — watcher `.aider.chat.history.md`, setup `notifications-command`, fallback `aisnitch wrap <cmd>`, et heuristiques PTY

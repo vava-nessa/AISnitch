@@ -11,8 +11,11 @@ This folder tracks the technical documentation that complements the task board a
 - [`cli-daemon.md`](./cli-daemon.md) — commander command surface, daemon supervision files, and LaunchAgent flow
 - [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code, OpenCode, Gemini, Aider, Codex, Goose, and Copilot CLI forwarding into AISnitch
 - [`priority-adapters.md`](./priority-adapters.md) — BaseAdapter lifecycle, Claude Code mapping, and OpenCode plugin integration
-- [`secondary-adapters.md`](./secondary-adapters.md) — Gemini/Codex plus Goose API-SSE, Copilot hook/session-state, Aider transcript parsing, and generic PTY fallback
+- [`secondary-adapters.md`](./secondary-adapters.md) — Gemini/Codex, Goose/Copilot, Aider/PTY, and OpenClaw hook-log-memory integration
 - [`tui.md`](./tui.md) — Ink layout, shared foreground/attach rendering, filters, and the full-data event inspector
+- [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
+- [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
+- [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
 
 ## Related project sources
 

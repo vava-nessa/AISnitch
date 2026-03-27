@@ -6,6 +6,11 @@ import {
   AISNITCH_VERSION,
 } from '../package-info.js';
 import {
+  parseMockDurationOption,
+  parseMockSpeedOption,
+  parseMockToolSelection,
+} from './commands/mock.js';
+import {
   parseSetupToolName,
   type SetupCliOptions,
   type SetupToolName,
@@ -20,6 +25,7 @@ import {
   type CliRuntime,
   type AttachCliOptions,
   type CommonCliOptions,
+  type MockCliOptions,
   type StartCliOptions,
   type WrapCliOptions,
 } from './runtime.js';
@@ -61,6 +67,7 @@ Examples:
   aisnitch start
   aisnitch start --daemon
   aisnitch start --view full-data
+  aisnitch start --mock
   aisnitch status
   aisnitch attach
   aisnitch attach --view full-data
@@ -70,6 +77,8 @@ Examples:
   aisnitch setup goose
   aisnitch setup codex
   aisnitch setup copilot-cli
+  aisnitch setup openclaw
+  aisnitch mock all --speed 2 --duration 20
   aisnitch wrap aider --model sonnet
   aisnitch install
 `,
@@ -81,6 +90,7 @@ Examples:
   addAdaptersCommand(program, runtime);
   addSetupCommand(program, runtime);
   addAttachCommand(program, runtime);
+  addMockCommand(program, runtime);
   addWrapCommand(program, runtime);
   addInstallCommand(program, runtime);
   addUninstallCommand(program, runtime);
@@ -103,6 +113,22 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
       .command('start', { isDefault: true })
       .description('Start AISnitch in foreground mode by default')
       .option('--daemon', 'Run AISnitch as a detached daemon')
+      .option(
+        '--mock [tool]',
+        'Inject deterministic mock events (defaults to "all" when no tool is specified)',
+        wrapOptionParser(parseMockToolSelection),
+      )
+      .option(
+        '--mock-speed <factor>',
+        'Speed factor for mock replay',
+        wrapOptionParser(parseMockSpeedOption),
+      )
+      .option('--mock-loop', 'Loop the mock scenario until stopped')
+      .option(
+        '--mock-duration <seconds>',
+        'Duration of mock replay in seconds',
+        wrapOptionParser(parseMockDurationOption),
+      )
       .option(
         '--tool <tool>',
         'Pre-filter the foreground TUI by tool',
@@ -133,8 +159,11 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
         'Override the runtime log level',
         wrapOptionParser(parseLogLevelOption),
       ),
-  ).action(async (options: StartCliOptions) => {
-    await runtime.start(options);
+  ).action(async (options: StartCliOptions & { mock?: unknown }) => {
+    await runtime.start({
+      ...options,
+      mock: normalizeMockSelection(options.mock),
+    });
   });
 }
 
@@ -169,12 +198,38 @@ function addSetupCommand(program: Command, runtime: CliRuntime): void {
       .description('Configure supported AI tools to forward events into AISnitch')
       .argument(
         '<tool>',
-        'Tool to configure (claude-code, opencode, gemini-cli, aider, codex, goose, copilot-cli)',
+        'Tool to configure (claude-code, opencode, gemini-cli, aider, codex, goose, copilot-cli, openclaw)',
         parseSetupToolName,
       )
       .option('--revert', 'Restore the previous tool configuration from backup'),
   ).action(async (toolName: SetupToolName, options: SetupCliOptions) => {
     await runtime.setup(toolName, options);
+  });
+}
+
+function addMockCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('mock')
+      .description('Replay deterministic mock event scenarios through the normal AISnitch pipeline')
+      .argument(
+        '<tool>',
+        'Mock tool or scenario to replay (claude-code, opencode, all)',
+        parseMockToolSelection,
+      )
+      .option(
+        '--speed <factor>',
+        'Speed factor for mock replay',
+        wrapOptionParser(parseMockSpeedOption),
+      )
+      .option('--loop', 'Loop the selected scenario until the duration budget is reached')
+      .option(
+        '--duration <seconds>',
+        'Duration of mock replay in seconds',
+        wrapOptionParser(parseMockDurationOption),
+      ),
+  ).action(async (toolName: Parameters<CliRuntime['mock']>[0], options: MockCliOptions) => {
+    await runtime.mock(toolName, options);
   });
 }
 
@@ -282,4 +337,20 @@ function wrapOptionParser<T>(
       );
     }
   };
+}
+
+function normalizeMockSelection(value: unknown): StartCliOptions['mock'] {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === true) {
+    return 'all';
+  }
+
+  if (value === 'all' || value === 'claude-code' || value === 'opencode') {
+    return value;
+  }
+
+  throw new InvalidArgumentError('Unsupported mock scenario selection.');
 }

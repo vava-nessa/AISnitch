@@ -1,0 +1,204 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { DEFAULT_CONFIG } from '../../core/config/defaults.js';
+import type { AISnitchEvent } from '../../core/events/types.js';
+import { OpenClawAdapter } from '../openclaw.js';
+
+/**
+ * @file src/adapters/__tests__/openclaw.test.ts
+ * @description Unit coverage for OpenClaw hook mapping, transcript fallbacks, delayed thinking transitions, and process detection.
+ * @functions
+ *   → createOpenClawAdapter
+ * @exports none
+ * @see ../openclaw.ts
+ */
+
+function createOpenClawAdapter(
+  publishedEvents: AISnitchEvent[],
+  processListCommand: () => Promise<string> = () => Promise.resolve(''),
+) {
+  return new OpenClawAdapter({
+    config: DEFAULT_CONFIG,
+    cwdResolver: () => Promise.resolve('/Users/vava/.openclaw/workspace'),
+    pollIntervalMs: 0,
+    processListCommand,
+    publishEvent: (event) => {
+      publishedEvents.push(event);
+      return Promise.resolve(true);
+    },
+  });
+}
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('OpenClawAdapter', () => {
+  it('maps gateway startup hooks to session.start and agent.idle', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'gateway:startup',
+      sessionKey: 'agent:main:main',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+    ]);
+    expect(publishedEvents[0]).toMatchObject({
+      data: {
+        cwd: '/Users/vava/.openclaw/workspace',
+        project: 'workspace',
+      },
+      type: 'session.start',
+    });
+  });
+
+  it('maps command:new hooks to task.start then delayed agent.thinking', async () => {
+    vi.useFakeTimers();
+
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        content: 'hello from OpenClaw',
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'command:new',
+      sessionKey: 'agent:main:main',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'task.start',
+    ]);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'task.start',
+      'agent.thinking',
+    ]);
+    expect(publishedEvents[2]?.type).toBe('task.start');
+    expect(publishedEvents[2]?.data.raw).toMatchObject({
+      context: {
+        content: 'hello from OpenClaw',
+      },
+    });
+  });
+
+  it('maps tool_result_persist hooks to agent.tool_call then delayed thinking', async () => {
+    vi.useFakeTimers();
+
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'tool_result_persist',
+      sessionKey: 'agent:main:main',
+      tool: {
+        name: 'write_file',
+        params: {
+          filePath: 'README.md',
+        },
+      },
+      toolName: 'write_file',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.coding',
+    ]);
+
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.coding',
+      'agent.thinking',
+    ]);
+    expect(publishedEvents[2]).toMatchObject({
+      data: {
+        activeFile: 'README.md',
+        toolInput: {
+          filePath: 'README.md',
+        },
+        toolName: 'write_file',
+      },
+    });
+  });
+
+  it('maps transcript compaction entries to agent.compact', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await (
+      adapter as unknown as {
+        processTranscriptLine: (
+          payload: Record<string, unknown>,
+          filePath: string,
+        ) => Promise<void>;
+      }
+    ).processTranscriptLine(
+      {
+        id: 'entry-1',
+        type: 'compaction',
+      },
+      '/Users/vava/.openclaw/agents/main/sessions/agent-main-main.jsonl',
+    );
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.compact',
+    ]);
+  });
+
+  it('emits session lifecycle events from process detection', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    let processOutput = '999 /Applications/OpenClaw.app/Contents/MacOS/OpenClaw\n';
+    const adapter = createOpenClawAdapter(
+      publishedEvents,
+      () => Promise.resolve(processOutput),
+    );
+
+    await adapter.start();
+    await (
+      adapter as unknown as {
+        pollOpenClawProcesses: () => Promise<void>;
+      }
+    ).pollOpenClawProcesses();
+
+    processOutput = '';
+
+    await (
+      adapter as unknown as {
+        pollOpenClawProcesses: () => Promise<void>;
+      }
+    ).pollOpenClawProcesses();
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'session.end',
+    ]);
+  });
+});

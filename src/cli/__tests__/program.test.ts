@@ -18,6 +18,7 @@ function createNoopRuntime() {
     aiderNotify: vi.fn(() => Promise.resolve()),
     attach: vi.fn(() => Promise.resolve()),
     install: vi.fn(() => Promise.resolve()),
+    mock: vi.fn(() => Promise.resolve()),
     runDaemonProcess: vi.fn(() => Promise.resolve()),
     setup: vi.fn(() => Promise.resolve()),
     start: vi.fn(() => Promise.resolve()),
@@ -59,18 +60,28 @@ describe('createProgram', () => {
         'node',
         'aisnitch',
         'start',
+        '--mock',
         '--tool',
         'claude-code',
         '--type',
         'agent.coding',
         '--view',
         'full-data',
+        '--mock-speed',
+        '2',
+        '--mock-loop',
+        '--mock-duration',
+        '20',
       ],
       { from: 'node' },
     );
 
     expect(runtime.start).toHaveBeenCalledWith({
       daemon: undefined,
+      mock: 'all',
+      mockDuration: 20,
+      mockLoop: true,
+      mockSpeed: 2,
       tool: 'claude-code',
       type: 'agent.coding',
       view: 'full-data',
@@ -120,5 +131,21 @@ describe('createProgram', () => {
         cwd: undefined,
       },
     );
+  });
+
+  it('parses the dedicated mock command', async () => {
+    const runtime = createNoopRuntime();
+    const program = createProgram({ runtime });
+
+    await program.parseAsync(
+      ['node', 'aisnitch', 'mock', 'opencode', '--speed', '1.5', '--duration', '15'],
+      { from: 'node' },
+    );
+
+    expect(runtime.mock).toHaveBeenCalledWith('opencode', {
+      duration: 15,
+      loop: undefined,
+      speed: 1.5,
+    });
   });
 });

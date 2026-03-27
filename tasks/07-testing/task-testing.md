@@ -8,9 +8,9 @@ Mettre en place une stratégie de test en 3 niveaux : unit tests vitest, command
 
 ## Sous-tâches
 
-- [ ] [01 — Unit & Integration Tests](./01_testing_unit-integration.md) — Vitest pour adapters, event bus, WS
-- [ ] [02 — Mock Command](./02_testing_mock-command.md) — `aisnitch mock <tool>` générateur d'events fake
-- [ ] [03 — E2E Smoke avec OpenCode](./03_testing_e2e-smoke.md) — Test réel avec OpenCode + assertion WS
+- [x] [01 — Unit & Integration Tests](./01_testing_unit-integration_DONE.md) — Vitest pour adapters, event bus, WS
+- [x] [02 — Mock Command](./02_testing_mock-command_DONE.md) — `aisnitch mock <tool>` générateur d'events fake
+- [x] [03 — E2E Smoke avec OpenCode](./03_testing_e2e-smoke_DONE.md) — Test réel avec OpenCode + assertion WS
 
 ## Dépendances
 

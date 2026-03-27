@@ -20,35 +20,35 @@ Test end-to-end qui lance un **vrai** AI tool (OpenCode) avec un prompt simple, 
 
 ## Sous-étapes
 
-- [ ] **Exa.ai** : Rechercher comment lancer OpenCode en mode non-interactif / one-shot
-  - [ ] Ex: `opencode --message "say hello"` ou `echo "hello" | opencode`
-  - [ ] Ou via le SDK TypeScript si disponible
-- [ ] Créer `src/__e2e__/smoke.test.ts` :
-  - [ ] **Setup** :
+- [x] **Exa.ai** : Rechercher comment lancer OpenCode en mode non-interactif / one-shot
+  - [x] Ex: `opencode --message "say hello"` ou `echo "hello" | opencode`
+  - [x] Ou via le SDK TypeScript si disponible
+- [x] Créer `src/__e2e__/smoke.test.ts` :
+  - [x] **Setup** :
     1. Démarrer AISnitch pipeline (in-process, pas de fork)
     2. Connecter un client WebSocket de test
     3. S'assurer que l'adapter OpenCode est actif
-  - [ ] **Test** :
+  - [x] **Test** :
     1. Lancer OpenCode avec un prompt simple (`"Say hello in one word"`)
     2. Attendre les events sur le WebSocket (timeout 30s)
     3. Asserter : au minimum `session.start` et `task.start` reçus
     4. Asserter : `aisnitch.tool` === `'opencode'` sur les events
     5. Asserter : events sont des CloudEvents valides (Zod)
-  - [ ] **Teardown** :
+  - [x] **Teardown** :
     1. Kill le process OpenCode
     2. Arrêter le pipeline AISnitch
     3. Fermer le WebSocket
-- [ ] Créer un script `test:e2e` dans `package.json` :
+- [x] Créer un script `test:e2e` dans `package.json` :
   ```json
   "test:e2e": "vitest run --config vitest.e2e.config.ts"
   ```
-- [ ] Créer `vitest.e2e.config.ts` — config séparée pour les E2E (timeout plus long, pas de watch)
-- [ ] Ajouter un check pré-test : vérifier que `opencode` est installé, sinon skip gracieusement
-- [ ] Ajouter un check pré-test : vérifier qu'une API key est configurée, sinon skip
+- [x] Créer `vitest.e2e.config.ts` — config séparée pour les E2E (timeout plus long, pas de watch)
+- [x] Ajouter un check pré-test : vérifier que `opencode` est installé, sinon skip gracieusement
+- [x] Ajouter un check pré-test : vérifier qu'une API key est configurée, sinon skip
 - [ ] Optionnel : même test avec Claude Code si disponible
   - [ ] Utiliser `@anthropic-ai/claude-code` SDK (npm) pour lancer une session programmatiquement
 
-- [ ] Documenter dans le README : "Comment lancer les E2E tests"
+- [x] Documenter dans le README : "Comment lancer les E2E tests"
   ```bash
   # Prérequis : OpenCode installé + API key configurée
   pnpm test:e2e
@@ -106,15 +106,19 @@ describe('E2E: OpenCode smoke test', () => {
 
 ## Critères de complétion
 
-- [ ] E2E test lance OpenCode et reçoit des events
-- [ ] Skip gracieux si OpenCode pas installé ou pas d'API key
-- [ ] Script `pnpm test:e2e` fonctionne
-- [ ] Config vitest séparée pour E2E
-- [ ] 👤 Testé avec l'utilisateur au moins une fois
-- [ ] README documenté
-- [ ] Code documenté
+- [x] E2E test lance OpenCode et reçoit des events
+- [x] Skip gracieux si OpenCode pas installé ou pas d'API key
+- [x] Script `pnpm test:e2e` fonctionne
+- [x] Config vitest séparée pour E2E
+- [x] 👤 Testé avec l'utilisateur au moins une fois
+- [x] README documenté
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- Recherche Exa validée : la bonne invocation non interactive actuelle est `opencode run [message..]`.
+- `pnpm test:e2e` passe sur cette machine avec OpenCode installé.
+- Le plugin OpenCode a été renforcé pour inférer `session.start` depuis `session.updated` et `task.start` depuis le premier `message.part.updated` utilisateur, parce que `opencode run` peut charger le plugin après `session.created`.

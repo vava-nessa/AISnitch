@@ -1,48 +1,33 @@
 # AISnitch
 
+[![CI](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml/badge.svg)](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml)
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
-[![Status: Foundation](https://img.shields.io/badge/status-foundation-orange)](./tasks/tasks.md)
 
-Universal AI coding activity bridge for capturing, normalizing, and streaming tool events in real time.
+Universal bridge for AI coding tool activity: capture, normalize, and stream live events from multiple AI coding tools into one local WebSocket feed and one terminal TUI.
 
-AISnitch is a single-package Node.js project that will expose a live event stream for AI coding tools such as Claude Code, Codex, Gemini CLI, OpenCode, Goose, and others. The MVP is memory-only by design: events are ingested, normalized, streamed, and dropped without persistence.
+![AISnitch demo](./docs/assets/aisnitch-demo.gif)
 
-## Project Docs
+AISnitch is deliberately live-only in the MVP:
 
-- **Kanban & tâches MVP**: [`tasks/tasks.md`](./tasks/tasks.md)
-- **Research source**: [`CLAUDE_DATA.md`](./CLAUDE_DATA.md)
-- **Technical docs index**: [`docs/index.md`](./docs/index.md)
-- **Core pipeline internals**: [`docs/core-pipeline.md`](./docs/core-pipeline.md)
-- **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
-- **Tool setup internals**: [`docs/tool-setup.md`](./docs/tool-setup.md)
-- **Priority adapters internals**: [`docs/priority-adapters.md`](./docs/priority-adapters.md)
-- **Secondary adapters internals**: [`docs/secondary-adapters.md`](./docs/secondary-adapters.md)
-- **TUI internals**: [`docs/tui.md`](./docs/tui.md)
+- no persisted event store
+- no replay UI
+- no cloud dependency
+- one in-memory pipeline, one normalized event stream
 
-## Current Scope
+## Quick Start
 
-- Single npm package named `aisnitch`
-- TypeScript strict mode with ESM-first source
-- `tsup` build output for both ESM and CJS consumers
-- CloudEvents-based event schema with UUIDv7 factory and CESP compatibility mapping
-- Persistent config system for `~/.aisnitch/config.json` with port fallback helpers
-- Typed in-memory `EventBus` powered by `eventemitter3` and structured `pino` logging
-- Localhost-only WebSocket stream with welcome payloads, per-consumer ring buffers, and heartbeat checks
-- Localhost-only HTTP hook receiver and NDJSON Unix domain socket ingress orchestrated by a central `Pipeline`
-- Built-in adapter layer with `BaseAdapter`, `AdapterRegistry`, and pipeline-managed lifecycle
-- Priority adapters for Claude Code (hooks + JSONL + process fallback) and OpenCode (plugin hooks + process fallback)
-- Secondary adapters for Gemini CLI, Codex, Goose, Copilot CLI, and Aider with hook, API/SSE, file-watch, transcript, or process-detection fallbacks depending on the tool
-- Generic PTY wrapping for tools without a dedicated adapter via `aisnitch wrap <command>`
-- Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
-- Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
-- Detached daemon mode with PID/state files and a shared Ink attach/foreground monitoring surface
-- Ink-based TUI with responsive header, live event stream, session panel, filters, help overlay, and CLI pre-filters
-- `pnpm` workflow with lint, typecheck, test, and build scripts
+```bash
+pnpm install
+pnpm build
+node dist/cli/index.js start --mock all
+```
+
+That boots the foreground TUI with realistic fake events so you can inspect the product without installing any AI tool first.
 
 ## Install
 
-The package is not published yet, but the CLI is runnable locally after a build:
+### Local repository mode
 
 ```bash
 pnpm install
@@ -50,97 +35,262 @@ pnpm build
 node dist/cli/index.js --help
 ```
 
-When the package is installed globally, the same commands will be available through `aisnitch`.
-
-## CLI Usage
+### Global npm install
 
 ```bash
-# Foreground mode with the Ink TUI
-node dist/cli/index.js start
-node dist/cli/index.js start --tool claude-code
-node dist/cli/index.js start --type agent.coding
-node dist/cli/index.js start --view full-data
-
-# Detached daemon mode
-node dist/cli/index.js start --daemon
-
-# Inspect or attach to the daemon
-node dist/cli/index.js adapters
-node dist/cli/index.js status
-node dist/cli/index.js attach
-node dist/cli/index.js attach --tool opencode
-node dist/cli/index.js attach --view full-data
-
-# Stop the detached daemon
-node dist/cli/index.js stop
-
-# Configure supported tools
-node dist/cli/index.js setup claude-code
-node dist/cli/index.js setup opencode
-node dist/cli/index.js setup gemini-cli
-node dist/cli/index.js setup aider
-node dist/cli/index.js setup codex
-node dist/cli/index.js setup goose
-node dist/cli/index.js setup copilot-cli
-node dist/cli/index.js setup claude-code --revert
-
-# Wrap an arbitrary interactive tool inside AISnitch's PTY fallback
-node dist/cli/index.js wrap aider --model sonnet
-node dist/cli/index.js wrap goose session
+npm i -g aisnitch
+aisnitch --help
 ```
 
-Both foreground `start` and daemon `attach` now render the same Ink TUI shell. `--tool` and `--type` can pre-apply filters when the TUI opens.
-`--view full-data` opens directly into the event inspector, which is useful when you want the complete normalized payload plus the raw adapter payload without toggling manually.
+### Homebrew
 
-`setup` is interactive by design: AISnitch prints the proposed diff, asks for confirmation, then writes a `.bak` backup before applying changes. Claude Code is configured through `~/.claude/settings.json`, OpenCode uses a local plugin file under `~/.config/opencode/plugins/`, Gemini CLI extends `~/.gemini/settings.json`, Aider updates `~/.aider.conf.yml` with a `notifications-command`, Goose and Codex are armed as passive sources, and Copilot CLI installs a repository-local hook bridge under `.github/hooks/`.
+The repository ships a Homebrew formula at [`Formula/aisnitch.rb`](./Formula/aisnitch.rb). The release workflow updates it from the real npm tarball SHA so it can be copied into a tap repository cleanly.
 
-Adapters are disabled by default until a setup flow enables them in `~/.aisnitch/config.json`. Use `node dist/cli/index.js adapters` to confirm the armed tools before expecting Claude Code or OpenCode activity to appear in the TUI.
+## What It Does
 
-`wrap` is the fallback path when a tool has no first-class adapter yet. AISnitch runs the target command inside a pseudo-terminal, forwards the full terminal I/O unchanged, and emits best-effort `thinking`, `coding`, `asking_user`, `error`, and `streaming` events from ANSI/text heuristics. When a daemon is already running, `wrap` forwards into it; otherwise it spins up an ephemeral local monitor for the wrapped session only.
+- watches hooks, plugins, transcripts, logs, and process fallbacks
+- normalizes everything into one CloudEvents-flavored event schema
+- exposes the stream over `ws://127.0.0.1:4820`
+- receives hook traffic over `http://127.0.0.1:4821`
+- renders a shared Ink TUI for both foreground mode and daemon attach
+- preserves raw source payloads in `event.data.raw`
+- stays memory-only for privacy and operational simplicity
 
-## TUI Usage & Keybinds
+## Supported Tools
 
-The TUI is now the main live operator surface for both foreground and attach mode. It shows a formatted event stream on the left, active sessions on the right, a global activity badge in the header, and a filter bar above the panels.
+| Tool | Status | Primary strategy | Setup command |
+| --- | --- | --- | --- |
+| Claude Code | ✅ Priority | HTTP hooks + JSONL + process fallback | `aisnitch setup claude-code` |
+| OpenCode | ✅ Priority | Local plugin + process fallback | `aisnitch setup opencode` |
+| Gemini CLI | ✅ | Hooks + `logs.json` + process fallback | `aisnitch setup gemini-cli` |
+| Codex | ✅ | `codex-tui.log` + process fallback | `aisnitch setup codex` |
+| Goose | ✅ | `goosed` polling + SSE + SQLite fallback | `aisnitch setup goose` |
+| Copilot CLI | ✅ | Repo hooks + session-state watcher | `aisnitch setup copilot-cli` |
+| Aider | ✅ | `.aider.chat.history.md` + notifications command | `aisnitch setup aider` |
+| OpenClaw | ✅ | Managed internal hooks + command/memory/session watchers | `aisnitch setup openclaw` |
+| Unknown / unsupported CLI | ✅ fallback | PTY wrapper heuristics | `aisnitch wrap <command>` |
 
-Session labels are now derived from the best available context instead of showing only a raw opaque id. AISnitch combines project/workspace hints, instance counts, PID fallback, and short session fragments so concurrent runs from the same tool stay distinguishable in both the TUI and text monitor output.
-
-The live stream is detail-aware too: when adapters expose enough signal, AISnitch surfaces prompt snippets, transcript thinking text, streamed assistant replies, tool/file targets, shell commands, model names, and token counts directly in the event rows and plain-text logs.
-
-When you need the full payload, press `v` to switch the right-hand panel into a full-data inspector. It shows a curated spotlight summary first, then the normalized event JSON, then the raw source payload with syntax-style coloring. You can also boot straight into this mode with `--view full-data`.
-
-- `q` / `Ctrl+C` quit cleanly
-- `v` toggles the full-data inspector
-- `f` opens the tool filter selector
-- `t` opens the event-type filter selector
-- `/` starts free-text search over buffered events and sessions
-- `Esc` clears all active filters
-- `Space` freezes or resumes the live tail
-- `c` clears the local buffered event view
-- `?` toggles the help overlay
-- `Tab` cycles focus between the event and session panels
-- `↑` / `↓` or `j` / `k` select events or scroll the inspector in full-data mode
-- `[` / `]` page the inspector up or down in full-data mode
-
-## Development
+## Core Commands
 
 ```bash
-pnpm install
+# Start foreground TUI
+aisnitch start
+aisnitch start --tool claude-code
+aisnitch start --type agent.coding
+aisnitch start --view full-data
+
+# Background daemon + attach
+aisnitch start --daemon
+aisnitch status
+aisnitch attach
+aisnitch attach --view full-data
+aisnitch stop
+
+# Tool setup
+aisnitch setup claude-code
+aisnitch setup opencode
+aisnitch setup gemini-cli
+aisnitch setup aider
+aisnitch setup codex
+aisnitch setup goose
+aisnitch setup copilot-cli
+aisnitch setup openclaw
+aisnitch setup claude-code --revert
+
+# Demo / development
+aisnitch mock claude-code --speed 2 --duration 20
+aisnitch start --mock all --mock-duration 20
+
+# Fallback for tools without a first-class adapter
+aisnitch wrap aider --model sonnet
+aisnitch wrap goose session
+```
+
+## Setup Notes
+
+Adapters are disabled by default until you arm them with `setup`. After setup:
+
+```bash
+aisnitch adapters
+```
+
+You should see the tool listed as `enabled`. That only means the AISnitch-side bridge is armed. You still need to actually run the tool while AISnitch is running to receive events.
+
+## TUI
+
+The TUI is the main operator surface for both `start` and `attach`.
+
+It includes:
+
+- live event feed
+- active session panel
+- tool / event-type / query filtering
+- freeze / clear controls
+- a colorful full-data inspector showing normalized JSON plus raw payloads
+
+### Keybinds
+
+- `q` / `Ctrl+C`: quit
+- `v`: toggle full-data inspector
+- `f`: tool filter picker
+- `t`: event-type filter picker
+- `/`: free-text search
+- `Esc`: clear filters
+- `Space`: freeze or resume tailing
+- `c`: clear local buffer
+- `?`: help overlay
+- `Tab`: switch panel focus
+- `↑` / `↓` or `j` / `k`: navigate rows / inspector
+- `[` / `]`: page inspector up or down
+
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Tools["External AI tools"]
+    CC["Claude Code"]
+    OC["OpenCode"]
+    GM["Gemini CLI"]
+    CX["Codex"]
+    GS["Goose"]
+    AD["Aider"]
+    OCL["OpenClaw"]
+    PTY["Generic PTY"]
+  end
+
+  subgraph AIS["AISnitch runtime"]
+    HTTP["HTTP hook receiver :4821"]
+    UDS["UDS ingest"]
+    REG["Adapter registry"]
+    BUS["Typed EventBus"]
+    WS["WebSocket server :4820"]
+    TUI["Ink TUI"]
+  end
+
+  CC --> HTTP
+  OC --> HTTP
+  GM --> HTTP
+  OCL --> HTTP
+  CX --> REG
+  GS --> REG
+  AD --> REG
+  PTY --> UDS
+  HTTP --> BUS
+  UDS --> BUS
+  REG --> BUS
+  BUS --> WS
+  BUS --> TUI
+```
+
+## Event Model
+
+AISnitch emits CloudEvents-style envelopes with AISnitch-specific extensions:
+
+- `specversion`
+- `id`
+- `source`
+- `type`
+- `time`
+- `aisnitch.tool`
+- `aisnitch.sessionid`
+- `aisnitch.seqnum`
+- `data`
+
+Important normalized event types:
+
+- `session.start`
+- `session.end`
+- `task.start`
+- `task.complete`
+- `agent.idle`
+- `agent.thinking`
+- `agent.streaming`
+- `agent.tool_call`
+- `agent.coding`
+- `agent.asking_user`
+- `agent.compact`
+- `agent.error`
+
+See [`docs/events-schema.md`](./docs/events-schema.md) for the full contract.
+
+## Build a Consumer
+
+The WebSocket stream is intentionally simple:
+
+```ts
+import WebSocket from 'ws';
+
+const ws = new WebSocket('ws://127.0.0.1:4820');
+
+ws.on('message', (buffer) => {
+  const event = JSON.parse(buffer.toString('utf8'));
+  if (event.type === 'welcome') return;
+  console.log(event.type, event['aisnitch.tool'], event.data);
+});
+```
+
+Working examples:
+
+- [`examples/basic-consumer.ts`](./examples/basic-consumer.ts)
+- [`examples/mascot-consumer.ts`](./examples/mascot-consumer.ts)
+
+## Config Reference
+
+AISnitch stores local state under `~/.aisnitch/`.
+
+Important paths:
+
+- `~/.aisnitch/config.json`
+- `~/.aisnitch/aisnitch.pid`
+- `~/.aisnitch/daemon-state.json`
+- `~/.aisnitch/daemon.log`
+- `~/.aisnitch/aisnitch.sock`
+
+Default ports:
+
+- WebSocket: `4820`
+- HTTP hooks: `4821`
+
+## Testing
+
+```bash
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:coverage
 pnpm build
 ```
 
-## Repository Layout
+Real E2E smoke:
 
-```text
-src/
-├── adapters/
-├── cli/
-├── core/
-│   ├── config/
-│   ├── engine/
-│   └── events/
-├── tui/
-└── index.ts
+```bash
+# Prereq: opencode installed and one provider authenticated
+pnpm test:e2e
 ```
+
+The E2E suite uses a dedicated Vitest config so it does not slow down `pnpm test`.
+
+## Development Docs
+
+- [`docs/index.md`](./docs/index.md)
+- [`docs/core-pipeline.md`](./docs/core-pipeline.md)
+- [`docs/cli-daemon.md`](./docs/cli-daemon.md)
+- [`docs/tool-setup.md`](./docs/tool-setup.md)
+- [`docs/priority-adapters.md`](./docs/priority-adapters.md)
+- [`docs/secondary-adapters.md`](./docs/secondary-adapters.md)
+- [`docs/testing.md`](./docs/testing.md)
+- [`docs/distribution.md`](./docs/distribution.md)
+- [`docs/launch-plan.md`](./docs/launch-plan.md)
+- [`tasks/tasks.md`](./tasks/tasks.md)
+
+## Contributing
+
+Read:
+
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
+- [`AGENTS.md`](./AGENTS.md)
+
+## License
+
+Apache-2.0, © Vanessa Depraute / vava-nessa.

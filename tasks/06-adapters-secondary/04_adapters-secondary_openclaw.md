@@ -48,10 +48,10 @@ OpenClaw a un système de hooks TypeScript natif très riche, ce qui en fait un 
 
 > 📌 **OpenClaw supporte les webhooks outbound natifs.** C'est la voie d'intégration la plus propre : configurer OpenClaw pour qu'il POSTe ses events vers l'endpoint HTTP d'AISnitch. Pas besoin d'écrire un hook TypeScript custom.
 
-- [ ] **Exa.ai** : rechercher "openclaw webhook outbound HTTP configuration 2026" pour vérifier le format exact du payload
-- [ ] Créer `src/adapters/openclaw.ts` — `OpenClawAdapter extends BaseAdapter`
-- [ ] Implémenter `handleWebhook(payload: OpenClawWebhookPayload)` :
-  - [ ] Mapper les event types OpenClaw → AISnitch events :
+- [x] **Exa.ai** : rechercher "openclaw webhook outbound HTTP configuration 2026" pour vérifier le format exact du payload
+- [x] Créer `src/adapters/openclaw.ts` — `OpenClawAdapter extends BaseAdapter`
+- [x] Implémenter `handleWebhook(payload: OpenClawWebhookPayload)` :
+  - [x] Mapper les event types OpenClaw → AISnitch events :
     ```
     gateway:startup      → session.start
     command:new          → task.start  (nouvelle commande utilisateur)
@@ -62,9 +62,9 @@ OpenClaw a un système de hooks TypeScript natif très riche, ce qui en fait un 
     tool_result_persist  → agent.tool_call (outil invoqué et résultat persisté)
     agent:bootstrap      → session.start (alt si gateway:startup manqué)
     ```
-  - [ ] Extraire depuis le payload : sessionId, cwd, toolName, message, agentId
-  - [ ] Conserver le `raw` payload dans `data.raw`
-- [ ] Implémenter `aisnitch setup openclaw` (tâche 03-cli-daemon/03) :
+  - [x] Extraire depuis le payload : sessionId, cwd, toolName, message, agentId
+  - [x] Conserver le `raw` payload dans `data.raw`
+- [x] Implémenter `aisnitch setup openclaw` (tâche 03-cli-daemon/03) :
   - Modifier `~/.openclaw/openclaw.json` pour ajouter le webhook AISnitch :
     ```json
     {
@@ -82,31 +82,31 @@ OpenClaw a un système de hooks TypeScript natif très riche, ce qui en fait un 
 
 > 📌 OpenClaw a un hook natif `command-logger` qui écrit **tous les commands** dans `~/.openclaw/logs/commands.log`. Ce fichier est disponible out-of-the-box sans aucune configuration. Parfait comme fallback si le webhook n'est pas configuré.
 
-- [ ] Watcher sur `~/.openclaw/logs/commands.log` :
-  - [ ] `chokidar` avec `ignoreInitial: true`, `awaitWriteFinish: { stabilityThreshold: 200 }`
-  - [ ] Tracker l'offset de lecture (nouvelles lignes seulement)
-  - [ ] Parser chaque ligne JSON : `{ event, sessionId, timestamp, message, ... }`
-  - [ ] Mapper vers AISnitch events (même mapping que webhook)
+- [x] Watcher sur `~/.openclaw/logs/commands.log` :
+  - [x] `chokidar` avec `ignoreInitial: true`, `awaitWriteFinish: { stabilityThreshold: 200 }`
+  - [x] Tracker l'offset de lecture (nouvelles lignes seulement)
+  - [x] Parser chaque ligne JSON : `{ event, sessionId, timestamp, message, ... }`
+  - [x] Mapper vers AISnitch events (même mapping que webhook)
 
 ### Layer 2 : File Watching (Workspace Memory)
 
-- [ ] Watcher sur `~/.openclaw/workspace/memory/` :
-  - [ ] `chokidar` sur `*.md` dans le dossier memory
-  - [ ] Détecter les nouvelles lignes dans les logs journaliers (`YYYY-MM-DD.md`)
-  - [ ] Parser les entrées pour enrichir les events : timestamp, activité type
-  - [ ] Détecter les changements dans `MEMORY.md` → `agent.compact` (mémoire compactée)
-  - [ ] `ignoreInitial: true`, `awaitWriteFinish: { stabilityThreshold: 300 }`
+- [x] Watcher sur `~/.openclaw/workspace/memory/` :
+  - [x] `chokidar` sur `*.md` dans le dossier memory
+  - [x] Détecter les nouvelles lignes dans les logs journaliers (`YYYY-MM-DD.md`)
+  - [x] Parser les entrées pour enrichir les events : timestamp, activité type
+  - [x] Détecter les changements dans `MEMORY.md` → `agent.compact` (mémoire compactée)
+  - [x] `ignoreInitial: true`, `awaitWriteFinish: { stabilityThreshold: 300 }`
 
 ### Layer 3 : Process Detection
 
-- [ ] Scanner les processes pour le binary `openclaw` :
-  - [ ] `pgrep -lf openclaw` pour détecter les instances actives
-  - [ ] Tracker les PIDs par session
-  - [ ] Polling toutes les 5 secondes
-  - [ ] Si process apparaît sans `gateway:startup` hook → émettre `session.start` de fallback
+- [x] Scanner les processes pour le binary `openclaw` :
+  - [x] `pgrep -lf openclaw` pour détecter les instances actives
+  - [x] Tracker les PIDs par session
+  - [x] Polling toutes les 5 secondes
+  - [x] Si process apparaît sans `gateway:startup` hook → émettre `session.start` de fallback
 
 ### State Machine OpenClaw
-- [ ] Implémenter la state machine :
+- [x] Implémenter la state machine :
   ```
   session.start → agent.idle
   agent.idle → task.start (on command:new)
@@ -119,10 +119,10 @@ OpenClaw a un système de hooks TypeScript natif très riche, ce qui en fait un 
   ```
 
 ### Tests
-- [ ] Test : parse hook `gateway:startup` → `session.start`
-- [ ] Test : parse hook `command:new` → `task.start` avec extraction message
-- [ ] Test : parse hook `tool_result_persist` → `agent.tool_call` avec toolName
-- [ ] Test : mapping state machine transitions
+- [x] Test : parse hook `gateway:startup` → `session.start`
+- [x] Test : parse hook `command:new` → `task.start` avec extraction message
+- [x] Test : parse hook `tool_result_persist` → `agent.tool_call` avec toolName
+- [x] Test : mapping state machine transitions
 - [ ] 👤 **Test E2E** : lancer une session OpenClaw et valider les events dans le WS
 
 ## Spécifications techniques
@@ -230,17 +230,23 @@ router.post('/hooks/openclaw', (req, res) => {
 
 ## Critères de complétion
 
-- [ ] Hook TypeScript OpenClaw créé et installable via `aisnitch setup openclaw`
-- [ ] Adapter parse les 6 event types OpenClaw
-- [ ] File watcher sur `~/.openclaw/workspace/memory/` actif
-- [ ] Process detection détecte les sessions OpenClaw
-- [ ] State machine transitions correctes
-- [ ] Events arrivent dans le WebSocket en temps réel
+- [x] Hook TypeScript OpenClaw créé et installable via `aisnitch setup openclaw`
+- [x] Adapter parse les 6 event types OpenClaw
+- [x] File watcher sur `~/.openclaw/workspace/memory/` actif
+- [x] Process detection détecte les sessions OpenClaw
+- [x] State machine transitions correctes
+- [x] Events arrivent dans le WebSocket en temps réel
 - [ ] **Testé avec une vraie session OpenClaw** 👤
-- [ ] Tests unitaires passent (min 5 tests)
-- [ ] Code documenté
+- [x] Tests unitaires passent (min 5 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- Implémentation livrée dans `src/adapters/openclaw.ts` avec hooks managés, `commands.log`, transcripts JSONL, memory watchers, et fallback process detection.
+- `aisnitch setup openclaw` active maintenant les hooks internes supportés par la version courante d'OpenClaw au lieu de supposer un bloc webhook outbound inexistant dans les docs actuelles.
+- Recherche Exa effectuée et documentée : la stratégie correcte en 2026 est `hooks.internal` + `command-logger` + `session-memory`, pas un simple bloc `webhooks.aisnitch`.
+- Couverture unitaire ajoutée dans `src/adapters/__tests__/openclaw.test.ts`.
+- Validation réelle OpenClaw encore en attente : le binaire `openclaw` n'est pas installé sur cette machine, donc le dernier check "vraie session" reste volontairement ouvert.

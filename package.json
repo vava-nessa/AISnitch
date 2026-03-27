@@ -1,16 +1,33 @@
 {
   "name": "aisnitch",
   "version": "0.1.0",
-  "description": "Universal bridge for AI coding tool activity — capture, normalize, stream.",
+  "description": "Universal bridge for AI coding tool activity — capture, normalize, and stream live tool events.",
   "keywords": [
     "ai",
+    "agent",
+    "agents",
+    "aisnitch",
+    "claude-code",
     "coding",
+    "codex",
+    "developer-tools",
+    "gemini-cli",
     "monitoring",
     "observability",
+    "opencode",
+    "tui",
     "websocket"
   ],
   "author": "Vanessa Depraute (https://github.com/vava-nessa)",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/vava-nessa/AISnitch#readme",
+  "bugs": {
+    "url": "https://github.com/vava-nessa/AISnitch/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vava-nessa/AISnitch.git"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -36,11 +53,18 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf coverage dist",
+    "formula:update": "node ./scripts/update-homebrew-formula.mjs",
     "lint": "eslint .",
+    "prepublishOnly": "pnpm build && pnpm test",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "packageManager": "pnpm@10.24.0",
   "devDependencies": {
@@ -50,6 +74,7 @@
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
     "@typescript-eslint/parser": "^8.57.2",
+    "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
     "tsup": "^8.5.1",
@@ -65,6 +90,7 @@
     "ink-big-text": "^2.0.0",
     "ink-gradient": "^4.0.0",
     "ink-spinner": "^5.0.0",
+    "json5": "^2.2.3",
     "pid-cwd": "^1.2.0",
     "pino": "^10.3.1",
     "react": "^19.2.4",

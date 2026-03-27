@@ -11,6 +11,7 @@ import {
   CodexSetup,
   GeminiCLISetup,
   GooseSetup,
+  OpenClawSetup,
   OpenCodeSetup,
   parseSetupToolName,
   runSetupCommand,
@@ -38,6 +39,7 @@ describe('setup command helpers', () => {
     expect(parseSetupToolName('codex')).toBe('codex');
     expect(parseSetupToolName('goose')).toBe('goose');
     expect(parseSetupToolName('copilot-cli')).toBe('copilot-cli');
+    expect(parseSetupToolName('openclaw')).toBe('openclaw');
     expect(parseSetupToolName('opencode')).toBe('opencode');
   });
 
@@ -129,6 +131,8 @@ describe('setup command helpers', () => {
       const pluginSource = await readFile(setup.getConfigPath(), 'utf8');
 
       expect(pluginSource).toContain('http://localhost:4821/hooks/opencode');
+      expect(pluginSource).toContain('OBSERVED_SESSION_IDS');
+      expect(pluginSource).toContain('createPayload("task.start"');
       expect(pluginSource).toContain('"tool.execute.before": "agent.tool_call"');
 
       await setup.revert();
@@ -322,6 +326,92 @@ describe('setup command helpers', () => {
       await expect(readFile(scriptPath, 'utf8')).rejects.toThrow();
     } finally {
       await rm(workspaceDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('writes OpenClaw JSON5 hook config plus the managed hook files', async () => {
+    const homeDirectory = await createTempHome();
+    const openclawHomeDirectory = join(homeDirectory, '.openclaw');
+    const configPath = join(openclawHomeDirectory, 'openclaw.json');
+
+    try {
+      await mkdir(openclawHomeDirectory, { recursive: true });
+      await writeFile(
+        configPath,
+        `{
+  // Existing operator config
+  hooks: {
+    internal: {
+      enabled: false,
+      entries: {
+        "command-logger": {
+          enabled: false,
+        },
+      },
+    },
+  },
+}
+`,
+        'utf8',
+      );
+
+      const setup = new OpenClawSetup(4821, {
+        binaryExists: () => Promise.resolve(false),
+        homeDirectory,
+        openclawHomeDirectory,
+      });
+
+      expect(await setup.detect()).toBe(true);
+
+      await setup.apply();
+
+      const nextConfig = JSON.parse(await readFile(configPath, 'utf8')) as {
+        hooks: {
+          internal: {
+            enabled: boolean;
+            entries: Record<string, { enabled: boolean }>;
+          };
+        };
+      };
+      const hookDocumentPath = join(
+        openclawHomeDirectory,
+        'hooks',
+        'aisnitch-forward',
+        'HOOK.md',
+      );
+      const hookHandlerPath = join(
+        openclawHomeDirectory,
+        'hooks',
+        'aisnitch-forward',
+        'handler.ts',
+      );
+
+      expect(nextConfig.hooks.internal.enabled).toBe(true);
+      expect(nextConfig.hooks.internal.entries['aisnitch-forward']).toEqual({
+        enabled: true,
+      });
+      expect(nextConfig.hooks.internal.entries['command-logger']).toEqual({
+        enabled: true,
+      });
+      expect(nextConfig.hooks.internal.entries['session-memory']).toEqual({
+        enabled: true,
+      });
+      expect(await readFile(hookDocumentPath, 'utf8')).toContain(
+        'Forward key OpenClaw lifecycle events to AISnitch',
+      );
+      expect(await readFile(hookHandlerPath, 'utf8')).toContain(
+        'http://localhost:4821/hooks/openclaw',
+      );
+
+      await setup.revert();
+
+      expect(await readFile(configPath, 'utf8')).toContain(
+        'Existing operator config',
+      );
+      await expect(readFile(hookDocumentPath, 'utf8')).rejects.toThrow();
+      await expect(readFile(hookHandlerPath, 'utf8')).rejects.toThrow();
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
     }
   });
 

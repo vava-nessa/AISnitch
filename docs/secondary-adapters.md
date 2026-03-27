@@ -153,6 +153,32 @@ The heuristics intentionally stay explainable:
 
 When a daemon is already running, `wrap` forwards events into that daemon over the local UDS ingress. When no daemon is running, AISnitch spins up a temporary in-process pipeline with a local text monitor so the wrapped session is still observable without background setup.
 
+## OpenClaw
+
+`src/adapters/openclaw.ts` closes the secondary-adapter pass with a layered OpenClaw integration built around the signals that currently exist in the real product:
+
+- managed global hooks under `~/.openclaw/hooks/aisnitch-forward/`
+- built-in `command-logger` output in `~/.openclaw/logs/commands.log`
+- transcript JSONL files under `~/.openclaw/agents/*/sessions/*.jsonl`
+- workspace memory markdown under `~/.openclaw/workspace*/memory/`
+- `pgrep -ifl openclaw` process fallback
+
+That stack matters because OpenClaw's current public docs expose rich hooks and workspace state, but not a stable native outbound AISnitch-style webhook section. AISnitch therefore installs one managed hook instead of pretending a nonexistent config block is available.
+
+The adapter maps OpenClaw activity like this:
+
+- `gateway:startup` / `agent:bootstrap` -> `session.start` + `agent.idle`
+- `command:new` / `/new` -> `task.start`
+- `tool_result_persist` -> `agent.tool_call` or `agent.coding`
+- `before_compaction` / `session:compact:before` -> `agent.compact`
+- `/stop` -> `task.complete`
+- `/reset` / `gateway:shutdown` -> `session.end`
+- memory file mutations -> `agent.compact` hints
+- transcript assistant text -> `agent.streaming`
+- transcript thinking-like entries -> `agent.thinking`
+
+The OpenCode and OpenClaw adapters now share one useful product lesson: tools do not always emit clean lifecycle events at the exact moment an observer wants them. AISnitch therefore infers the missing edges conservatively instead of waiting forever for a theoretically perfect hook.
+
 ## Validation Notes
 
 This pass adds automated coverage for:
@@ -171,5 +197,6 @@ This pass adds automated coverage for:
 - Aider markdown parsing and process-driven session discovery
 - Aider setup command support for `notifications-command`
 - Generic PTY heuristics plus CLI `wrap` argument passthrough
+- OpenClaw hook mapping, command-log parsing, transcript watching, memory watching, and process fallback detection
 
 What remains for later task groups is the rest of the secondary-adapter backlog, not missing core infrastructure for Goose or Copilot CLI.

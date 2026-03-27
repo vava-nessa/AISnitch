@@ -8,8 +8,8 @@ Publier AISnitch sur npm et Homebrew. Préparer les guides, la communauté, et l
 
 ## Sous-tâches
 
-- [ ] [01 — npm & Homebrew](./01_distribution_npm-homebrew.md) — Publication npm + Homebrew tap
-- [ ] [02 — Docs, Community & Launch](./02_distribution_docs-launch.md) — README final, guides, launch plan
+- [ ] [01 — npm & Homebrew](./01_distribution_npm-homebrew.md) — Packaging local + formula + workflows prêts, publication npm/tap GitHub encore pending
+- [ ] [02 — Docs, Community & Launch](./02_distribution_docs-launch.md) — README final + GIF + examples + templates livrés, validation messaging/GitHub settings encore pending
 
 ## Dépendances
 

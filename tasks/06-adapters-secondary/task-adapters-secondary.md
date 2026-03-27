@@ -11,7 +11,7 @@
 - [x] [01 — Gemini CLI & Codex](./01_adapters-secondary_gemini-codex_DONE.md) — Hooks + stream-json/log watching + passive setup
 - [x] [02 — Goose & Copilot CLI](./02_adapters-secondary_goose-copilot_DONE.md) — API/SSE goosed + SQLite fallback + hooks/session-state Copilot
 - [x] [03 — Aider & Generic PTY](./03_adapters-secondary_aider-pty_DONE.md) — File watching + `notifications-command` + PTY fallback universel
-- [ ] [04 — OpenClaw](./04_adapters-secondary_openclaw.md) — Gateway TypeScript hooks + workspace memory watcher (247k⭐ GitHub)
+- [ ] [04 — OpenClaw](./04_adapters-secondary_openclaw.md) — Implémenté (hooks + commands.log + transcripts + memory + process fallback), validation sur vrai binaire OpenClaw encore pending
 
 ## Dépendances
 

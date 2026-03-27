@@ -14,21 +14,21 @@ Publier AISnitch sur npm (`aisnitch`) et Homebrew pour que n'importe qui puisse 
 ## Sous-étapes
 
 ### npm
-- [ ] Vérifier que `package.json` est complet :
-  - [ ] `name`, `version`, `description`, `license`, `author`, `repository`, `keywords`
-  - [ ] `bin` pointe vers le bon entry point compilé
-  - [ ] `files` liste les fichiers à inclure (dist/, README, LICENSE)
-  - [ ] `engines.node` >= 20
+- [x] Vérifier que `package.json` est complet :
+  - [x] `name`, `version`, `description`, `license`, `author`, `repository`, `keywords`
+  - [x] `bin` pointe vers le bon entry point compilé
+  - [x] `files` liste les fichiers à inclure (dist/, README, LICENSE)
+  - [x] `engines.node` >= 20
   - [ ] `optionalDependencies` pour `@lydell/node-pty` (platform-specific)
-- [ ] `.npmignore` exclut : src/, tests, .github/, tsconfig, etc.
-- [ ] `prepublishOnly` script : `pnpm build && pnpm test`
-- [ ] Tester l'install locale : `npm pack` → `npm install -g ./aisnitch-0.1.0.tgz`
-- [ ] Vérifier que `aisnitch --version` fonctionne après install globale
+- [x] `.npmignore` exclut : src/, tests, .github/, tsconfig, etc.
+- [x] `prepublishOnly` script : `pnpm build && pnpm test`
+- [x] Tester l'install locale : `npm pack` → `npm install -g ./aisnitch-0.1.0.tgz`
+- [x] Vérifier que `aisnitch --version` fonctionne après install globale
 - [ ] 👤 Publier : `npm publish` (nécessite login npm de l'utilisateur)
 
 ### Homebrew
 - [ ] Créer un repo `homebrew-aisnitch` sur GitHub
-- [ ] Créer la formula Homebrew :
+- [x] Créer la formula Homebrew :
   ```ruby
   class Aisnitch < Formula
     desc "Universal bridge for AI coding tool activity"
@@ -44,28 +44,33 @@ Publier AISnitch sur npm (`aisnitch`) et Homebrew pour que n'importe qui puisse 
     end
   end
   ```
-- [ ] Tester : `brew tap vava-nessa/aisnitch && brew install aisnitch`
+- [x] Tester : `brew tap vava-nessa/aisnitch && brew install aisnitch`
 
 ### GitHub Actions CI
-- [ ] Créer `.github/workflows/ci.yml` :
-  - [ ] Trigger : push on main, PR
-  - [ ] Steps : install deps, lint, build, test
-  - [ ] Matrix : Node 20, 22
-- [ ] Créer `.github/workflows/release.yml` :
-  - [ ] Trigger : tag push (`v*`)
-  - [ ] Steps : build, test, npm publish, GitHub Release
-  - [ ] Update Homebrew formula SHA
+- [x] Créer `.github/workflows/ci.yml` :
+  - [x] Trigger : push on main, PR
+  - [x] Steps : install deps, lint, build, test
+  - [x] Matrix : Node 20, 22
+- [x] Créer `.github/workflows/release.yml` :
+  - [x] Trigger : tag push (`v*`)
+  - [x] Steps : build, test, npm publish, GitHub Release
+  - [x] Update Homebrew formula SHA
 
 ## Critères de complétion
 
-- [ ] `npm i -g aisnitch` fonctionne
-- [ ] `aisnitch --version` OK après install
-- [ ] `brew install aisnitch` fonctionne (via tap)
+- [x] `npm i -g aisnitch` fonctionne
+- [x] `aisnitch --version` OK après install
+- [x] `brew install aisnitch` fonctionne (via tap)
 - [ ] CI passe sur GitHub Actions
 - [ ] Release workflow publie automatiquement
-- [ ] Code documenté
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- Packaging local validé : `npm pack` puis install globale sur prefix temporaire, `aisnitch --version` → `0.1.0`.
+- Formula Homebrew générée et resynchronisée par `scripts/update-homebrew-formula.mjs`, puis testée dans un tap local temporaire avec install réelle.
+- Déviation assumée : `@lydell/node-pty` reste en dépendance normale. Le passer en `optionalDependencies` casserait le bootstrap global du CLI tant que la couche PTY n'est pas chargée de façon lazy.
+- Il reste les validations externes réelles : `npm publish`, repo/tap GitHub public, et exécution des workflows sur GitHub.

@@ -6,6 +6,8 @@ import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { promisify } from 'node:util';
 
+import JSON5 from 'json5';
+
 import {
   loadConfig,
   saveConfig,
@@ -21,7 +23,7 @@ import {
  *   → parseSetupToolName
  *   → createToolSetup
  *   → runSetupCommand
- * @exports SetupToolName, SetupCliOptions, SetupOutput, ToolSetup, ClaudeCodeSetup, GeminiCLISetup, AiderSetup, GooseSetup, CodexSetup, CopilotCLISetup, OpenCodeSetup, parseSetupToolName, createToolSetup, runSetupCommand
+ * @exports SetupToolName, SetupCliOptions, SetupOutput, ToolSetup, ClaudeCodeSetup, GeminiCLISetup, AiderSetup, GooseSetup, CodexSetup, CopilotCLISetup, OpenClawSetup, OpenCodeSetup, parseSetupToolName, createToolSetup, runSetupCommand
  * @see ../program.ts
  * @see ../runtime.ts
 */
@@ -36,6 +38,7 @@ const SETUP_TOOL_NAMES = [
   'codex',
   'goose',
   'copilot-cli',
+  'openclaw',
 ] as const;
 const ANSI_RESET = '\u001B[0m';
 const ANSI_RED = '\u001B[31m';
@@ -139,6 +142,23 @@ interface CopilotHooksFile extends Record<string, unknown> {
   readonly version: number;
 }
 
+interface OpenClawHookEntryConfig extends Record<string, unknown> {
+  readonly enabled?: boolean;
+}
+
+interface OpenClawInternalHooksConfig extends Record<string, unknown> {
+  readonly enabled?: boolean;
+  readonly entries?: Record<string, OpenClawHookEntryConfig>;
+}
+
+interface OpenClawHooksConfig extends Record<string, unknown> {
+  readonly internal?: OpenClawInternalHooksConfig;
+}
+
+interface OpenClawSettings extends Record<string, unknown> {
+  readonly hooks?: OpenClawHooksConfig;
+}
+
 interface ToolSetupDependencies {
   readonly aiderConfigPath?: string;
   readonly binaryExists?: (binaryName: string) => Promise<boolean>;
@@ -149,6 +169,7 @@ interface ToolSetupDependencies {
   readonly opencodeConfigDirectory?: string;
   readonly codexHomeDirectory?: string;
   readonly gooseHomeDirectory?: string;
+  readonly openclawHomeDirectory?: string;
   readonly workspaceDirectory?: string;
   readonly output?: SetupOutput;
 }
@@ -735,6 +756,168 @@ export class CopilotCLISetup implements ToolSetup {
 }
 
 /**
+ * OpenClaw currently documents managed hooks plus bundled hook toggles, not a
+ * native outbound AISnitch webhook block. AISnitch therefore installs one
+ * managed hook directory and enables the relevant internal hooks in JSON5 config.
+ */
+export class OpenClawSetup implements ToolSetup {
+  private readonly binaryExists: (binaryName: string) => Promise<boolean>;
+
+  private readonly configPath: string;
+
+  private readonly hookDirectory: string;
+
+  private readonly hookDocumentPath: string;
+
+  private readonly hookHandlerPath: string;
+
+  private readonly hookUrl: string;
+
+  private readonly openclawHomeDirectory: string;
+
+  public readonly toolName = 'openclaw' as const;
+
+  public constructor(
+    httpPort: number,
+    dependencies: ToolSetupDependencies = {},
+  ) {
+    this.binaryExists = dependencies.binaryExists ?? isBinaryAvailable;
+    this.openclawHomeDirectory =
+      dependencies.openclawHomeDirectory ??
+      join(dependencies.homeDirectory ?? homedir(), '.openclaw');
+    this.configPath = join(this.openclawHomeDirectory, 'openclaw.json');
+    this.hookDirectory = join(
+      this.openclawHomeDirectory,
+      'hooks',
+      'aisnitch-forward',
+    );
+    this.hookDocumentPath = join(this.hookDirectory, 'HOOK.md');
+    this.hookHandlerPath = join(this.hookDirectory, 'handler.ts');
+    this.hookUrl = `http://localhost:${httpPort}/hooks/openclaw`;
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('openclaw')) ||
+      (await fileExists(this.openclawHomeDirectory)) ||
+      (await fileExists('/Applications/OpenClaw.app'))
+    );
+  }
+
+  public getConfigPath(): string {
+    return this.configPath;
+  }
+
+  public async computeDiff(): Promise<string> {
+    const currentConfigContent = await readOptionalFile(this.configPath);
+    const currentHookDocument = await readOptionalFile(this.hookDocumentPath);
+    const currentHookHandler = await readOptionalFile(this.hookHandlerPath);
+    const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
+    const nextHookDocument = buildOpenClawHookDocumentSource();
+    const nextHookHandler = buildOpenClawHookHandlerSource(this.hookUrl);
+
+    return [
+      renderColoredDiff(
+        this.configPath,
+        currentConfigContent,
+        nextConfigContent,
+      ),
+      '',
+      renderColoredDiff(
+        this.hookDocumentPath,
+        currentHookDocument,
+        nextHookDocument,
+      ),
+      '',
+      renderColoredDiff(
+        this.hookHandlerPath,
+        currentHookHandler,
+        nextHookHandler,
+      ),
+    ].join('\n');
+  }
+
+  public async apply(): Promise<void> {
+    const currentConfigContent = await readOptionalFile(this.configPath);
+    const currentHookDocument = await readOptionalFile(this.hookDocumentPath);
+    const currentHookHandler = await readOptionalFile(this.hookHandlerPath);
+    const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
+    const nextHookDocument = buildOpenClawHookDocumentSource();
+    const nextHookHandler = buildOpenClawHookHandlerSource(this.hookUrl);
+
+    await mkdir(dirname(this.configPath), { recursive: true });
+    await mkdir(this.hookDirectory, { recursive: true });
+
+    if (currentConfigContent !== null) {
+      await copyFile(this.configPath, this.getBackupPath(this.configPath));
+    }
+
+    if (currentHookDocument !== null) {
+      await copyFile(
+        this.hookDocumentPath,
+        this.getBackupPath(this.hookDocumentPath),
+      );
+    }
+
+    if (currentHookHandler !== null) {
+      await copyFile(
+        this.hookHandlerPath,
+        this.getBackupPath(this.hookHandlerPath),
+      );
+    }
+
+    await writeFile(this.configPath, nextConfigContent, 'utf8');
+    await writeFile(this.hookDocumentPath, nextHookDocument, 'utf8');
+    await writeFile(this.hookHandlerPath, nextHookHandler, 'utf8');
+  }
+
+  public async revert(): Promise<void> {
+    await restoreBackupOrRemove(this.configPath);
+    await restoreBackupOrRemove(this.hookDocumentPath);
+    await restoreBackupOrRemove(this.hookHandlerPath);
+  }
+
+  private buildNextConfigContent(currentContent: string | null): string {
+    const parsedConfig = parseOpenClawSettings(currentContent);
+    const currentHooks = parsedConfig.hooks ?? {};
+    const currentInternalHooks = currentHooks.internal ?? {};
+    const currentEntries = currentInternalHooks.entries ?? {};
+    const nextEntries: Record<string, OpenClawHookEntryConfig> = {
+      ...currentEntries,
+      'aisnitch-forward': {
+        ...(currentEntries['aisnitch-forward'] ?? {}),
+        enabled: true,
+      },
+      'command-logger': {
+        ...(currentEntries['command-logger'] ?? {}),
+        enabled: true,
+      },
+      'session-memory': {
+        ...(currentEntries['session-memory'] ?? {}),
+        enabled: true,
+      },
+    };
+    const nextConfig: OpenClawSettings = {
+      ...parsedConfig,
+      hooks: {
+        ...currentHooks,
+        internal: {
+          ...currentInternalHooks,
+          enabled: true,
+          entries: nextEntries,
+        },
+      },
+    };
+
+    return `${JSON.stringify(nextConfig, null, 2)}\n`;
+  }
+
+  private getBackupPath(path: string): string {
+    return `${path}.bak`;
+  }
+}
+
+/**
  * Creates one concrete setup implementation for the selected tool.
  */
 export async function createToolSetup(
@@ -767,6 +950,10 @@ export async function createToolSetup(
 
   if (toolName === 'copilot-cli') {
     return new CopilotCLISetup(httpPort, dependencies);
+  }
+
+  if (toolName === 'openclaw') {
+    return new OpenClawSetup(httpPort, dependencies);
   }
 
   if (toolName === 'opencode') {
@@ -846,8 +1033,6 @@ function buildOpenCodePluginSource(hookUrl: string): string {
 const AISNITCH_ENDPOINT = ${JSON.stringify(hookUrl)};
 
 const EVENT_TYPE_MAP = {
-  "message.part.updated": "agent.streaming",
-  "message.updated": "agent.streaming",
   "permission.asked": "agent.asking_user",
   "session.compacted": "agent.compact",
   "session.created": "session.start",
@@ -858,9 +1043,16 @@ const EVENT_TYPE_MAP = {
 };
 
 let sequenceNumber = 0;
+const OBSERVED_SESSION_IDS = new Set();
+const MESSAGE_ROLE_BY_ID = new Map();
+const STARTED_MESSAGE_IDS = new Set();
 
 function getRecord(value) {
   return typeof value === "object" && value !== null ? value : {};
+}
+
+function getString(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
 function getPathTail(value) {
@@ -925,11 +1117,78 @@ function getSessionId(event, fallbackDirectory) {
   return "opencode:" + scope + ":" + pid;
 }
 
-function getEventData(event, fallbackDirectory) {
+function getMessageId(event) {
+  const properties = getRecord(event.properties);
+  const info = getRecord(properties.info);
+  const part = getRecord(properties.part);
+
+  return (
+    getString(info.id) ??
+    getString(part.messageID) ??
+    getString(part.messageId)
+  );
+}
+
+function getMessageRole(event) {
+  const properties = getRecord(event.properties);
+  const info = getRecord(properties.info);
+
+  return getString(info.role);
+}
+
+function getMessageText(event) {
+  const properties = getRecord(event.properties);
+  const part = getRecord(properties.part);
+
+  return (
+    getString(part.text) ??
+    getString(event.text) ??
+    getString(getRecord(properties.message).text)
+  );
+}
+
+function getToolInput(event) {
   const payload = getRecord(event);
   const properties = getRecord(payload.properties);
+  const output = getRecord(payload.output);
+  const args = getRecord(payload.args);
+  const outputArgs = getRecord(output.args);
+  const propertyArgs = getRecord(properties.args);
+  const sourceArgs = Object.keys(args).length > 0
+    ? args
+    : Object.keys(outputArgs).length > 0
+      ? outputArgs
+      : propertyArgs;
+  const command = getString(sourceArgs.command) ?? getString(sourceArgs.cmd);
+  const filePath =
+    getString(sourceArgs.filePath) ??
+    getString(sourceArgs.file_path) ??
+    getString(sourceArgs.path);
+
+  if (!command && !filePath) {
+    return undefined;
+  }
+
+  return {
+    command,
+    filePath
+  };
+}
+
+function getEventData(event, fallbackDirectory, overrides = {}) {
+  const payload = getRecord(event);
+  const properties = getRecord(payload.properties);
+  const info = getRecord(properties.info);
+  const infoPath = getRecord(info.path);
+  const infoTokens = getRecord(info.tokens);
   const tool = getRecord(payload.tool);
   const error = getRecord(payload.error);
+  const toolInput = getToolInput(event);
+  const inputTokens = typeof infoTokens.input === "number" ? infoTokens.input : 0;
+  const outputTokens = typeof infoTokens.output === "number" ? infoTokens.output : 0;
+  const reasoningTokens = typeof infoTokens.reasoning === "number" ? infoTokens.reasoning : 0;
+  const tokensUsed = inputTokens + outputTokens + reasoningTokens;
+  const rawOverrides = getRecord(overrides.raw);
 
   return {
     activeFile:
@@ -937,44 +1196,49 @@ function getEventData(event, fallbackDirectory) {
         ? payload.file
         : typeof properties.file === "string"
           ? properties.file
-          : undefined,
+          : toolInput?.filePath,
     cwd:
       typeof payload.cwd === "string"
         ? payload.cwd
         : typeof properties.cwd === "string"
           ? properties.cwd
-          : fallbackDirectory,
+          : getString(infoPath.cwd) ??
+            getString(infoPath.root) ??
+            fallbackDirectory,
     errorMessage:
       typeof error.message === "string"
         ? error.message
         : typeof payload.message === "string"
           ? payload.message
           : undefined,
+    model:
+      getString(info.modelID)
+        ? ((getString(info.providerID) ?? "unknown") + "/" + getString(info.modelID))
+        : undefined,
     project:
       typeof payload.project === "string"
         ? payload.project
-        : typeof properties.project === "string"
+        : getString(properties.project)
           ? properties.project
-          : undefined,
-    raw: {
-      opencodeEvent: event
-    },
+          : typeof infoPath.root === "string"
+            ? getPathTail(infoPath.root)
+            : undefined,
+    tokensUsed: tokensUsed > 0 ? tokensUsed : undefined,
+    toolInput,
     toolName:
       typeof tool.name === "string"
         ? tool.name
         : typeof payload.tool === "string"
           ? payload.tool
-          : undefined
+          : undefined,
+    raw: {
+      opencodeEvent: event,
+      ...rawOverrides
+    }
   };
 }
 
-function buildPayload(event, fallbackDirectory) {
-  const mappedType = EVENT_TYPE_MAP[event.type];
-
-  if (!mappedType) {
-    return null;
-  }
-
+function createPayload(type, event, fallbackDirectory, overrides) {
   sequenceNumber += 1;
 
   return {
@@ -987,9 +1251,85 @@ function buildPayload(event, fallbackDirectory) {
     seqnum: sequenceNumber,
     sessionId: getSessionId(event, fallbackDirectory),
     source: "aisnitch://plugins/opencode",
-    type: mappedType,
-    data: getEventData(event, fallbackDirectory)
+    type,
+    data: getEventData(event, fallbackDirectory, overrides)
   };
+}
+
+function buildPayloads(event, fallbackDirectory) {
+  const eventType = getString(event.type);
+
+  if (!eventType) {
+    return [];
+  }
+
+  const payloads = [];
+  const sessionId = getSessionId(event, fallbackDirectory);
+
+  if (eventType === "session.updated" && !OBSERVED_SESSION_IDS.has(sessionId)) {
+    OBSERVED_SESSION_IDS.add(sessionId);
+    payloads.push(createPayload("session.start", event, fallbackDirectory));
+    return payloads;
+  }
+
+  if (eventType === "message.updated") {
+    const messageId = getMessageId(event);
+    const role = getMessageRole(event);
+
+    if (messageId && role) {
+      MESSAGE_ROLE_BY_ID.set(messageId, role);
+    }
+
+    if (role === "assistant") {
+      payloads.push(createPayload("agent.streaming", event, fallbackDirectory));
+    }
+
+    return payloads;
+  }
+
+  if (eventType === "message.part.updated") {
+    const messageId = getMessageId(event);
+    const role = messageId ? MESSAGE_ROLE_BY_ID.get(messageId) : undefined;
+    const text = getMessageText(event);
+
+    if (role === "user") {
+      if (messageId && !STARTED_MESSAGE_IDS.has(messageId)) {
+        STARTED_MESSAGE_IDS.add(messageId);
+        payloads.push(
+          createPayload("task.start", event, fallbackDirectory, {
+            raw: {
+              prompt: text
+            }
+          })
+        );
+      }
+
+      return payloads;
+    }
+
+    payloads.push(
+      createPayload("agent.streaming", event, fallbackDirectory, {
+        raw: {
+          streamingText: text
+        }
+      })
+    );
+
+    return payloads;
+  }
+
+  const mappedType = EVENT_TYPE_MAP[eventType];
+
+  if (!mappedType) {
+    return payloads;
+  }
+
+  if (mappedType === "session.start") {
+    OBSERVED_SESSION_IDS.add(sessionId);
+  }
+
+  payloads.push(createPayload(mappedType, event, fallbackDirectory));
+  return payloads;
 }
 
 async function postPayload(payload) {
@@ -1009,13 +1349,9 @@ async function postPayload(payload) {
 export const AISnitchPlugin = async ({ directory }) => {
   return {
     event: async ({ event }) => {
-      const payload = buildPayload(event, directory);
-
-      if (!payload) {
-        return;
+      for (const payload of buildPayloads(event, directory)) {
+        await postPayload(payload);
       }
-
-      await postPayload(payload);
     }
   };
 };
@@ -1283,6 +1619,188 @@ async function main() {
 
 void main();
 `;
+}
+
+function buildOpenClawHookDocumentSource(): string {
+  return `---
+name: aisnitch-forward
+description: "Forward key OpenClaw lifecycle events to AISnitch"
+metadata:
+  {
+    "openclaw": {
+      "emoji": "🛰️",
+      "events": [
+        "gateway:startup",
+        "agent:bootstrap",
+        "command:new",
+        "command:reset",
+        "command:stop",
+        "session:compact:before"
+      ]
+    }
+  }
+---
+
+# AISnitch Forwarder
+
+📖 This managed hook forwards high-signal OpenClaw lifecycle events into the
+local AISnitch HTTP receiver. Tool-result details are complemented by AISnitch's
+transcript watcher, while this hook covers startup, command, reset, stop, and
+pre-compaction lifecycle changes with near-zero latency.
+`;
+}
+
+function buildOpenClawHookHandlerSource(hookUrl: string): string {
+  return `/**
+ * AISnitch OpenClaw managed hook
+ *
+ * 📖 OpenClaw's current public docs describe managed hooks plus bundled
+ * command/session hooks. This handler forwards those lifecycle events to the
+ * local AISnitch HTTP ingress and stays fire-and-forget so OpenClaw never
+ * blocks on observability.
+ */
+
+const AISNITCH_ENDPOINT = ${JSON.stringify(hookUrl)};
+const ENABLED_EVENTS = new Set([
+  "gateway:startup",
+  "agent:bootstrap",
+  "command:new",
+  "command:reset",
+  "command:stop",
+  "session:compact:before"
+]);
+
+function getRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value
+    : {};
+}
+
+function getEventName(event) {
+  if (typeof event.event === "string" && event.event.length > 0) {
+    return event.event;
+  }
+
+  if (typeof event.type !== "string" || event.type.length === 0) {
+    return undefined;
+  }
+
+  if (typeof event.action !== "string" || event.action.length === 0) {
+    return event.type;
+  }
+
+  if (event.type === "command" && !event.action.startsWith("/") && !event.action.includes(":")) {
+    return "command:" + event.action;
+  }
+
+  return event.type + ":" + event.action;
+}
+
+function getPrimaryMessage(event) {
+  const context = getRecord(event.context);
+
+  if (typeof event.message === "string" && event.message.length > 0) {
+    return event.message;
+  }
+
+  if (typeof context.content === "string" && context.content.length > 0) {
+    return context.content;
+  }
+
+  if (typeof context.bodyForAgent === "string" && context.bodyForAgent.length > 0) {
+    return context.bodyForAgent;
+  }
+
+  if (typeof context.body === "string" && context.body.length > 0) {
+    return context.body;
+  }
+
+  if (Array.isArray(event.messages) && typeof event.messages[0] === "string") {
+    return event.messages[0];
+  }
+
+  return undefined;
+}
+
+async function postPayload(payload) {
+  try {
+    await fetch(AISNITCH_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    // Ignore local transport failures so OpenClaw keeps running.
+  }
+}
+
+export default async function aisnitchForward(event) {
+  const eventName = getEventName(getRecord(event));
+
+  if (!eventName || !ENABLED_EVENTS.has(eventName)) {
+    return;
+  }
+
+  const context = getRecord(event.context);
+
+  await postPayload({
+    action: typeof event.action === "string" ? event.action : undefined,
+    context,
+    cwd:
+      typeof context.workspaceDir === "string"
+        ? context.workspaceDir
+        : typeof context.cwd === "string"
+          ? context.cwd
+          : undefined,
+    event: eventName,
+    message: getPrimaryMessage(getRecord(event)),
+    messages: Array.isArray(event.messages) ? event.messages : undefined,
+    pid: typeof process !== "undefined" ? process.pid : undefined,
+    raw: event,
+    sessionKey:
+      typeof event.sessionKey === "string" && event.sessionKey.length > 0
+        ? event.sessionKey
+        : typeof context.sessionKey === "string" && context.sessionKey.length > 0
+          ? context.sessionKey
+          : undefined,
+    timestamp:
+      event.timestamp instanceof Date
+        ? event.timestamp.toISOString()
+        : typeof event.timestamp === "string"
+          ? event.timestamp
+          : undefined,
+    type: typeof event.type === "string" ? event.type : undefined
+  });
+}
+`;
+}
+
+function parseOpenClawSettings(currentContent: string | null): OpenClawSettings {
+  if (currentContent === null || currentContent.trim().length === 0) {
+    return {};
+  }
+
+  const parsedConfig: unknown = JSON5.parse(currentContent);
+
+  if (!isRecord(parsedConfig)) {
+    throw new Error('OpenClaw openclaw.json must contain an object.');
+  }
+
+  if (parsedConfig.hooks !== undefined && !isRecord(parsedConfig.hooks)) {
+    throw new Error('OpenClaw hooks config must be an object when present.');
+  }
+
+  if (
+    isRecord(parsedConfig.hooks) &&
+    parsedConfig.hooks.internal !== undefined &&
+    !isRecord(parsedConfig.hooks.internal)
+  ) {
+    throw new Error('OpenClaw hooks.internal config must be an object when present.');
+  }
+
+  return parsedConfig;
 }
 
 function parseClaudeSettings(currentContent: string | null): ClaudeSettings {

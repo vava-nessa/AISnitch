@@ -63,6 +63,11 @@ import {
   type SetupOutput,
   type SetupToolName,
 } from './commands/setup.js';
+import {
+  runMockScenario,
+  type MockCommandOptions,
+  type MockToolSelection,
+} from './commands/mock.js';
 
 /**
  * @file src/cli/runtime.ts
@@ -72,7 +77,7 @@ import {
  *   → parsePortOption
  *   → parseLogLevelOption
  *   → buildLaunchAgentPlist
- * @exports CliOutput, CommonCliOptions, AttachCliOptions, StartCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, parseToolFilterOption, parseEventTypeFilterOption, parseTuiViewModeOption, buildLaunchAgentPlist
+ * @exports CliOutput, CommonCliOptions, AttachCliOptions, StartCliOptions, MockCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, parseToolFilterOption, parseEventTypeFilterOption, parseTuiViewModeOption, buildLaunchAgentPlist
  * @see ./pid.ts
  * @see ../tui/live-monitor.ts
  * @see ../core/engine/pipeline.ts
@@ -114,8 +119,17 @@ export interface StartCliOptions extends AttachCliOptions {
   readonly daemon?: boolean;
   readonly httpPort?: number;
   readonly logLevel?: AISnitchConfig['logLevel'];
+  readonly mock?: MockToolSelection;
+  readonly mockDuration?: number;
+  readonly mockLoop?: boolean;
+  readonly mockSpeed?: number;
   readonly wsPort?: number;
 }
+
+/**
+ * Options accepted by `aisnitch mock`.
+ */
+export interface MockCliOptions extends CommonCliOptions, MockCommandOptions {}
 
 /**
  * Options accepted by `aisnitch wrap`.
@@ -132,6 +146,10 @@ export interface CliRuntime {
   readonly aiderNotify: (options: CommonCliOptions) => Promise<void>;
   readonly attach: (options: AttachCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
+  readonly mock: (
+    selection: MockToolSelection,
+    options: MockCliOptions,
+  ) => Promise<void>;
   readonly runDaemonProcess: (options: StartCliOptions) => Promise<void>;
   readonly setup: (
     toolName: SetupToolName,
@@ -331,6 +349,41 @@ export function createCliRuntime(
     return !isProcessRunning(pid);
   }
 
+  function startMockEmitter(
+    pipeline: Pipeline,
+    options: StartCliOptions,
+  ): void {
+    if (!options.mock) {
+      return;
+    }
+
+    const speed = options.mockSpeed ?? 1;
+    const durationSeconds = options.mockDuration ?? 60;
+    const loop = options.mockLoop ?? false;
+
+    output.stdout(
+      `Starting mock scenario ${options.mock} (${speed}x, ${durationSeconds}s${loop ? ', loop' : ''}).\n`,
+    );
+
+    void runMockScenario({
+      durationSeconds,
+      loop,
+      publishEvent: async (event) => {
+        return await pipeline.publishEvent(event);
+      },
+      selection: options.mock,
+      speed,
+    }).then((result) => {
+      output.stdout(
+        `Mock scenario ${options.mock} published ${result.publishedEvents} events across ${result.loopCount} loop(s).\n`,
+      );
+    }).catch((error: unknown) => {
+      output.stderr(
+        `Mock scenario failed: ${error instanceof Error ? error.message : 'unknown error'}\n`,
+      );
+    });
+  }
+
   async function runPipelineHeadless(
     options: StartCliOptions,
     daemonMode: boolean,
@@ -344,6 +397,8 @@ export function createCliRuntime(
       config,
       ...pathOptions,
     });
+
+    startMockEmitter(pipeline, options);
 
     if (daemonMode) {
       const daemonPathOptions = toPathOptions(options);
@@ -577,6 +632,97 @@ export function createCliRuntime(
     });
   }
 
+  async function mock(
+    selection: MockToolSelection,
+    options: MockCliOptions,
+  ): Promise<void> {
+    const pathOptions = toPathOptions(options);
+    const daemonState = await readDaemonState(pathOptions);
+    const daemonPid = await readPid(pathOptions);
+    const daemonAvailable =
+      daemonState !== null &&
+      daemonPid !== null &&
+      isProcessRunning(daemonPid) &&
+      daemonState.socketPath !== null;
+
+    if (daemonAvailable) {
+      const socketPublisher = await createSocketEventPublisher(
+        daemonState.socketPath ?? joinSocketPath(pathOptions),
+      );
+
+      try {
+        output.stdout(
+          `Streaming mock scenario ${selection} into the running AISnitch daemon.\n`,
+        );
+
+        const result = await runMockScenario({
+          durationSeconds: options.duration ?? 60,
+          loop: options.loop ?? false,
+          publishEvent: async (event) => {
+            return await socketPublisher.publish(event);
+          },
+          selection,
+          speed: options.speed ?? 1,
+        });
+
+        output.stdout(
+          `Published ${result.publishedEvents} mock events across ${result.loopCount} loop(s).\n`,
+        );
+      } finally {
+        await socketPublisher.close();
+      }
+
+      return;
+    }
+
+    const { config } = await loadEffectiveConfig(options);
+
+    setLoggerLevel(getForegroundSafeLogLevel(config.logLevel, false));
+
+    const ephemeralHomeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-mock-'));
+    const ephemeralPipeline = new Pipeline();
+    const status = await ephemeralPipeline.start({
+      config: {
+        ...config,
+        adapters: {},
+      },
+      homeDirectory: ephemeralHomeDirectory,
+      ...pathOptions,
+    });
+    const monitorClose = attachEventBusMonitor(ephemeralPipeline.getEventBus(), {
+      stderr: (text) => {
+        output.stderr(prefixMonitorText(text));
+      },
+      stdout: (text) => {
+        output.stderr(prefixMonitorText(text));
+      },
+    });
+
+    output.stdout(
+      `AISnitch mock started an ephemeral local pipeline on ws://127.0.0.1:${status.wsPort}\n`,
+    );
+
+    try {
+      const result = await runMockScenario({
+        durationSeconds: options.duration ?? 60,
+        loop: options.loop ?? false,
+        publishEvent: async (event) => {
+          return await ephemeralPipeline.publishEvent(event);
+        },
+        selection,
+        speed: options.speed ?? 1,
+      });
+
+      output.stdout(
+        `Published ${result.publishedEvents} mock events across ${result.loopCount} loop(s).\n`,
+      );
+    } finally {
+      await Promise.resolve(monitorClose());
+      await ephemeralPipeline.stop();
+      await rm(ephemeralHomeDirectory, { force: true, recursive: true });
+    }
+  }
+
   async function install(options: CommonCliOptions): Promise<void> {
     if (process.platform !== 'darwin') {
       throw new Error('LaunchAgent install is currently supported on macOS only.');
@@ -795,6 +941,7 @@ export function createCliRuntime(
     aiderNotify,
     attach,
     install,
+    mock,
     runDaemonProcess,
     setup,
     start,
@@ -1060,6 +1207,22 @@ function toDaemonArgv(options: StartCliOptions): string[] {
 
   if (options.logLevel !== undefined) {
     args.push('--log-level', options.logLevel);
+  }
+
+  if (options.mock !== undefined) {
+    args.push('--mock', options.mock);
+  }
+
+  if (options.mockSpeed !== undefined) {
+    args.push('--mock-speed', String(options.mockSpeed));
+  }
+
+  if (options.mockLoop) {
+    args.push('--mock-loop');
+  }
+
+  if (options.mockDuration !== undefined) {
+    args.push('--mock-duration', String(options.mockDuration));
   }
 
   return args;

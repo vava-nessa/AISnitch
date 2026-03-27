@@ -15,6 +15,7 @@ The current setup command supports:
 - `codex`
 - `goose`
 - `copilot-cli`
+- `openclaw`
 
 The command also updates the AISnitch config so the selected adapter is marked `enabled` in `config.json`.
 
@@ -78,6 +79,25 @@ Copilot CLI is repository-scoped rather than machine-global. AISnitch therefore 
 - `.github/hooks/scripts/aisnitch-forward.mjs`
 
 That bridge forwards the documented Copilot CLI hook payloads to `http://localhost:<httpPort>/hooks/copilot-cli` and leaves unrelated repository automation intact.
+
+## OpenClaw strategy
+
+OpenClaw's current docs and live behavior do not expose the outbound webhook block that older community notes referenced. AISnitch therefore uses the supported path that exists today:
+
+- enable `hooks.internal.enabled` in `~/.openclaw/openclaw.json`
+- enable the built-in `command-logger` and `session-memory` entries
+- install one managed hook directory at `~/.openclaw/hooks/aisnitch-forward/`
+
+That managed hook forwards OpenClaw hook payloads to:
+
+`http://localhost:<httpPort>/hooks/openclaw`
+
+The resulting runtime mix is stronger than a single webhook path because AISnitch can then combine:
+
+- managed hook events
+- `~/.openclaw/logs/commands.log`
+- transcript JSONL under `~/.openclaw/agents/*/sessions/*.jsonl`
+- workspace memory files under `~/.openclaw/workspace*/memory/`
 
 ## Revert behavior
 

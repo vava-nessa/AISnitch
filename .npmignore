@@ -1,10 +1,16 @@
 src/
 tasks/
 docs/
+.github/
+examples/
+Formula/
+scripts/
 AGENTS.md
 CLAUDE_DATA.md
 PLAN.md
 eslint.config.js
 tsconfig.json
 tsup.config.ts
+vitest.config.ts
+vitest.e2e.config.ts
 coverage/

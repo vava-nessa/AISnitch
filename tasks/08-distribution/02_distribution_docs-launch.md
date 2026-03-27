@@ -13,60 +13,64 @@ Préparer le projet pour le lancement open-source : README final avec GIF démo,
 ## Sous-étapes
 
 ### Documentation
-- [ ] **README.md** final et complet :
-  - [ ] Hero section : logo/titre + one-liner + badges (npm, license, CI)
-  - [ ] **GIF démo** : enregistrer un screencast du TUI avec VHS (terminal recorder) ou asciinema
-  - [ ] Quick start : install + start en 3 lignes
-  - [ ] Features list avec screenshots
-  - [ ] Supported tools : tableau avec ✅/🔄/❌ par tool
-  - [ ] Architecture diagram (ASCII ou mermaid)
-  - [ ] CLI reference (toutes les commandes)
-  - [ ] TUI keybinds
-  - [ ] Configuration reference
-  - [ ] API reference (WebSocket event schema)
-  - [ ] Section "Build a consumer" : exemple client WebSocket
-  - [ ] Contributing section
-  - [ ] License + attribution (Vanessa Depraute)
-- [ ] `CONTRIBUTING.md` :
-  - [ ] Setup dev local
-  - [ ] Comment ajouter un adapter
-  - [ ] Convention de code
-  - [ ] Process de PR
-- [ ] `CODE_OF_CONDUCT.md` (Contributor Covenant)
+- [x] **README.md** final et complet :
+  - [x] Hero section : logo/titre + one-liner + badges (npm, license, CI)
+  - [x] **GIF démo** : enregistrer un screencast du TUI avec VHS (terminal recorder) ou asciinema
+  - [x] Quick start : install + start en 3 lignes
+  - [x] Features list avec screenshots
+  - [x] Supported tools : tableau avec ✅/🔄/❌ par tool
+  - [x] Architecture diagram (ASCII ou mermaid)
+  - [x] CLI reference (toutes les commandes)
+  - [x] TUI keybinds
+  - [x] Configuration reference
+  - [x] API reference (WebSocket event schema)
+  - [x] Section "Build a consumer" : exemple client WebSocket
+  - [x] Contributing section
+  - [x] License + attribution (Vanessa Depraute)
+- [x] `CONTRIBUTING.md` :
+  - [x] Setup dev local
+  - [x] Comment ajouter un adapter
+  - [x] Convention de code
+  - [x] Process de PR
+- [x] `CODE_OF_CONDUCT.md` (Contributor Covenant)
 - [ ] `CHANGELOG.md` initial (v0.1.0)
 
 ### Consumer example
-- [ ] Créer `examples/basic-consumer.ts` :
-  - [ ] Se connecte au WebSocket
-  - [ ] Log les events
-  - [ ] Montre comment filtrer par tool/type
-- [ ] Créer `examples/mascot-consumer.ts` :
-  - [ ] Exemple de mascotte basique (mapping events → actions)
-  - [ ] Code snippet pour une app Swift (macOS)
+- [x] Créer `examples/basic-consumer.ts` :
+  - [x] Se connecte au WebSocket
+  - [x] Log les events
+  - [x] Montre comment filtrer par tool/type
+- [x] Créer `examples/mascot-consumer.ts` :
+  - [x] Exemple de mascotte basique (mapping events → actions)
+  - [x] Code snippet pour une app Swift (macOS)
 
 ### GitHub Setup
-- [ ] Issue templates : bug report, feature request, new adapter request
-- [ ] PR template
+- [x] Issue templates : bug report, feature request, new adapter request
+- [x] PR template
 - [ ] GitHub Discussions activé
 - [ ] Topics/tags : `ai-tools`, `developer-tools`, `cli`, `monitoring`, `typescript`
 
 ### Launch Plan
 - [ ] 👤 Valider le messaging avec l'utilisateur
-- [ ] Préparer un post HackerNews
-- [ ] Préparer un post Reddit (r/programming, r/LocalLLaMA, r/MachineLearning)
-- [ ] Préparer un thread Twitter/X
-- [ ] Préparer un article Dev.to
+- [x] Préparer un post HackerNews
+- [x] Préparer un post Reddit (r/programming, r/LocalLLaMA, r/MachineLearning)
+- [x] Préparer un thread Twitter/X
+- [x] Préparer un article Dev.to
 
 ## Critères de complétion
 
-- [ ] README complet avec GIF démo
-- [ ] CONTRIBUTING + CODE_OF_CONDUCT en place
+- [x] README complet avec GIF démo
+- [x] CONTRIBUTING + CODE_OF_CONDUCT en place
 - [ ] CHANGELOG v0.1.0
-- [ ] Examples fonctionnels
-- [ ] Issue/PR templates
+- [x] Examples fonctionnels
+- [x] Issue/PR templates
 - [ ] 👤 Launch plan validé par l'utilisateur
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- README refondu avec architecture, table support tools, CLI/TUI reference, config, API schema, examples, et vrai GIF VHS.
+- `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, examples, templates GitHub, et `docs/launch-plan.md` sont en place.
+- Les derniers points non clos sont externes au codebase : validation du messaging par la mainteneuse, activation Discussions/topics côté GitHub, et finalisation du changelog release.

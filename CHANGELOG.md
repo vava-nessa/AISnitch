@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- No entries yet.
+
+## [0.1.0] - 2026-03-27
+
 ### Added
 - Structured MVP task files under `tasks/` (8 task groups, 23 subtasks, Kanban in `tasks/tasks.md`).
 - Initial `pnpm` project scaffold for `aisnitch` with strict TypeScript, ESLint flat config, `tsup`, and Vitest.
@@ -40,6 +44,13 @@ All notable changes to this project will be documented in this file.
 - Best-effort session-identity helpers that derive richer fallback session ids and more readable session labels for logs, hooks, and the TUI.
 - Richer event-detail formatting in the TUI and text monitor, surfacing prompts, transcript snippets, tool/file targets, commands, model names, and token counts when adapters provide them.
 - Toggleable full-data TUI inspector with a colorful spotlight summary, syntax-colored JSON payload rendering, event selection, inspector scrolling, and `--view full-data` CLI entrypoints.
+- OpenClaw adapter with managed hooks, command-log watching, transcript JSONL parsing, workspace-memory watching, and process fallback detection.
+- Shared Vitest config, dedicated E2E config, and reusable test helpers under `src/test-utils/`.
+- Deterministic `aisnitch mock` scenarios plus `start --mock` support for demos and CI-friendly smoke paths.
+- Real `pnpm test:e2e` OpenCode smoke coverage using `opencode run` and a temporary generated plugin.
+- npm/Homebrew release assets: formula, formula SHA update script, CI workflow, and release workflow.
+- Repository community scaffolding with `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue templates, PR template, and example WebSocket consumers.
+- Release-facing docs for testing, distribution, launch planning, and a VHS-generated TUI demo GIF in `docs/assets/`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -54,6 +65,9 @@ All notable changes to this project will be documented in this file.
 - Extended the CLI/tooling surface with `setup aider`, the internal `aider-notify` bridge, and the new `wrap` runtime mode.
 - Fixed pipeline fallback port selection so the HTTP and WebSocket servers no longer pick the same replacement port before binding.
 - Isolated ephemeral `wrap` pipelines into a temporary home directory so they do not collide with the main daemon socket path.
+- Reworked the generated OpenCode plugin so `opencode run` reliably emits `session.start` and `task.start` even when plugin initialization happens after `session.created`.
+- Expanded the public README from a dev scaffold into a release-facing guide with architecture, supported tools, consumer examples, testing instructions, and contributing links.
+- Tightened packaging metadata and local install validation so the packed artifact and Homebrew formula are derived from the same tarball.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

@@ -13,6 +13,7 @@
  * @see ./generic-pty.ts
  * @see ./goose.ts
  * @see ./codex.ts
+ * @see ./openclaw.ts
  * @see ./opencode.ts
  */
 
@@ -23,6 +24,7 @@ import { CopilotCLIAdapter } from './copilot-cli.js';
 import { CodexAdapter } from './codex.js';
 import { GeminiCLIAdapter } from './gemini-cli.js';
 import { GooseAdapter } from './goose.js';
+import { OpenClawAdapter } from './openclaw.js';
 import { OpenCodeAdapter } from './opencode.js';
 
 export * from './base.js';
@@ -34,6 +36,7 @@ export * from './codex.js';
 export * from './gemini-cli.js';
 export * from './generic-pty.js';
 export * from './goose.js';
+export * from './openclaw.js';
 export * from './opencode.js';
 
 /**
@@ -47,6 +50,7 @@ export function createDefaultAdapters(options: AdapterRuntimeOptions) {
     new GeminiCLIAdapter(options),
     new GooseAdapter(options),
     new CodexAdapter(options),
+    new OpenClawAdapter(options),
     new OpenCodeAdapter(options),
   ] as const;
 }
