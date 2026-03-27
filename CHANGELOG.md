@@ -4,11 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-- `aisnitch start` now scrubs orphaned Unix socket paths before boot so stale `aisnitch.sock` files no longer block foreground or daemon startup after a crash.
-- The CLI runtime now propagates `AISNITCH_HOME` path overrides consistently instead of silently falling back to `~/.aisnitch`.
-
-## [0.1.0] - 2026-03-27
+## [0.1.0] - 2026-03-28
 
 ### Added
 - Structured MVP task files under `tasks/` (8 task groups, 23 subtasks, Kanban in `tasks/tasks.md`).
@@ -81,3 +77,7 @@ All notable changes to this project will be documented in this file.
 - Added **Context Detector** task (`02-core-pipeline/04`) — terminal detection, CWD by PID, multi-instance tracking.
 - Extended `AISnitchEvent` schema with context enrichment fields: `terminal`, `cwd`, `pid`, `instanceId`, `instanceIndex`, `instanceTotal`.
 - Added `openclaw` to `ToolNames` enum.
+
+### Fixed
+- `aisnitch start` now scrubs orphaned Unix socket paths before boot so stale `aisnitch.sock` files no longer block foreground or daemon startup after a crash.
+- The CLI runtime now propagates `AISNITCH_HOME` path overrides consistently instead of silently falling back to `~/.aisnitch`.
