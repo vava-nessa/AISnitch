@@ -1247,5 +1247,7 @@ function toInitialTuiFilters(
 }
 
 function toPathOptions(options: CommonCliOptions): ConfigPathOptions {
-  return options.config ? { configPath: options.config } : {};
+  return options.config
+    ? { configPath: options.config, env: process.env }
+    : { env: process.env };
 }

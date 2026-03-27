@@ -22,7 +22,7 @@ There is also one internal command used by the Aider setup flow:
 
 - `aider-notify`, which is called by Aider's `notifications-command` and forwards a normalized idle hint back into AISnitch
 
-The shared `--config <path>` option is supported across the runtime commands. When it is used, AISnitch derives its home directory from that config file location so `config.json`, `aisnitch.pid`, `daemon-state.json`, `daemon.log`, and `aisnitch.sock` all stay in the same area.
+The shared `--config <path>` option is supported across the runtime commands. When it is used, AISnitch derives its home directory from that config file location so `config.json`, `aisnitch.pid`, `daemon-state.json`, `daemon.log`, and `aisnitch.sock` all stay in the same area. Without `--config`, the same commands now consistently honor `AISNITCH_HOME`, which is useful for tests, demos, and isolated local sandboxes.
 
 ## Runtime files
 

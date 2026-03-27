@@ -236,7 +236,7 @@ Working examples:
 
 ## Config Reference
 
-AISnitch stores local state under `~/.aisnitch/`.
+AISnitch stores local state under `~/.aisnitch/` by default. For isolated tests or sandboxed runs, every CLI command also honors `AISNITCH_HOME`.
 
 Important paths:
 

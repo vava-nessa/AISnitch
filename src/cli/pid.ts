@@ -1,4 +1,6 @@
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { mkdir, readFile, rm, stat, writeFile, access } from 'node:fs/promises';
+import { createConnection } from 'node:net';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -53,6 +55,69 @@ export interface DaemonPathOptions extends ConfigPathOptions {
  * Serialized daemon runtime metadata persisted next to the PID file.
  */
 export type DaemonState = z.infer<typeof DaemonStateSchema>;
+
+function getDefaultSocketPath(options: DaemonPathOptions): string {
+  if (process.platform === 'win32') {
+    return '\\\\.\\pipe\\aisnitch.sock';
+  }
+
+  return join(getAISnitchHomePath(options), 'aisnitch.sock');
+}
+
+/**
+ * 📖 CLI startup can be reached after crashes or forced exits, so stale UDS
+ * paths must be scrubbed before we decide the daemon state is truly clean.
+ */
+async function cleanupSocketPathIfStale(socketPath: string): Promise<boolean> {
+  if (process.platform === 'win32') {
+    return false;
+  }
+
+  try {
+    await access(socketPath, constants.F_OK);
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
+      return false;
+    }
+
+    throw error;
+  }
+
+  const staleSocket = await new Promise<boolean>((resolve, reject) => {
+    const probe = createConnection(socketPath);
+
+    probe.once('connect', () => {
+      probe.end();
+      resolve(false);
+    });
+
+    probe.once('error', (error: NodeJS.ErrnoException) => {
+      if (
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ENOENT' ||
+        error.code === 'EINVAL' ||
+        error.code === 'ENOTSOCK'
+      ) {
+        resolve(true);
+        return;
+      }
+
+      reject(error);
+    });
+  });
+
+  if (!staleSocket) {
+    return false;
+  }
+
+  await rm(socketPath, { force: true });
+
+  return true;
+}
 
 /**
  * 📖 PID and daemon metadata live next to the config by design so overrides via
@@ -232,10 +297,18 @@ export async function cleanupStaleDaemonFiles(
   options: DaemonPathOptions = {},
 ): Promise<boolean> {
   const pid = await readPid(options);
+  const daemonState = await readDaemonState(options);
+  const socketPath = daemonState?.socketPath ?? getDefaultSocketPath(options);
 
-  if (pid === null || isProcessRunning(pid)) {
+  if (pid === null) {
+    return await cleanupSocketPathIfStale(socketPath);
+  }
+
+  if (isProcessRunning(pid)) {
     return false;
   }
+
+  await cleanupSocketPathIfStale(socketPath);
 
   await Promise.all([
     removePid(options),

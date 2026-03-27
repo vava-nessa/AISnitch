@@ -224,7 +224,8 @@ export class UDSServer {
         if (
           error.code === 'ECONNREFUSED' ||
           error.code === 'ENOENT' ||
-          error.code === 'EINVAL'
+          error.code === 'EINVAL' ||
+          error.code === 'ENOTSOCK'
         ) {
           resolve(true);
           return;
