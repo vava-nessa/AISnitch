@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 
+import type { AISnitchEvent } from '../../core/index.js';
 import { TUI_THEME } from '../theme.js';
 
 /**
@@ -21,6 +22,9 @@ export interface StatusBarProps {
   readonly connected: boolean;
   readonly consumerCount: number;
   readonly eventCount: number;
+  readonly latestEvent: AISnitchEvent | null;
+  readonly pendingEventCount?: number;
+  readonly streamFrozen: boolean;
   readonly uptimeMs: number;
 }
 
@@ -33,8 +37,15 @@ export function StatusBar({
   connected,
   consumerCount,
   eventCount,
+  latestEvent,
+  pendingEventCount = 0,
+  streamFrozen,
   uptimeMs,
 }: StatusBarProps): React.JSX.Element {
+  const streamState = streamFrozen
+    ? `Frozen +${pendingEventCount}`
+    : latestEvent?.type ?? 'Live';
+
   return (
     <Box
       borderColor={TUI_THEME.border}
@@ -46,11 +57,13 @@ export function StatusBar({
       <Text color={TUI_THEME.panelBody}>
         {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Up ${formatUptime(
           uptimeMs,
-        )} | Size ${columns}c`}
+        )} | ${streamState} | Size ${columns}c`}
       </Text>
       <Text color={TUI_THEME.muted}>
         {connected
-          ? '[q] quit  [?] help  [f] filters soon  [space] stream controls soon'
+          ? streamFrozen
+            ? '[space] resume  [q] quit  [?] help  [f] filters soon'
+            : '[space] freeze  [q] quit  [?] help  [f] filters soon'
           : '[q] quit  waiting for foreground bus'}
       </Text>
     </Box>

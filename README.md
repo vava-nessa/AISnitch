@@ -34,7 +34,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
 - Detached daemon mode with PID/state files and a lightweight attach monitor while the richer attach-mode TUI ships
-- Ink-based foreground TUI foundation with responsive header, framed panels, live counters, and session preview
+- Ink-based foreground TUI with responsive header, live event stream, freeze control, live counters, and session preview
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install

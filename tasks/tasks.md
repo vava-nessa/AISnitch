@@ -35,7 +35,7 @@
 ## 🔵 In Progress
 
 - [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 1/3 — BaseAdapter + registry + pipeline wiring livrés, Claude/OpenCode en attente de validation sur vraies sessions
-- [🎨 TUI](./05-tui/task-tui.md) — 0/3 — foundation Ink branchée sur `aisnitch start`, smoke testée en terminal, validation visuelle utilisateur encore en attente pour clôturer 01
+- [🎨 TUI](./05-tui/task-tui.md) — 1/3 — live stream TUI livré; 01 reste en attente de validation visuelle utilisateur, 03 encore à faire
 
 ---
 

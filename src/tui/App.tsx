@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Newline, Text, useApp, useInput, useStdout } from 'ink';
+import { Box, Text, useApp, useInput, useStdout } from 'ink';
 
 import type {
   AISnitchEvent,
-  EventBus,
   PipelineStatus,
   ToolName,
 } from '../core/index.js';
+import type { EventBus } from '../core/index.js';
+import { EventStream } from './components/EventStream.js';
 import { Header } from './components/Header.js';
 import { Panel, PanelStack } from './components/Layout.js';
 import { StatusBar } from './components/StatusBar.js';
 import { EVENT_COLORS, TOOL_COLORS, TUI_THEME } from './theme.js';
+import { useEventStream } from './hooks/useEventStream.js';
 
 /**
  * @file src/tui/App.tsx
@@ -19,6 +21,8 @@ import { EVENT_COLORS, TOOL_COLORS, TUI_THEME } from './theme.js';
  *   → App
  * @exports App, type AppProps
  * @see ./index.tsx
+ * @see ./hooks/useEventStream.ts
+ * @see ./components/EventStream.tsx
  * @see ./components/Header.tsx
  * @see ./components/Layout.tsx
  * @see ./components/StatusBar.tsx
@@ -57,19 +61,7 @@ export function App({
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [columns, setColumns] = useState(stdout.columns ?? 80);
-  const [eventCount, setEventCount] = useState(status.eventBus.publishedEvents);
-  const [latestEvent, setLatestEvent] = useState<AISnitchEvent | null>(null);
-  const [recentSessions, setRecentSessions] = useState<
-    readonly RecentSessionSummary[]
-  >([]);
   const [uptimeMs, setUptimeMs] = useState(status.uptimeMs);
-
-  useInput((input, key) => {
-    if (input === 'q' || (key.ctrl && input === 'c')) {
-      onQuit?.();
-      exit();
-    }
-  });
 
   useEffect(() => {
     const handleResize = (): void => {
@@ -83,6 +75,30 @@ export function App({
     };
   }, [stdout]);
 
+  const compactLayout = columns < 112;
+  const eventStream = useEventStream(
+    {
+      kind: 'event-bus',
+      eventBus,
+    },
+    {
+      initialTotalEvents: status.eventBus.publishedEvents,
+      visibleCount: compactLayout ? 4 : 6,
+    },
+  );
+
+  useInput((input, key) => {
+    if (input === 'q' || (key.ctrl && input === 'c')) {
+      onQuit?.();
+      exit();
+      return;
+    }
+
+    if (input === ' ') {
+      eventStream.toggleFrozen();
+    }
+  });
+
   useEffect(() => {
     const startedAt = Date.now() - status.uptimeMs;
     const uptimeTimer = setInterval(() => {
@@ -90,41 +106,12 @@ export function App({
     }, 1_000);
     uptimeTimer.unref();
 
-    const unsubscribe = eventBus.subscribe((event) => {
-      setLatestEvent(event);
-      setEventCount((currentValue) => currentValue + 1);
-      setRecentSessions((currentValue) => {
-        const sessionMap = new Map(
-          currentValue.map((summary) => [summary.sessionId, summary]),
-        );
-        const existingSummary = sessionMap.get(event['aisnitch.sessionid']);
-        const nextSummary: RecentSessionSummary = {
-          eventCount: (existingSummary?.eventCount ?? 0) + 1,
-          lastState: event.type,
-          sessionId: event['aisnitch.sessionid'],
-          tool: event['aisnitch.tool'],
-        };
-
-        sessionMap.set(event['aisnitch.sessionid'], nextSummary);
-
-        return [...sessionMap.values()].slice(-4).reverse();
-      });
-    });
-
     return () => {
       clearInterval(uptimeTimer);
-      unsubscribe();
     };
-  }, [eventBus, status.uptimeMs]);
-
-  const compactLayout = columns < 112;
-  const latestEventDetails =
-    latestEvent === null
-      ? [
-          'No events yet. Start with Claude Code or OpenCode and the foreground bus will light up here.',
-          'Detailed live stream controls land in 05/02.',
-        ]
-      : [formatEventHeadline(latestEvent), formatEventDetail(latestEvent)];
+  }, [status.uptimeMs]);
+  const recentSessions = buildRecentSessions(eventStream.bufferedEvents);
+  const latestEvent = eventStream.latestEvent;
 
   return (
     <Box flexDirection="column">
@@ -137,15 +124,11 @@ export function App({
       <Box marginTop={1}>
         <PanelStack compact={compactLayout}>
           <Panel accentColor={TUI_THEME.warning} title="Event Stream">
-            {latestEventDetails.map((line, index) => (
-              <Text key={`${line}-${index}`} color={index === 0 ? TUI_THEME.panelTitle : TUI_THEME.muted}>
-                {line}
-              </Text>
-            ))}
-            <Newline />
-            <Text color={TUI_THEME.muted}>
-              Foundation mode: framed layout, live counters, and session preview are active.
-            </Text>
+            <EventStream
+              events={eventStream.visibleEvents}
+              frozen={eventStream.isFrozen}
+              pendingEventCount={eventStream.pendingEventCount}
+            />
           </Panel>
           <Panel accentColor={TUI_THEME.success} title="Sessions">
             {recentSessions.length === 0 ? (
@@ -173,7 +156,10 @@ export function App({
           columns={columns}
           connected
           consumerCount={status.websocket.consumerCount}
-          eventCount={eventCount}
+          eventCount={eventStream.totalEvents}
+          latestEvent={latestEvent}
+          pendingEventCount={eventStream.pendingEventCount}
+          streamFrozen={eventStream.isFrozen}
           uptimeMs={uptimeMs}
         />
       </Box>
@@ -181,32 +167,27 @@ export function App({
   );
 }
 
-function formatEventHeadline(event: AISnitchEvent): string {
-  return `${event['aisnitch.tool']} · ${event.type}`;
-}
-
-function formatEventDetail(event: AISnitchEvent): string {
-  if (event.data.toolName) {
-    return `${event.data.toolName} · ${
-      event.data.toolInput?.filePath ??
-      event.data.toolInput?.command ??
-      'no input detail yet'
-    }`;
-  }
-
-  if (event.data.errorMessage) {
-    return event.data.errorMessage;
-  }
-
-  if (event.data.activeFile) {
-    return event.data.activeFile;
-  }
-
-  return event.data.cwd ?? 'Live detail formatting expands in 05/02.';
-}
-
 function truncateSessionId(sessionId: string): string {
   return sessionId.length <= 18
     ? sessionId
     : `${sessionId.slice(0, 8)}…${sessionId.slice(-6)}`;
+}
+
+function buildRecentSessions(
+  events: readonly AISnitchEvent[],
+): readonly RecentSessionSummary[] {
+  const sessionMap = new Map<string, RecentSessionSummary>();
+
+  for (const event of events) {
+    const existingSummary = sessionMap.get(event['aisnitch.sessionid']);
+
+    sessionMap.set(event['aisnitch.sessionid'], {
+      eventCount: (existingSummary?.eventCount ?? 0) + 1,
+      lastState: event.type,
+      sessionId: event['aisnitch.sessionid'],
+      tool: event['aisnitch.tool'],
+    });
+  }
+
+  return [...sessionMap.values()].slice(-4).reverse();
 }

@@ -18,21 +18,21 @@ Le panel "Event Stream" est la pièce centrale du TUI. C'est un flux en direct d
 
 ## Sous-étapes
 
-- [ ] Créer `src/tui/components/EventStream.tsx` :
-  - [ ] Liste scrollable d'events (max 500 en mémoire, drop les anciens)
-  - [ ] Chaque event = une ligne formatée :
+- [x] Créer `src/tui/components/EventStream.tsx` :
+  - [x] Liste scrollable d'events (max 500 en mémoire, drop les anciens)
+  - [x] Chaque event = une ligne formatée :
     ```
     14:32:01 🟣 [claude-code] agent.coding
       └─ Write: src/components/Header.tsx
     ```
-  - [ ] Couleur du tool (dot coloré + nom)
-  - [ ] Couleur du type d'event
-  - [ ] Détails indentés en sous-ligne (toolName, filePath, command, errorMessage...)
-  - [ ] Auto-scroll vers le bas (nouveau event = scroll)
-  - [ ] Possibilité de "freeze" le scroll (touche `space`) pour lire
-- [ ] Créer `src/tui/components/EventLine.tsx` — composant pour une seule ligne d'event :
-  - [ ] Timestamp formaté `HH:mm:ss`
-  - [ ] Icône par event type :
+  - [x] Couleur du tool (dot coloré + nom)
+  - [x] Couleur du type d'event
+  - [x] Détails indentés en sous-ligne (toolName, filePath, command, errorMessage...)
+  - [x] Auto-scroll vers le bas (nouveau event = scroll)
+  - [x] Possibilité de "freeze" le scroll (touche `space`) pour lire
+- [x] Créer `src/tui/components/EventLine.tsx` — composant pour une seule ligne d'event :
+  - [x] Timestamp formaté `HH:mm:ss`
+  - [x] Icône par event type :
     ```
     session.start    → 🚀
     session.end      → 👋
@@ -47,23 +47,23 @@ Le panel "Event Stream" est la pièce centrale du TUI. C'est un flux en direct d
     agent.error      → ❌
     agent.compact    → 🧠
     ```
-  - [ ] Nom du tool entre crochets avec sa couleur
-  - [ ] Type d'event avec sa couleur
-  - [ ] Ligne de détail optionnelle (si tool_call → afficher le tool name + input)
-- [ ] Créer `src/tui/hooks/useEventStream.ts` — React hook :
-  - [ ] Se connecte à l'EventBus (en mode foreground) ou au WebSocket (en mode attach)
-  - [ ] Maintient un array d'events en state React
-  - [ ] Gère le max size (500 events)
-- [ ] Implémenter le formatage des détails par type :
-  - [ ] `agent.tool_call` → "🔧 {toolName}: {filePath ou command}"
-  - [ ] `agent.error` → "❌ {errorType}: {errorMessage}"
-  - [ ] `task.start` → "📝 Prompt submitted"
-  - [ ] `agent.compact` → "🧠 Context compaction triggered"
-- [ ] Écrire tests :
-  - [ ] EventLine rend correctement pour chaque type
-  - [ ] EventStream gère le max size
-  - [ ] Auto-scroll et freeze fonctionnent
-- [ ] Vérifier `pnpm build`
+  - [x] Nom du tool entre crochets avec sa couleur
+  - [x] Type d'event avec sa couleur
+  - [x] Ligne de détail optionnelle (si tool_call → afficher le tool name + input)
+- [x] Créer `src/tui/hooks/useEventStream.ts` — React hook :
+  - [x] Se connecte à l'EventBus (en mode foreground) ou au WebSocket (en mode attach)
+  - [x] Maintient un array d'events en state React
+  - [x] Gère le max size (500 events)
+- [x] Implémenter le formatage des détails par type :
+  - [x] `agent.tool_call` → "🔧 {toolName}: {filePath ou command}"
+  - [x] `agent.error` → "❌ {errorType}: {errorMessage}"
+  - [x] `task.start` → "📝 Prompt submitted"
+  - [x] `agent.compact` → "🧠 Context compaction triggered"
+- [x] Écrire tests :
+  - [x] EventLine rend correctement pour chaque type
+  - [x] EventStream gère le max size
+  - [x] Auto-scroll et freeze fonctionnent
+- [x] Vérifier `pnpm build`
 
 ## Spécifications techniques
 
@@ -120,16 +120,34 @@ function useEventStream(source: EventBus | WebSocket): AISnitchEvent[] {
 
 ## Critères de complétion
 
-- [ ] Event stream affiche les events en temps réel
-- [ ] Chaque type d'event a son icône et sa couleur
-- [ ] Détails des tool calls affichés en sous-ligne
-- [ ] Auto-scroll fonctionne
-- [ ] Freeze/unfreeze du scroll
-- [ ] Max 500 events en mémoire
-- [ ] Tests passent
-- [ ] Code documenté
+- [x] Event stream affiche les events en temps réel
+- [x] Chaque type d'event a son icône et sa couleur
+- [x] Détails des tool calls affichés en sous-ligne
+- [x] Auto-scroll fonctionne
+- [x] Freeze/unfreeze du scroll
+- [x] Max 500 events en mémoire
+- [x] Tests passent
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+### Livré
+
+- `EventLine` pour afficher un event normalisé avec icône, couleurs, timestamp, et détail compact
+- `EventStream` pour rendre la fenêtre visible du flux live
+- `useEventStream` pour gérer le buffer borné à 500 events, le tail live, et le mode frozen
+- Intégration dans `App.tsx` avec `space` pour freeze/resume et statut visible dans la status bar
+
+### Validation réalisée
+
+- `pnpm check` vert
+- Smoke TTY foreground avec adapter `claude-code` activé
+- Injection d'un hook HTTP normalisé vers `/hooks/claude-code` et observation du rendu live dans le panel TUI
+- Vérification manuelle du mode `freeze`: le flux reste figé et la status bar affiche bien `Frozen +1` quand un nouvel event arrive
+
+### Notes
+
+- Le hook supporte déjà une source `EventBus` ou `WebSocket`, ce qui évite de recoder la logique lors du futur TUI attach-mode
+- Le panel Sessions reste encore un preview léger jusqu'à `05/03`

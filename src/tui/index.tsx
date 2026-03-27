@@ -48,6 +48,9 @@ export async function renderForegroundTui(
 export * from './App.js';
 export * from './theme.js';
 export * from './live-monitor.js';
+export * from './hooks/useEventStream.js';
+export * from './components/EventLine.js';
+export * from './components/EventStream.js';
 export * from './components/Header.js';
 export * from './components/Layout.js';
 export * from './components/StatusBar.js';
