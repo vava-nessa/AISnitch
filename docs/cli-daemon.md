@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The CLI is now the operational entrypoint for AISnitch. It turns the in-memory core pipeline into something you can actually start, stop, inspect, and re-attach to without having to write ad hoc scripts around the library API.
+The CLI is now the operational entrypoint for AISnitch. It turns the in-memory core pipeline into something you can actually start, stop, inspect, re-attach to, and even temporarily inject around a wrapped tool without writing ad hoc scripts around the library API.
 
 ## Implemented command surface
 
@@ -14,8 +14,13 @@ The current commander-based CLI exposes:
 - `status` to inspect persisted daemon metadata plus live `/health` data
 - `adapters` to list currently configured adapter toggles
 - `setup <tool>` to configure supported external tools for AISnitch ingestion
-- `attach` to connect to the daemon WebSocket stream with a lightweight text monitor
+- `attach` to connect to the daemon WebSocket stream with the shared Ink TUI
+- `wrap <command> [args...]` to observe an arbitrary interactive tool through the generic PTY fallback
 - `install` and `uninstall` for macOS LaunchAgent management
+
+There is also one internal command used by the Aider setup flow:
+
+- `aider-notify`, which is called by Aider's `notifications-command` and forwards a normalized idle hint back into AISnitch
 
 The shared `--config <path>` option is supported across the runtime commands. When it is used, AISnitch derives its home directory from that config file location so `config.json`, `aisnitch.pid`, `daemon-state.json`, `daemon.log`, and `aisnitch.sock` all stay in the same area.
 
@@ -31,9 +36,11 @@ This is not event persistence. It is only bootstrap state for process supervisio
 
 ## Foreground vs daemon mode
 
-Foreground `start` launches the core pipeline in-process and attaches a temporary live monitor directly to the `EventBus`. This gives a usable operator workflow now without blocking on the future Ink TUI task.
+Foreground `start` launches the core pipeline in-process and renders the Ink TUI directly against the live `EventBus`.
 
-Detached `start --daemon` re-executes the CLI in a hidden headless mode, writes PID/state files after the pipeline is healthy, and redirects logs to `daemon.log`. `attach` then connects through the daemon WebSocket endpoint and renders incoming events line by line.
+Detached `start --daemon` re-executes the CLI in a hidden headless mode, writes PID/state files after the pipeline is healthy, and redirects logs to `daemon.log`. `attach` then connects through the daemon WebSocket endpoint and renders the same TUI against the remote stream.
+
+`wrap` is different: it launches a child tool inside a PTY. If a daemon is already running, wrapped events go to that daemon over UDS. If not, AISnitch starts a temporary isolated local pipeline for that wrapped process only.
 
 ## Tool setup flow
 
@@ -47,7 +54,7 @@ Detached `start --daemon` re-executes the CLI in a hidden headless mode, writes 
 
 For Claude Code, AISnitch merges HTTP hooks into `~/.claude/settings.json` without deleting unrelated user hooks. For OpenCode, AISnitch installs a local plugin at `~/.config/opencode/plugins/aisnitch.ts`, which is the officially supported auto-loaded extension path according to the current OpenCode docs.
 
-These setup flows now feed concrete built-in adapters in the runtime, not placeholder endpoints. Claude Code events go through the new Claude adapter, and OpenCode plugin events go through the new OpenCode adapter before reaching the shared event pipeline.
+These setup flows now feed concrete built-in adapters in the runtime, not placeholder endpoints. Claude Code, OpenCode, Gemini, Copilot CLI, and Aider all forward into dedicated adapters before reaching the shared event pipeline, while Goose and Codex are armed as passive sources from config.
 
 ## macOS LaunchAgent integration
 
@@ -55,4 +62,4 @@ These setup flows now feed concrete built-in adapters in the runtime, not placeh
 
 ## Current limitation
 
-The full Ink-based terminal UI is still pending in `05-tui`. For now, `start` and `attach` intentionally expose a simpler monitor so the daemon workflow is operational before the UI layer lands.
+`wrap` is intentionally best-effort. It captures useful live states from terminal heuristics, but unlike dedicated adapters it does not have a stable tool-native protocol to rely on.

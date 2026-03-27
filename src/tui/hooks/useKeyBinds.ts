@@ -10,6 +10,7 @@ import {
   DEFAULT_TUI_FILTERS,
   type TuiFilters,
 } from '../filters.js';
+import type { TuiViewMode } from '../types.js';
 
 /**
  * @file src/tui/hooks/useKeyBinds.ts
@@ -64,10 +65,16 @@ export type TuiInteractionMode =
  * Inputs needed by the keyboard controller.
  */
 export interface UseKeyBindsOptions {
+  readonly fullDataModeEnabled?: boolean;
   readonly initialFilters?: Partial<TuiFilters>;
   readonly onClearStream: () => void;
+  readonly onInspectorPageScroll?: (delta: number) => void;
+  readonly onInspectorScroll?: (delta: number) => void;
   readonly onQuit?: () => void;
+  readonly onSelectNextEvent?: () => void;
+  readonly onSelectPreviousEvent?: () => void;
   readonly onToggleFreeze: () => void;
+  readonly onToggleFullDataMode?: () => void;
   readonly toolOptions: readonly ToolName[];
 }
 
@@ -78,6 +85,7 @@ export interface UseKeyBindsState {
   readonly filters: TuiFilters;
   readonly focusPanel: FocusedPanel;
   readonly interaction: TuiInteractionMode;
+  readonly viewMode: TuiViewMode;
 }
 
 /**
@@ -98,6 +106,9 @@ export function useKeyBinds(
   const [interaction, setInteraction] = useState<TuiInteractionMode>({
     kind: 'normal',
   });
+  const [viewMode, setViewMode] = useState<TuiViewMode>(
+    options.fullDataModeEnabled === true ? 'full-data' : 'summary',
+  );
 
   useInput((input, key) => {
     if (key.ctrl && input === 'c') {
@@ -209,6 +220,19 @@ export function useKeyBinds(
       return;
     }
 
+    if (input === 'v') {
+      const nextViewMode = viewMode === 'summary' ? 'full-data' : 'summary';
+
+      options.onToggleFullDataMode?.();
+      setViewMode(nextViewMode);
+
+      if (nextViewMode === 'summary' && focusPanel === 'sessions') {
+        setFocusPanel('events');
+      }
+
+      return;
+    }
+
     if (input === ' ') {
       options.onToggleFreeze();
       return;
@@ -257,6 +281,40 @@ export function useKeyBinds(
       return;
     }
 
+    if (
+      viewMode === 'full-data' &&
+      (key.upArrow || input === 'k')
+    ) {
+      if (focusPanel === 'events') {
+        options.onSelectPreviousEvent?.();
+      } else {
+        options.onInspectorScroll?.(-1);
+      }
+      return;
+    }
+
+    if (
+      viewMode === 'full-data' &&
+      (key.downArrow || input === 'j')
+    ) {
+      if (focusPanel === 'events') {
+        options.onSelectNextEvent?.();
+      } else {
+        options.onInspectorScroll?.(1);
+      }
+      return;
+    }
+
+    if (viewMode === 'full-data' && input === '[') {
+      options.onInspectorPageScroll?.(-1);
+      return;
+    }
+
+    if (viewMode === 'full-data' && input === ']') {
+      options.onInspectorPageScroll?.(1);
+      return;
+    }
+
     if (key.tab) {
       setFocusPanel((currentValue) =>
         currentValue === 'events' ? 'sessions' : 'events',
@@ -268,6 +326,7 @@ export function useKeyBinds(
     filters,
     focusPanel,
     interaction,
+    viewMode,
   };
 }
 

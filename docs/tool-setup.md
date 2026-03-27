@@ -10,6 +10,11 @@ The current setup command supports:
 
 - `claude-code`
 - `opencode`
+- `gemini-cli`
+- `aider`
+- `codex`
+- `goose`
+- `copilot-cli`
 
 The command also updates the AISnitch config so the selected adapter is marked `enabled` in `config.json`.
 
@@ -37,10 +42,47 @@ The generated plugin forwards a curated subset of OpenCode events to:
 
 The plugin is dependency-free and relies on the built-in plugin runtime plus `fetch`.
 
+## Gemini CLI strategy
+
+AISnitch augments `~/.gemini/settings.json` with wildcard command hooks for the supported Gemini lifecycle events. Each generated hook forwards the raw stdin payload to `http://localhost:<httpPort>/hooks/gemini-cli` with `curl`, which keeps Gemini setup simple and makes the adapter mapping logic live entirely inside AISnitch.
+
+## Aider strategy
+
+Aider does not expose a native hook system comparable to Claude Code or Gemini, but it does support `notifications-command`. AISnitch uses that instead of trying to patch Aider internals.
+
+`aisnitch setup aider` updates:
+
+- `~/.aider.conf.yml`
+
+It ensures:
+
+- `notifications: true`
+- `notifications-command: "<node> <aisnitch-cli> aider-notify ..."`
+
+The generated command is intentionally tiny. It posts a normalized `agent.idle` hint back into AISnitch whenever Aider announces that it is waiting for the operator again, while the dedicated Aider adapter continues to parse `.aider.chat.history.md` for richer transcript activity.
+
+## Passive-arm setup flows
+
+Some tools do not need file mutation for the MVP:
+
+- `aisnitch setup codex` enables passive `codex-tui.log` watching
+- `aisnitch setup goose` enables passive `goosed` / SQLite discovery
+
+These setup flows still matter because they flip the adapter toggle in `~/.aisnitch/config.json`, which keeps the runtime consistent with the rest of the command surface.
+
+## Copilot CLI strategy
+
+Copilot CLI is repository-scoped rather than machine-global. AISnitch therefore installs:
+
+- `.github/hooks/aisnitch.json`
+- `.github/hooks/scripts/aisnitch-forward.mjs`
+
+That bridge forwards the documented Copilot CLI hook payloads to `http://localhost:<httpPort>/hooks/copilot-cli` and leaves unrelated repository automation intact.
+
 ## Revert behavior
 
 `aisnitch setup <tool> --revert` restores the `.bak` file when one exists. If the setup created a brand-new file without an original backup, revert removes that generated file instead.
 
 ## Current limitation
 
-The OpenCode plugin currently performs best-effort event mapping into the shared AISnitch event envelope. Richer per-event normalization still belongs to the dedicated adapter work in `04-adapters-priority`.
+The setup layer only handles arming and bridge installation. Richer behavior such as transcript parsing, SSE/session polling, or PTY heuristics still lives in the dedicated adapters and runtime.

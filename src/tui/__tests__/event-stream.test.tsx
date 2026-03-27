@@ -14,6 +14,10 @@ import {
   getPendingFrozenEventCount,
   getVisibleEventWindow,
 } from '../hooks/useEventStream.js';
+import {
+  buildEventInspectorLines,
+  getVisibleInspectorWindow,
+} from '../event-inspector.js';
 import { formatEventLine } from '../live-monitor.js';
 
 /**
@@ -84,6 +88,17 @@ describe('EventLine', () => {
     expect(output).toContain('model claude-sonnet-4');
     expect(output).toContain('1,234 tok');
   });
+
+  it('renders a visible selection marker for the focused event', () => {
+    const output = renderToString(
+      <EventLine
+        event={createTestEvent('agent.streaming')}
+        selected
+      />,
+    );
+
+    expect(output).toContain('›');
+  });
 });
 
 describe('EventStream', () => {
@@ -140,6 +155,22 @@ describe('useEventStream helpers', () => {
     expect(frozenWindow.map((event) => event['aisnitch.seqnum'])).toEqual([2, 3, 4]);
     expect(getPendingFrozenEventCount(6, 4)).toBe(2);
   });
+
+  it('anchors the visible window around the selected event in full-data mode', () => {
+    const bufferedEvents = Array.from({ length: 7 }, (_, index) =>
+      createTestEvent('agent.coding', {
+        'aisnitch.seqnum': index + 1,
+      }),
+    );
+
+    const anchoredWindow = getVisibleEventWindow(bufferedEvents, {
+      anchorIndex: 1,
+      totalEvents: 7,
+      visibleCount: 3,
+    });
+
+    expect(anchoredWindow.map((event) => event['aisnitch.seqnum'])).toEqual([1, 2, 3]);
+  });
 });
 
 describe('live monitor formatting', () => {
@@ -162,6 +193,48 @@ describe('live monitor formatting', () => {
     );
 
     expect(line).toContain(':: reply: Applying the fix now.');
+  });
+});
+
+describe('event inspector formatting', () => {
+  it('builds a colorful inspector payload with spotlight, normalized, and raw sections', () => {
+    const lines = buildEventInspectorLines(
+      createTestEvent('agent.tool_call', {
+        data: {
+          cwd: '/tmp/demo',
+          model: 'claude-sonnet-4',
+          raw: {
+            hook_event_name: 'PostToolUse',
+            transcript_path: '/tmp/transcript.jsonl',
+          },
+          tokensUsed: 42,
+          toolInput: {
+            filePath: 'src/tui/App.tsx',
+          },
+          toolName: 'Write',
+        },
+      }),
+    );
+    const renderedText = lines
+      .map((line) => line.map((segment) => segment.text).join(''))
+      .join('\n');
+
+    expect(renderedText).toContain('Spotlight');
+    expect(renderedText).toContain('summary: Write: src/tui/App.tsx');
+    expect(renderedText).toContain('Normalized Data');
+    expect(renderedText).toContain('Raw Source Payload');
+    expect(renderedText).toContain('"hook_event_name"');
+  });
+
+  it('returns a scroll window for inspector lines', () => {
+    const lines = buildEventInspectorLines(createTestEvent('agent.streaming'));
+    const visibleWindow = getVisibleInspectorWindow(lines, {
+      lineOffset: 2,
+      visibleLineCount: 4,
+    });
+
+    expect(visibleWindow).toHaveLength(4);
+    expect(visibleWindow[0]).toEqual(lines[2]);
   });
 });
 

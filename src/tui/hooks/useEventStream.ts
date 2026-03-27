@@ -154,11 +154,31 @@ export function appendEventToStream(
 export function getVisibleEventWindow(
   bufferedEvents: readonly AISnitchEvent[],
   options: {
+    readonly anchorIndex?: number | null;
     readonly frozenAtTotalEvents?: number | null;
     readonly totalEvents: number;
     readonly visibleCount: number;
   },
 ): readonly AISnitchEvent[] {
+  if (options.anchorIndex !== undefined && options.anchorIndex !== null) {
+    const clampedAnchorIndex = Math.max(
+      0,
+      Math.min(options.anchorIndex, Math.max(0, bufferedEvents.length - 1)),
+    );
+    const halfWindow = Math.floor(options.visibleCount / 2);
+    const tentativeStartIndex = Math.max(0, clampedAnchorIndex - halfWindow);
+    const tentativeEndIndex = Math.min(
+      bufferedEvents.length,
+      tentativeStartIndex + options.visibleCount,
+    );
+    const visibleStartIndex = Math.max(
+      0,
+      tentativeEndIndex - options.visibleCount,
+    );
+
+    return bufferedEvents.slice(visibleStartIndex, tentativeEndIndex);
+  }
+
   const pendingEventCount = getPendingFrozenEventCount(
     options.totalEvents,
     options.frozenAtTotalEvents ?? null,

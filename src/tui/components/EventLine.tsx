@@ -45,18 +45,26 @@ export const EVENT_ICONS: Record<AISnitchEventType, string> = {
  */
 export interface EventLineProps {
   readonly event: AISnitchEvent;
+  readonly selected?: boolean;
 }
 
 /**
  * Renders a single event row plus its optional detail line.
  */
-export function EventLine({ event }: EventLineProps): React.JSX.Element {
+export function EventLine({
+  event,
+  selected = false,
+}: EventLineProps): React.JSX.Element {
   const detail = formatEventDetail(event);
   const sessionLabel = formatSessionLabelFromEvent(event);
 
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box>
+        <Text color={selected ? TUI_THEME.warning : TUI_THEME.muted}>
+          {selected ? '›' : ' '}
+        </Text>
+        <Text> </Text>
         <Text color={TUI_THEME.muted}>{formatEventTime(event.time)}</Text>
         <Text> </Text>
         <Text>{EVENT_ICONS[event.type]}</Text>
@@ -76,8 +84,10 @@ export function EventLine({ event }: EventLineProps): React.JSX.Element {
         ) : null}
       </Box>
       {detail ? (
-        <Box marginLeft={2}>
-          <Text color={TUI_THEME.muted}>└─ {detail}</Text>
+        <Box marginLeft={4}>
+          <Text color={selected ? TUI_THEME.panelBody : TUI_THEME.muted}>
+            └─ {detail}
+          </Text>
         </Box>
       ) : null}
     </Box>

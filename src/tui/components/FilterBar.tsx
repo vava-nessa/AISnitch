@@ -7,6 +7,7 @@ import type {
   TuiInteractionMode,
 } from '../hooks/useKeyBinds.js';
 import { TUI_THEME } from '../theme.js';
+import type { TuiViewMode } from '../types.js';
 
 /**
  * @file src/tui/components/FilterBar.tsx
@@ -26,6 +27,7 @@ export interface FilterBarProps {
   readonly filters: TuiFilters;
   readonly focusPanel: FocusedPanel;
   readonly interaction: TuiInteractionMode;
+  readonly viewMode: TuiViewMode;
 }
 
 /**
@@ -35,8 +37,15 @@ export function FilterBar({
   filters,
   focusPanel,
   interaction,
+  viewMode,
 }: FilterBarProps): React.JSX.Element {
   const activeFilterCount = countActiveFilters(filters);
+  const focusLabel =
+    focusPanel === 'events'
+      ? 'events'
+      : viewMode === 'full-data'
+        ? 'inspector'
+        : 'sessions';
 
   return (
     <Box
@@ -47,11 +56,13 @@ export function FilterBar({
       paddingX={1}
     >
       <Text color={TUI_THEME.panelBody}>
-        {`Focus ${focusPanel} | Active filters ${activeFilterCount} | ${formatFilterSummary(
+        {`Focus ${focusLabel} | View ${viewMode} | Active filters ${activeFilterCount} | ${formatFilterSummary(
           filters,
         )}`}
       </Text>
-      <Text color={TUI_THEME.muted}>{formatInteractionHint(interaction)}</Text>
+      <Text color={TUI_THEME.muted}>
+        {formatInteractionHint(interaction, focusPanel, viewMode)}
+      </Text>
     </Box>
   );
 }
@@ -66,7 +77,11 @@ function formatFilterSummary(filters: TuiFilters): string {
   return parts.length > 0 ? parts.join(' | ') : 'no filters active';
 }
 
-function formatInteractionHint(interaction: TuiInteractionMode): string {
+function formatInteractionHint(
+  interaction: TuiInteractionMode,
+  focusPanel: FocusedPanel,
+  viewMode: TuiViewMode,
+): string {
   switch (interaction.kind) {
     case 'tool-filter':
       return `Tool filter > ${
@@ -81,6 +96,12 @@ function formatInteractionHint(interaction: TuiInteractionMode): string {
     case 'help':
       return 'Help open  (? or Esc to close)';
     default:
-      return 'Commands: [f] tool  [t] type  [/] search  [Esc] clear filters  [Tab] focus';
+      if (viewMode === 'full-data') {
+        return focusPanel === 'events'
+          ? 'Commands: [v] summary  [↑/↓ or j/k] select event  [Tab] inspector  [f/t//] filters'
+          : 'Commands: [v] summary  [↑/↓ or j/k] scroll  [[/]] page  [Tab] events';
+      }
+
+      return 'Commands: [v] full-data  [f] tool  [t] type  [/] search  [Esc] clear filters  [Tab] focus';
   }
 }

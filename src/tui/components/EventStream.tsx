@@ -23,6 +23,7 @@ export interface EventStreamProps {
   readonly events: readonly AISnitchEvent[];
   readonly frozen: boolean;
   readonly pendingEventCount: number;
+  readonly selectedEventId?: string | null;
 }
 
 /**
@@ -33,6 +34,7 @@ export function EventStream({
   events,
   frozen,
   pendingEventCount,
+  selectedEventId = null,
 }: EventStreamProps): React.JSX.Element {
   if (events.length === 0) {
     return (
@@ -54,7 +56,11 @@ export function EventStream({
   return (
     <Box flexDirection="column">
       {events.map((event) => (
-        <EventLine key={event.id} event={event} />
+        <EventLine
+          key={event.id}
+          event={event}
+          selected={selectedEventId === event.id}
+        />
       ))}
       <Text color={TUI_THEME.muted}>
         {frozen

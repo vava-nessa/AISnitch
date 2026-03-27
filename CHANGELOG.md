@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 - OpenCode adapter with plugin-event mapping and process fallback detection.
 - Gemini CLI adapter with command-hook mapping, local `logs.json` fallback parsing, and process detection.
 - Codex adapter with passive `codex-tui.log` parsing and process detection.
+- Goose adapter with goosed API polling, SSE event streaming, SQLite session fallback, and process detection.
+- Copilot CLI adapter with repository hook forwarding, session-state JSONL parsing, workspace metadata enrichment, and process detection.
+- Aider adapter with active-project `.aider.chat.history.md` watching, markdown parsing, process detection, and `notifications-command` support.
+- Generic PTY wrapper with `aisnitch wrap <command>`, terminal I/O forwarding, and ANSI/text heuristics for best-effort live activity capture.
 - Priority adapter technical documentation in `docs/priority-adapters.md`.
 - Secondary adapter technical documentation in `docs/secondary-adapters.md`.
 - Ink-based foreground TUI foundation with responsive layout primitives, shared theme tokens, and a live status shell.
@@ -35,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - TUI tests for filters, session derivation, session-panel rendering, and CLI pre-filter parsing.
 - Best-effort session-identity helpers that derive richer fallback session ids and more readable session labels for logs, hooks, and the TUI.
 - Richer event-detail formatting in the TUI and text monitor, surfacing prompts, transcript snippets, tool/file targets, commands, model names, and token counts when adapters provide them.
+- Toggleable full-data TUI inspector with a colorful spotlight summary, syntax-colored JSON payload rendering, event selection, inspector scrolling, and `--view full-data` CLI entrypoints.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -44,7 +49,11 @@ All notable changes to this project will be documented in this file.
 - Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
 - Reworked the CLI docs to include tool setup flows and current OpenCode plugin-based integration.
 - Reworked the runtime so enabled tool hooks are handled by built-in adapters before entering the shared event pipeline.
+- Extended the interactive setup flow to cover passive Goose arming and repository-scoped Copilot CLI hook installation.
 - Replaced the foreground and attach text monitors with one shared Ink TUI flow, including CLI-applied `--tool` / `--type` filters.
+- Extended the CLI/tooling surface with `setup aider`, the internal `aider-notify` bridge, and the new `wrap` runtime mode.
+- Fixed pipeline fallback port selection so the HTTP and WebSocket servers no longer pick the same replacement port before binding.
+- Isolated ephemeral `wrap` pipelines into a temporary home directory so they do not collide with the main daemon socket path.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

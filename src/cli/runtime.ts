@@ -1,12 +1,16 @@
 import { execFile as execFileCallback, spawn as spawnChildProcess } from 'node:child_process';
 import { closeSync, openSync } from 'node:fs';
-import { rename, rm, writeFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import { createConnection } from 'node:net';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { GenericPTYSession } from '../adapters/generic-pty.js';
 import {
   AISnitchEventTypeSchema,
   ToolNameSchema,
+  type AISnitchEvent,
   type AISnitchConfig,
   type AISnitchEventType,
   type ToolName,
@@ -20,10 +24,17 @@ import {
   type HealthSnapshot,
 } from '../core/index.js';
 import {
+  attachEventBusMonitor,
   renderAttachedTui,
   renderForegroundTui,
+  type MonitorCloseHandler,
   type MonitorOutput,
 } from '../tui/index.js';
+import {
+  TUI_VIEW_MODES,
+  type TuiInitialFilters,
+  type TuiViewMode,
+} from '../tui/types.js';
 import {
   cleanupStaleDaemonFiles,
   ensureLaunchAgentDir,
@@ -61,7 +72,7 @@ import {
  *   → parsePortOption
  *   → parseLogLevelOption
  *   → buildLaunchAgentPlist
- * @exports CliOutput, CommonCliOptions, AttachCliOptions, StartCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, parseToolFilterOption, parseEventTypeFilterOption, buildLaunchAgentPlist
+ * @exports CliOutput, CommonCliOptions, AttachCliOptions, StartCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, parseToolFilterOption, parseEventTypeFilterOption, parseTuiViewModeOption, buildLaunchAgentPlist
  * @see ./pid.ts
  * @see ../tui/live-monitor.ts
  * @see ../core/engine/pipeline.ts
@@ -93,6 +104,7 @@ export interface CommonCliOptions {
 export interface AttachCliOptions extends CommonCliOptions {
   readonly tool?: ToolName;
   readonly type?: AISnitchEventType;
+  readonly view?: TuiViewMode;
 }
 
 /**
@@ -106,10 +118,18 @@ export interface StartCliOptions extends AttachCliOptions {
 }
 
 /**
+ * Options accepted by `aisnitch wrap`.
+ */
+export interface WrapCliOptions extends CommonCliOptions {
+  readonly cwd?: string;
+}
+
+/**
  * Stable runtime command interface consumed by the commander program wiring.
  */
 export interface CliRuntime {
   readonly adapters: (options: CommonCliOptions) => Promise<void>;
+  readonly aiderNotify: (options: CommonCliOptions) => Promise<void>;
   readonly attach: (options: AttachCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
   readonly runDaemonProcess: (options: StartCliOptions) => Promise<void>;
@@ -121,6 +141,11 @@ export interface CliRuntime {
   readonly status: (options: CommonCliOptions) => Promise<void>;
   readonly stop: (options: CommonCliOptions) => Promise<void>;
   readonly uninstall: (options: CommonCliOptions) => Promise<void>;
+  readonly wrap: (
+    command: string,
+    args: readonly string[],
+    options: WrapCliOptions,
+  ) => Promise<void>;
 }
 
 /**
@@ -153,6 +178,11 @@ interface StatusSnapshot {
   readonly running: boolean;
   readonly socketPath: string | null;
   readonly wsPort: number;
+}
+
+interface SocketEventPublisher {
+  readonly close: () => Promise<void>;
+  readonly publish: (event: AISnitchEvent) => Promise<boolean>;
 }
 
 /**
@@ -577,6 +607,133 @@ export function createCliRuntime(
     output.stdout(`AISnitch LaunchAgent installed at ${launchAgentPath}\n`);
   }
 
+  async function wrap(
+    command: string,
+    args: readonly string[],
+    options: WrapCliOptions,
+  ): Promise<void> {
+    const executionCwd = options.cwd ?? process.cwd();
+    const pathOptions = toPathOptions(options);
+    const daemonState = await readDaemonState(pathOptions);
+    const daemonPid = await readPid(pathOptions);
+    const daemonAvailable =
+      daemonState !== null &&
+      daemonPid !== null &&
+      isProcessRunning(daemonPid) &&
+      daemonState.socketPath !== null;
+    let ephemeralPipeline: Pipeline | null = null;
+    let ephemeralHomeDirectory: string | null = null;
+    let monitorClose: MonitorCloseHandler | null = null;
+    let socketPublisher: SocketEventPublisher | null = null;
+    let wrappedExitCode!: number;
+
+    if (daemonAvailable) {
+      socketPublisher = await createSocketEventPublisher(
+        daemonState.socketPath ?? joinSocketPath(pathOptions),
+      );
+    } else {
+      const { config } = await loadEffectiveConfig(options);
+
+      setLoggerLevel(getForegroundSafeLogLevel(config.logLevel, false));
+      ephemeralHomeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-wrap-'));
+      ephemeralPipeline = new Pipeline();
+      await ephemeralPipeline.start({
+        config: {
+          ...config,
+          adapters: {},
+        },
+        homeDirectory: ephemeralHomeDirectory,
+        ...pathOptions,
+      });
+      monitorClose = attachEventBusMonitor(ephemeralPipeline.getEventBus(), {
+        stderr: (text) => {
+          output.stderr(prefixMonitorText(text));
+        },
+        stdout: (text) => {
+          output.stderr(prefixMonitorText(text));
+        },
+      });
+
+      output.stderr(
+        'AISnitch wrap is using an ephemeral local monitor because no daemon is running.\n',
+      );
+    }
+
+    try {
+      const ptySession = new GenericPTYSession({
+        args,
+        command,
+        cwd: executionCwd,
+        env: process.env,
+        publishEvent: async (event, context) => {
+          if (socketPublisher !== null) {
+            return await socketPublisher.publish(event);
+          }
+
+          if (ephemeralPipeline !== null) {
+            return await ephemeralPipeline.publishEvent(event, context);
+          }
+
+          return false;
+        },
+        stdin: process.stdin,
+        stdout: process.stdout,
+      });
+      wrappedExitCode = await ptySession.run();
+
+      if (wrappedExitCode !== 0) {
+        process.exitCode = wrappedExitCode;
+      }
+    } finally {
+      if (monitorClose !== null) {
+        await Promise.resolve(monitorClose());
+      }
+
+      if (socketPublisher !== null) {
+        await socketPublisher.close();
+      }
+
+      if (ephemeralPipeline !== null) {
+        await ephemeralPipeline.stop();
+      }
+
+      if (ephemeralHomeDirectory !== null) {
+        await rm(ephemeralHomeDirectory, { force: true, recursive: true });
+      }
+    }
+
+    process.exit(wrappedExitCode);
+  }
+
+  async function aiderNotify(options: CommonCliOptions): Promise<void> {
+    const { config } = await loadEffectiveConfig(options);
+
+    try {
+      await fetchImplementation(`http://127.0.0.1:${config.httpPort}/hooks/aider`, {
+        body: JSON.stringify({
+          cwd: process.cwd(),
+          data: {
+            cwd: process.cwd(),
+            raw: {
+              argv: process.argv.slice(2),
+              source: 'notifications-command',
+            },
+          },
+          pid: process.ppid > 1 ? process.ppid : undefined,
+          source: 'aisnitch://adapters/aider/notifications-command',
+          transcriptPath: join(process.cwd(), '.aider.chat.history.md'),
+          type: 'agent.idle',
+        }),
+        headers: {
+          'content-type': 'application/json',
+        },
+        method: 'POST',
+      });
+    } catch {
+      // Aider notifications must stay fire-and-forget, even when AISnitch is offline.
+    }
+  }
+
   async function uninstall(options: CommonCliOptions): Promise<void> {
     if (process.platform !== 'darwin') {
       throw new Error('LaunchAgent uninstall is currently supported on macOS only.');
@@ -635,6 +792,7 @@ export function createCliRuntime(
 
   return {
     adapters,
+    aiderNotify,
     attach,
     install,
     runDaemonProcess,
@@ -643,6 +801,7 @@ export function createCliRuntime(
     status,
     stop,
     uninstall,
+    wrap,
   };
 }
 
@@ -705,6 +864,19 @@ export function parseEventTypeFilterOption(
 }
 
 /**
+ * Parses and validates the initial TUI body view.
+ */
+export function parseTuiViewModeOption(rawValue: string): TuiViewMode {
+  if (
+    TUI_VIEW_MODES.includes(rawValue as TuiViewMode)
+  ) {
+    return rawValue as TuiViewMode;
+  }
+
+  throw new Error(`Invalid TUI view: ${rawValue}`);
+}
+
+/**
  * Builds the LaunchAgent plist used by `aisnitch install`.
  */
 export function buildLaunchAgentPlist(
@@ -755,6 +927,44 @@ function createProcessOutput(): CliOutput {
   };
 }
 
+async function createSocketEventPublisher(
+  socketPath: string,
+): Promise<SocketEventPublisher> {
+  const socket = createConnection(socketPath);
+
+  await new Promise<void>((resolve, reject) => {
+    socket.once('connect', () => {
+      resolve();
+    });
+    socket.once('error', reject);
+  });
+
+  return {
+    close: async () => {
+      if (socket.destroyed) {
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        socket.end(() => {
+          resolve();
+        });
+      });
+    },
+    publish: async (event) => {
+      if (socket.destroyed) {
+        return false;
+      }
+
+      return await new Promise<boolean>((resolve) => {
+        socket.write(`${JSON.stringify(event)}\n`, (error) => {
+          resolve(error === undefined || error === null);
+        });
+      });
+    },
+  };
+}
+
 function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -762,6 +972,13 @@ function escapeXml(value: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;');
+}
+
+function prefixMonitorText(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => (line.length > 0 ? `[aisnitch] ${line}` : line))
+    .join('\n');
 }
 
 function getEnabledAdapters(config: AISnitchConfig): ToolName[] {
@@ -850,17 +1067,19 @@ function toDaemonArgv(options: StartCliOptions): string[] {
 
 function toInitialTuiFilters(
   options: AttachCliOptions,
-): {
-  readonly tool?: ToolName;
-  readonly type?: AISnitchEventType;
-} | undefined {
-  if (options.tool === undefined && options.type === undefined) {
+): TuiInitialFilters | undefined {
+  if (
+    options.tool === undefined &&
+    options.type === undefined &&
+    options.view === undefined
+  ) {
     return undefined;
   }
 
   return {
     tool: options.tool,
     type: options.type,
+    view: options.view,
   };
 }
 

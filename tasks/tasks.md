@@ -32,13 +32,15 @@
 ---
 
 ## 🔵 In Progress
-- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 1/4 — Gemini CLI + Codex livrés, Goose/Copilot puis Aider/PTY/OpenClaw à suivre
+- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 3/4 — Gemini/Codex + Goose/Copilot + Aider/PTY livrés, OpenClaw à suivre
 
 ---
 
 ## ✅ Done
 
 - [01 — Gemini CLI & Codex](./06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
+- [02 — Goose & Copilot CLI](./06-adapters-secondary/02_adapters-secondary_goose-copilot_DONE.md) — polling `goosed` + SSE + fallback SQLite, hooks Copilot + session-state + setup repo-local
+- [03 — Aider & Generic PTY](./06-adapters-secondary/03_adapters-secondary_aider-pty_DONE.md) — watcher `.aider.chat.history.md`, setup `notifications-command`, fallback `aisnitch wrap <cmd>`, et heuristiques PTY
 - [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
 - [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
 - [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP

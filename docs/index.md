@@ -9,10 +9,10 @@ This folder tracks the technical documentation that complements the task board a
 - [`config-system.md`](./config-system.md) — persisted config shape, loader rules, and port fallback logic
 - [`core-pipeline.md`](./core-pipeline.md) — in-memory EventBus, WS/HTTP/UDS ingress-egress, and context enrichment flow
 - [`cli-daemon.md`](./cli-daemon.md) — commander command surface, daemon supervision files, and LaunchAgent flow
-- [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code and OpenCode forwarding into AISnitch
+- [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code, OpenCode, Gemini, Aider, Codex, Goose, and Copilot CLI forwarding into AISnitch
 - [`priority-adapters.md`](./priority-adapters.md) — BaseAdapter lifecycle, Claude Code mapping, and OpenCode plugin integration
-- [`secondary-adapters.md`](./secondary-adapters.md) — Gemini CLI hooks/log fallback and Codex passive log watching
-- [`tui.md`](./tui.md) — Ink foundation layout, foreground runtime rendering, and the remaining interactive gaps
+- [`secondary-adapters.md`](./secondary-adapters.md) — Gemini/Codex plus Goose API-SSE, Copilot hook/session-state, Aider transcript parsing, and generic PTY fallback
+- [`tui.md`](./tui.md) — Ink layout, shared foreground/attach rendering, filters, and the full-data event inspector
 
 ## Related project sources
 

@@ -15,11 +15,13 @@ import {
   parseEventTypeFilterOption,
   parseLogLevelOption,
   parsePortOption,
+  parseTuiViewModeOption,
   parseToolFilterOption,
   type CliRuntime,
   type AttachCliOptions,
   type CommonCliOptions,
   type StartCliOptions,
+  type WrapCliOptions,
 } from './runtime.js';
 
 /**
@@ -58,11 +60,17 @@ export function createProgram(
 Examples:
   aisnitch start
   aisnitch start --daemon
+  aisnitch start --view full-data
   aisnitch status
   aisnitch attach
+  aisnitch attach --view full-data
   aisnitch setup claude-code
+  aisnitch setup aider
   aisnitch setup gemini-cli
+  aisnitch setup goose
   aisnitch setup codex
+  aisnitch setup copilot-cli
+  aisnitch wrap aider --model sonnet
   aisnitch install
 `,
     );
@@ -73,9 +81,11 @@ Examples:
   addAdaptersCommand(program, runtime);
   addSetupCommand(program, runtime);
   addAttachCommand(program, runtime);
+  addWrapCommand(program, runtime);
   addInstallCommand(program, runtime);
   addUninstallCommand(program, runtime);
   addDaemonRunCommand(program, runtime);
+  addAiderNotifyCommand(program, runtime);
 
   return program;
 }
@@ -102,6 +112,11 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
         '--type <type>',
         'Pre-filter the foreground TUI by event type',
         wrapOptionParser(parseEventTypeFilterOption),
+      )
+      .option(
+        '--view <view>',
+        'Open the foreground TUI in summary or full-data mode',
+        wrapOptionParser(parseTuiViewModeOption),
       )
       .option(
         '--ws-port <port>',
@@ -152,7 +167,11 @@ function addSetupCommand(program: Command, runtime: CliRuntime): void {
     program
       .command('setup')
       .description('Configure supported AI tools to forward events into AISnitch')
-      .argument('<tool>', 'Tool to configure (claude-code, opencode, gemini-cli, codex)', parseSetupToolName)
+      .argument(
+        '<tool>',
+        'Tool to configure (claude-code, opencode, gemini-cli, aider, codex, goose, copilot-cli)',
+        parseSetupToolName,
+      )
       .option('--revert', 'Restore the previous tool configuration from backup'),
   ).action(async (toolName: SetupToolName, options: SetupCliOptions) => {
     await runtime.setup(toolName, options);
@@ -173,10 +192,31 @@ function addAttachCommand(program: Command, runtime: CliRuntime): void {
         '--type <type>',
         'Pre-filter the attached TUI by event type',
         wrapOptionParser(parseEventTypeFilterOption),
+      )
+      .option(
+        '--view <view>',
+        'Open the attached TUI in summary or full-data mode',
+        wrapOptionParser(parseTuiViewModeOption),
       ),
   ).action(async (options: AttachCliOptions) => {
     await runtime.attach(options);
   });
+}
+
+function addWrapCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('wrap')
+      .description('Run a command inside a PTY while AISnitch observes its terminal activity')
+      .allowUnknownOption(true)
+      .argument('<command>', 'Command to wrap')
+      .argument('[args...]', 'Arguments forwarded to the wrapped command')
+      .option('--cwd <path>', 'Run the wrapped command from a specific working directory'),
+  ).action(
+    async (command: string, args: string[], options: WrapCliOptions) => {
+      await runtime.wrap(command, args, options);
+    },
+  );
 }
 
 function addInstallCommand(program: Command, runtime: CliRuntime): void {
@@ -217,6 +257,16 @@ function addDaemonRunCommand(program: Command, runtime: CliRuntime): void {
       ),
   ).action(async (options: StartCliOptions) => {
     await runtime.runDaemonProcess(options);
+  });
+}
+
+function addAiderNotifyCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('aider-notify')
+      .description('Internal aider notifications-command bridge'),
+  ).action(async (options: CommonCliOptions) => {
+    await runtime.aiderNotify(options);
   });
 }
 

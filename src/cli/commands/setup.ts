@@ -21,14 +21,22 @@ import {
  *   → parseSetupToolName
  *   → createToolSetup
  *   → runSetupCommand
- * @exports SetupToolName, SetupCliOptions, SetupOutput, ToolSetup, ClaudeCodeSetup, OpenCodeSetup, parseSetupToolName, createToolSetup, runSetupCommand
+ * @exports SetupToolName, SetupCliOptions, SetupOutput, ToolSetup, ClaudeCodeSetup, GeminiCLISetup, AiderSetup, GooseSetup, CodexSetup, CopilotCLISetup, OpenCodeSetup, parseSetupToolName, createToolSetup, runSetupCommand
  * @see ../program.ts
  * @see ../runtime.ts
- */
+*/
 
 const execFile = promisify(execFileCallback);
 
-const SETUP_TOOL_NAMES = ['claude-code', 'opencode', 'gemini-cli', 'codex'] as const;
+const SETUP_TOOL_NAMES = [
+  'claude-code',
+  'opencode',
+  'gemini-cli',
+  'aider',
+  'codex',
+  'goose',
+  'copilot-cli',
+] as const;
 const ANSI_RESET = '\u001B[0m';
 const ANSI_RED = '\u001B[31m';
 const ANSI_GREEN = '\u001B[32m';
@@ -74,6 +82,15 @@ const GEMINI_HOOK_EVENTS = [
   'PreCompress',
 ] as const;
 
+const COPILOT_HOOK_EVENTS = [
+  'sessionStart',
+  'sessionEnd',
+  'userPromptSubmitted',
+  'preToolUse',
+  'postToolUse',
+  'errorOccurred',
+] as const;
+
 type ClaudeHookEventName = (typeof CLAUDE_CODE_HOOK_EVENTS)[number];
 
 interface ClaudeHookHandler extends Record<string, unknown> {
@@ -109,7 +126,21 @@ interface GeminiSettings extends Record<string, unknown> {
   readonly hooks?: Record<string, GeminiHookMatcherGroup[]>;
 }
 
+interface CopilotHookHandler extends Record<string, unknown> {
+  readonly bash?: string;
+  readonly cwd?: string;
+  readonly powershell?: string;
+  readonly timeoutSec?: number;
+  readonly type: string;
+}
+
+interface CopilotHooksFile extends Record<string, unknown> {
+  readonly hooks?: Record<string, CopilotHookHandler[]>;
+  readonly version: number;
+}
+
 interface ToolSetupDependencies {
+  readonly aiderConfigPath?: string;
   readonly binaryExists?: (binaryName: string) => Promise<boolean>;
   readonly confirm?: (diff: string, prompt: string) => Promise<boolean>;
   readonly homeDirectory?: string;
@@ -117,6 +148,8 @@ interface ToolSetupDependencies {
   readonly geminiSettingsPath?: string;
   readonly opencodeConfigDirectory?: string;
   readonly codexHomeDirectory?: string;
+  readonly gooseHomeDirectory?: string;
+  readonly workspaceDirectory?: string;
   readonly output?: SetupOutput;
 }
 
@@ -424,6 +457,109 @@ export class GeminiCLISetup extends FileToolSetupBase {
 }
 
 /**
+ * Aider setup is intentionally conservative: AISnitch only toggles top-level
+ * notification keys inside the user config and leaves the rest of the YAML alone.
+ */
+export class AiderSetup extends FileToolSetupBase {
+  private readonly configPath: string;
+
+  private readonly notificationCommand: string;
+
+  public constructor(
+    dependencies: ToolSetupDependencies = {},
+    options: SetupCliOptions = {},
+  ) {
+    super('aider', dependencies.binaryExists);
+    this.configPath =
+      dependencies.aiderConfigPath ??
+      join(dependencies.homeDirectory ?? homedir(), '.aider.conf.yml');
+    this.notificationCommand = buildAiderNotificationCommand(options);
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('aider')) ||
+      (await fileExists(this.configPath))
+    );
+  }
+
+  public getConfigPath(): string {
+    return this.configPath;
+  }
+
+  protected buildNextContent(
+    currentContent: string | null,
+  ): Promise<string> {
+    let nextContent =
+      currentContent ??
+      '# AISnitch helper settings for aider notifications.\n';
+
+    nextContent = upsertYamlScalar(nextContent, ['notifications'], {
+      key: 'notifications',
+      value: 'true',
+    });
+    nextContent = upsertYamlScalar(
+      nextContent,
+      ['notifications-command', 'notifications_command'],
+      {
+        key: 'notifications-command',
+        value: JSON.stringify(this.notificationCommand),
+      },
+    );
+
+    return Promise.resolve(`${nextContent.trimEnd()}\n`);
+  }
+}
+
+/**
+ * Goose is passive for the MVP: AISnitch watches goosed + SQLite sources and
+ * this setup flow simply arms the adapter in config with clear operator hints.
+ */
+export class GooseSetup implements ToolSetup {
+  private readonly gooseHomeDirectory: string;
+
+  public readonly toolName = 'goose' as const;
+
+  private readonly binaryExists: (binaryName: string) => Promise<boolean>;
+
+  public constructor(dependencies: ToolSetupDependencies = {}) {
+    this.binaryExists = dependencies.binaryExists ?? isBinaryAvailable;
+    this.gooseHomeDirectory =
+      dependencies.gooseHomeDirectory ??
+      join(dependencies.homeDirectory ?? homedir(), '.config', 'goose');
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('goose')) ||
+      (await fileExists(this.gooseHomeDirectory))
+    );
+  }
+
+  public getConfigPath(): string {
+    return join(this.gooseHomeDirectory, 'sessions.db');
+  }
+
+  public computeDiff(): Promise<string> {
+    return Promise.resolve(
+      [
+        `${ANSI_CYAN}--- ${this.getConfigPath()} (passive source)${ANSI_RESET}`,
+        `${ANSI_GREEN}+ Enable passive Goose discovery in AISnitch.${ANSI_RESET}`,
+        `${ANSI_GREEN}+ AISnitch will try goosed at http://127.0.0.1:8080 and fall back to SQLite session watching.${ANSI_RESET}`,
+      ].join('\n'),
+    );
+  }
+
+  public apply(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  public revert(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+/**
  * Codex uses passive log watching for the MVP, so setup only arms the adapter
  * and documents the watched source path rather than editing Codex files.
  */
@@ -472,6 +608,133 @@ export class CodexSetup implements ToolSetup {
 }
 
 /**
+ * Copilot CLI uses repository-scoped hook configs. AISnitch installs one hook
+ * file plus a tiny Node bridge script so Bash and PowerShell can share logic.
+ */
+export class CopilotCLISetup implements ToolSetup {
+  private readonly binaryExists: (binaryName: string) => Promise<boolean>;
+
+  private readonly configPath: string;
+
+  private readonly hookUrl: string;
+
+  private readonly scriptPath: string;
+
+  public readonly toolName = 'copilot-cli' as const;
+
+  private readonly workspaceDirectory: string;
+
+  public constructor(
+    httpPort: number,
+    dependencies: ToolSetupDependencies = {},
+  ) {
+    this.binaryExists = dependencies.binaryExists ?? isBinaryAvailable;
+    this.workspaceDirectory = dependencies.workspaceDirectory ?? process.cwd();
+    this.configPath = join(
+      this.workspaceDirectory,
+      '.github',
+      'hooks',
+      'aisnitch.json',
+    );
+    this.scriptPath = join(
+      this.workspaceDirectory,
+      '.github',
+      'hooks',
+      'scripts',
+      'aisnitch-forward.mjs',
+    );
+    this.hookUrl = `http://localhost:${httpPort}/hooks/copilot-cli`;
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('copilot')) ||
+      (await fileExists(join(this.workspaceDirectory, '.git'))) ||
+      (await fileExists(this.workspaceDirectory))
+    );
+  }
+
+  public getConfigPath(): string {
+    return this.configPath;
+  }
+
+  public async computeDiff(): Promise<string> {
+    const currentConfigContent = await readOptionalFile(this.configPath);
+    const currentScriptContent = await readOptionalFile(this.scriptPath);
+    const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
+    const nextScriptContent = buildCopilotForwardScriptSource();
+
+    return [
+      renderColoredDiff(
+        this.configPath,
+        currentConfigContent,
+        nextConfigContent,
+      ),
+      '',
+      renderColoredDiff(
+        this.scriptPath,
+        currentScriptContent,
+        nextScriptContent,
+      ),
+    ].join('\n');
+  }
+
+  public async apply(): Promise<void> {
+    const currentConfigContent = await readOptionalFile(this.configPath);
+    const currentScriptContent = await readOptionalFile(this.scriptPath);
+    const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
+    const nextScriptContent = buildCopilotForwardScriptSource();
+
+    await mkdir(dirname(this.configPath), { recursive: true });
+    await mkdir(dirname(this.scriptPath), { recursive: true });
+
+    if (currentConfigContent !== null) {
+      await copyFile(this.configPath, this.getBackupPath(this.configPath));
+    }
+
+    if (currentScriptContent !== null) {
+      await copyFile(this.scriptPath, this.getBackupPath(this.scriptPath));
+    }
+
+    await writeFile(this.configPath, nextConfigContent, 'utf8');
+    await writeFile(this.scriptPath, nextScriptContent, 'utf8');
+  }
+
+  public async revert(): Promise<void> {
+    await restoreBackupOrRemove(this.configPath);
+    await restoreBackupOrRemove(this.scriptPath);
+  }
+
+  private buildNextConfigContent(currentContent: string | null): string {
+    const parsedConfig = parseCopilotHooksFile(currentContent);
+    const currentHooks = parsedConfig.hooks ?? {};
+    const nextHooks: Record<string, CopilotHookHandler[]> = {
+      ...currentHooks,
+    };
+
+    for (const hookEventName of COPILOT_HOOK_EVENTS) {
+      nextHooks[hookEventName] = ensureCopilotAISnitchHook(
+        currentHooks[hookEventName] ?? [],
+        hookEventName,
+        this.hookUrl,
+      );
+    }
+
+    const nextConfig: CopilotHooksFile = {
+      ...parsedConfig,
+      hooks: nextHooks,
+      version: 1,
+    };
+
+    return `${JSON.stringify(nextConfig, null, 2)}\n`;
+  }
+
+  private getBackupPath(path: string): string {
+    return `${path}.bak`;
+  }
+}
+
+/**
  * Creates one concrete setup implementation for the selected tool.
  */
 export async function createToolSetup(
@@ -490,11 +753,27 @@ export async function createToolSetup(
     return new GeminiCLISetup(httpPort, dependencies);
   }
 
+  if (toolName === 'aider') {
+    return new AiderSetup(dependencies, options);
+  }
+
+  if (toolName === 'goose') {
+    return new GooseSetup(dependencies);
+  }
+
   if (toolName === 'codex') {
     return new CodexSetup(dependencies);
   }
 
-  return new OpenCodeSetup(httpPort, dependencies);
+  if (toolName === 'copilot-cli') {
+    return new CopilotCLISetup(httpPort, dependencies);
+  }
+
+  if (toolName === 'opencode') {
+    return new OpenCodeSetup(httpPort, dependencies);
+  }
+
+  return new ClaudeCodeSetup(httpPort, dependencies);
 }
 
 /**
@@ -889,6 +1168,123 @@ function isGeminiAISnitchHook(
   );
 }
 
+function ensureCopilotAISnitchHook(
+  handlers: readonly CopilotHookHandler[],
+  hookEventName: (typeof COPILOT_HOOK_EVENTS)[number],
+  hookUrl: string,
+): CopilotHookHandler[] {
+  const clonedHandlers = handlers.map((handler) => ({ ...handler }));
+  const existingHook = clonedHandlers.find((handler) =>
+    isCopilotAISnitchHook(handler, hookEventName, hookUrl),
+  );
+
+  if (existingHook) {
+    return clonedHandlers;
+  }
+
+  clonedHandlers.push(createCopilotAISnitchHook(hookEventName, hookUrl));
+  return clonedHandlers;
+}
+
+function createCopilotAISnitchHook(
+  hookEventName: (typeof COPILOT_HOOK_EVENTS)[number],
+  hookUrl: string,
+): CopilotHookHandler {
+  const command = buildCopilotForwardCommand(hookEventName, hookUrl);
+
+  return {
+    bash: command,
+    cwd: '.github/hooks',
+    powershell: command,
+    timeoutSec: 10,
+    type: 'command',
+  };
+}
+
+function buildCopilotForwardCommand(
+  hookEventName: (typeof COPILOT_HOOK_EVENTS)[number],
+  hookUrl: string,
+): string {
+  return `node ./scripts/aisnitch-forward.mjs ${hookEventName} ${hookUrl}`;
+}
+
+function isCopilotAISnitchHook(
+  handler: CopilotHookHandler,
+  hookEventName: (typeof COPILOT_HOOK_EVENTS)[number],
+  hookUrl: string,
+): boolean {
+  return (
+    handler.type === 'command' &&
+    typeof handler.bash === 'string' &&
+    handler.bash.includes(`aisnitch-forward.mjs ${hookEventName}`) &&
+    handler.bash.includes(hookUrl)
+  );
+}
+
+function buildCopilotForwardScriptSource(): string {
+  return `#!/usr/bin/env node
+/**
+ * AISnitch Copilot CLI hook bridge
+ *
+ * 📖 Copilot hooks are repository-scoped and synchronous. This script keeps
+ * the hook config tiny by tagging the incoming stdin payload with the hook
+ * name, then forwarding it to the local AISnitch HTTP receiver.
+ */
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function readInput() {
+  const chunks = [];
+
+  for await (const chunk of process.stdin) {
+    chunks.push(typeof chunk === "string" ? chunk : chunk.toString("utf8"));
+  }
+
+  return chunks.join("");
+}
+
+async function main() {
+  const hookEventName = process.argv[2] ?? "unknown";
+  const endpoint = process.argv[3] ?? "http://localhost:4821/hooks/copilot-cli";
+  const rawInput = await readInput();
+  let payload = {};
+
+  if (rawInput.trim().length > 0) {
+    try {
+      const parsedPayload = JSON.parse(rawInput);
+
+      if (isRecord(parsedPayload)) {
+        payload = parsedPayload;
+      }
+    } catch {
+      payload = {
+        raw: rawInput
+      };
+    }
+  }
+
+  try {
+    await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        ...payload,
+        hook_event_name: hookEventName
+      })
+    });
+  } catch {
+    // Ignore transport failures so Copilot itself never gets blocked by AISnitch.
+  }
+}
+
+void main();
+`;
+}
+
 function parseClaudeSettings(currentContent: string | null): ClaudeSettings {
   if (currentContent === null || currentContent.trim().length === 0) {
     return {};
@@ -925,6 +1321,53 @@ function parseClaudeSettings(currentContent: string | null): ClaudeSettings {
     ...parsedJson,
     hooks: parsedHooks,
   };
+}
+
+function parseCopilotHooksFile(currentContent: string | null): CopilotHooksFile {
+  if (currentContent === null || currentContent.trim().length === 0) {
+    return {
+      version: 1,
+    };
+  }
+
+  const parsedJson: unknown = JSON.parse(currentContent);
+
+  if (!isRecord(parsedJson)) {
+    throw new Error('Copilot hooks config must contain a JSON object.');
+  }
+
+  if (parsedJson.version !== undefined && typeof parsedJson.version !== 'number') {
+    throw new Error('Copilot hooks config version must be a number.');
+  }
+
+  if (parsedJson.hooks !== undefined && !isRecord(parsedJson.hooks)) {
+    throw new Error('Copilot hooks configuration must be an object.');
+  }
+
+  const parsedHooks =
+    parsedJson.hooks === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(parsedJson.hooks).map(([hookEventName, value]) => {
+            if (!Array.isArray(value)) {
+              throw new Error(
+                `Copilot hook group "${hookEventName}" must be an array.`,
+              );
+            }
+
+            const handlers = value.map((handler) =>
+              parseCopilotHookHandler(handler, hookEventName),
+            );
+
+            return [hookEventName, handlers];
+          }),
+        );
+
+  return {
+    ...parsedJson,
+    hooks: parsedHooks,
+    version: parsedJson.version === undefined ? 1 : parsedJson.version,
+  } satisfies CopilotHooksFile;
 }
 
 function parseGeminiSettings(currentContent: string | null): GeminiSettings {
@@ -1071,6 +1514,22 @@ function parseGeminiHookHandler(
   };
 }
 
+function parseCopilotHookHandler(
+  value: unknown,
+  hookEventName: string,
+): CopilotHookHandler {
+  if (!isRecord(value) || typeof value.type !== 'string') {
+    throw new Error(
+      `Copilot hook handler "${hookEventName}" must be an object with a string type.`,
+    );
+  }
+
+  return {
+    ...value,
+    type: value.type,
+  };
+}
+
 function renderColoredDiff(
   filePath: string,
   currentContent: string | null,
@@ -1120,6 +1579,98 @@ async function fileExists(path: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function readOptionalFile(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf8');
+  } catch (error: unknown) {
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function restoreBackupOrRemove(path: string): Promise<void> {
+  const backupPath = `${path}.bak`;
+
+  if (await fileExists(backupPath)) {
+    await copyFile(backupPath, path);
+    await rm(backupPath, { force: true });
+    return;
+  }
+
+  await rm(path, { force: true });
+}
+
+function buildAiderNotificationCommand(options: SetupCliOptions): string {
+  const cliArgs = [process.execPath, resolveCurrentCliEntryPath(), 'aider-notify'];
+
+  if (options.config) {
+    cliArgs.push('--config', options.config);
+  }
+
+  return cliArgs.map((argument) => JSON.stringify(argument)).join(' ');
+}
+
+function resolveCurrentCliEntryPath(): string {
+  const cliEntryPath = process.argv[1];
+
+  if (!cliEntryPath || cliEntryPath.trim().length === 0) {
+    throw new Error('Unable to resolve the current AISnitch CLI entry path.');
+  }
+
+  return cliEntryPath;
+}
+
+function upsertYamlScalar(
+  content: string,
+  aliases: readonly string[],
+  nextEntry: {
+    readonly key: string;
+    readonly value: string;
+  },
+): string {
+  const lines = content.replace(/\r\n/gu, '\n').split('\n');
+  const matcher = new RegExp(
+    `^\\s*#?\\s*(?:${aliases.map(escapeForRegExp).join('|')})\\s*:`,
+    'u',
+  );
+  const nextLines: string[] = [];
+  let replaced = false;
+
+  for (const line of lines) {
+    if (matcher.test(line)) {
+      if (!replaced) {
+        nextLines.push(`${nextEntry.key}: ${nextEntry.value}`);
+        replaced = true;
+      }
+
+      continue;
+    }
+
+    nextLines.push(line);
+  }
+
+  if (!replaced) {
+    if (nextLines.length > 0 && nextLines.at(-1)?.trim().length !== 0) {
+      nextLines.push('');
+    }
+
+    nextLines.push(`${nextEntry.key}: ${nextEntry.value}`);
+  }
+
+  return nextLines.join('\n');
+}
+
+function escapeForRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 async function setAdapterEnabled(

@@ -15,6 +15,7 @@ import { createProgram } from '../program.js';
 function createNoopRuntime() {
   return {
     adapters: vi.fn(() => Promise.resolve()),
+    aiderNotify: vi.fn(() => Promise.resolve()),
     attach: vi.fn(() => Promise.resolve()),
     install: vi.fn(() => Promise.resolve()),
     runDaemonProcess: vi.fn(() => Promise.resolve()),
@@ -23,6 +24,7 @@ function createNoopRuntime() {
     status: vi.fn(() => Promise.resolve()),
     stop: vi.fn(() => Promise.resolve()),
     uninstall: vi.fn(() => Promise.resolve()),
+    wrap: vi.fn(() => Promise.resolve()),
   };
 }
 
@@ -61,6 +63,8 @@ describe('createProgram', () => {
         'claude-code',
         '--type',
         'agent.coding',
+        '--view',
+        'full-data',
       ],
       { from: 'node' },
     );
@@ -69,6 +73,7 @@ describe('createProgram', () => {
       daemon: undefined,
       tool: 'claude-code',
       type: 'agent.coding',
+      view: 'full-data',
     });
   });
 
@@ -85,6 +90,8 @@ describe('createProgram', () => {
         'opencode',
         '--type',
         'agent.tool_call',
+        '--view',
+        'full-data',
       ],
       { from: 'node' },
     );
@@ -92,6 +99,26 @@ describe('createProgram', () => {
     expect(runtime.attach).toHaveBeenCalledWith({
       tool: 'opencode',
       type: 'agent.tool_call',
+      view: 'full-data',
     });
+  });
+
+  it('passes arbitrary wrapped command arguments through to the runtime', async () => {
+    const runtime = createNoopRuntime();
+    const program = createProgram({ runtime });
+
+    await program.parseAsync(
+      ['node', 'aisnitch', 'wrap', 'aider', '--model', 'sonnet', '--yes'],
+      { from: 'node' },
+    );
+
+    expect(runtime.wrap).toHaveBeenCalledWith(
+      'aider',
+      ['--model', 'sonnet', '--yes'],
+      {
+        config: undefined,
+        cwd: undefined,
+      },
+    );
   });
 });

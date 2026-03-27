@@ -147,6 +147,53 @@ describe('Pipeline', () => {
     }
   });
 
+  it('does not reuse the same fallback port for both WebSocket and HTTP servers', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-pipeline-'));
+    const pipeline = new Pipeline();
+    const requestedWsPort = await findFreePort();
+    const requestedHttpPort = await findFreePort();
+    const occupiedServer = createServer();
+
+    try {
+      await new Promise<void>((resolve) => {
+        occupiedServer.listen(requestedWsPort, '127.0.0.1', () => {
+          resolve();
+        });
+      });
+
+      await pipeline.start({
+        homeDirectory,
+        config: {
+          ...DEFAULT_CONFIG,
+          httpPort: requestedWsPort,
+          wsPort: requestedWsPort,
+        },
+      });
+
+      expect(pipeline.getStatus().wsPort).not.toBeNull();
+      expect(pipeline.getStatus().httpPort).not.toBeNull();
+      expect(pipeline.getStatus().wsPort).not.toBe(requestedWsPort);
+      expect(pipeline.getStatus().httpPort).not.toBe(requestedWsPort);
+      expect(pipeline.getStatus().wsPort).not.toBe(pipeline.getStatus().httpPort);
+      expect(pipeline.getStatus().httpPort).toBeGreaterThan(
+        pipeline.getStatus().wsPort ?? requestedHttpPort,
+      );
+    } finally {
+      await pipeline.stop();
+      await new Promise<void>((resolve, reject) => {
+        occupiedServer.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        });
+      });
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
   it('returns 400 for malformed POST bodies without crashing', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-pipeline-'));
     const pipeline = new Pipeline();

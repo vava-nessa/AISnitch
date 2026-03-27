@@ -15,12 +15,15 @@ import { TUI_THEME } from '../theme.js';
 
 const HELP_LINES = [
   'q / Ctrl+C  quit cleanly',
+  'v           toggle full-data inspector',
   'f           filter by tool',
   't           filter by event type',
   '/           free-text search',
   'Esc         clear filters',
   'Space       freeze or resume stream',
   'c           clear buffered stream',
+  '↑/↓ or j/k  inspect-mode navigate / scroll',
+  '[ / ]       inspect-mode page scroll',
   '?           toggle help',
   'Tab         cycle focused panel',
 ];

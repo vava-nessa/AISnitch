@@ -5,9 +5,12 @@ import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  AiderSetup,
   ClaudeCodeSetup,
+  CopilotCLISetup,
   CodexSetup,
   GeminiCLISetup,
+  GooseSetup,
   OpenCodeSetup,
   parseSetupToolName,
   runSetupCommand,
@@ -31,9 +34,11 @@ describe('setup command helpers', () => {
   it('parses supported setup tool names', () => {
     expect(parseSetupToolName('claude-code')).toBe('claude-code');
     expect(parseSetupToolName('gemini-cli')).toBe('gemini-cli');
+    expect(parseSetupToolName('aider')).toBe('aider');
     expect(parseSetupToolName('codex')).toBe('codex');
+    expect(parseSetupToolName('goose')).toBe('goose');
+    expect(parseSetupToolName('copilot-cli')).toBe('copilot-cli');
     expect(parseSetupToolName('opencode')).toBe('opencode');
-    expect(() => parseSetupToolName('goose')).toThrow(/Unsupported setup tool/);
   });
 
   it('merges AISnitch HTTP hooks into Claude Code settings without dropping existing hooks', async () => {
@@ -216,6 +221,107 @@ describe('setup command helpers', () => {
       await expect(setup.revert()).resolves.toBeUndefined();
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('supports passive goose setup without mutating external files', async () => {
+    const homeDirectory = await createTempHome();
+    const gooseHomeDirectory = join(homeDirectory, '.config', 'goose');
+
+    try {
+      await mkdir(gooseHomeDirectory, { recursive: true });
+
+      const setup = new GooseSetup({
+        binaryExists: () => Promise.resolve(false),
+        gooseHomeDirectory,
+        homeDirectory,
+      });
+
+      expect(await setup.detect()).toBe(true);
+      expect(await setup.computeDiff()).toContain('goosed at http://127.0.0.1:8080');
+
+      await expect(setup.apply()).resolves.toBeUndefined();
+      await expect(setup.revert()).resolves.toBeUndefined();
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('writes aider notifications-command config into ~/.aider.conf.yml', async () => {
+    const homeDirectory = await createTempHome();
+    const configPath = join(homeDirectory, '.aider.conf.yml');
+
+    try {
+      const setup = new AiderSetup(
+        {
+          binaryExists: () => Promise.resolve(true),
+          homeDirectory,
+        },
+        {
+          config: '/tmp/aisnitch/config.json',
+        },
+      );
+
+      await setup.apply();
+
+      const configContents = await readFile(configPath, 'utf8');
+
+      expect(configContents).toContain('notifications: true');
+      expect(configContents).toContain('notifications-command:');
+      expect(configContents).toContain('aider-notify');
+      expect(configContents).toContain('/tmp/aisnitch/config.json');
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('creates and reverts the Copilot CLI hook config and bridge script', async () => {
+    const workspaceDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-copilot-tests'));
+
+    try {
+      await mkdir(join(workspaceDirectory, '.git'), { recursive: true });
+
+      const setup = new CopilotCLISetup(4821, {
+        binaryExists: () => Promise.resolve(true),
+        workspaceDirectory,
+      });
+
+      expect(await setup.detect()).toBe(true);
+
+      await setup.apply();
+
+      const configContent = JSON.parse(
+        await readFile(setup.getConfigPath(), 'utf8'),
+      ) as {
+        hooks: Record<string, Array<Record<string, unknown>>>;
+      };
+      const scriptPath = join(
+        workspaceDirectory,
+        '.github',
+        'hooks',
+        'scripts',
+        'aisnitch-forward.mjs',
+      );
+      const scriptContent = await readFile(scriptPath, 'utf8');
+
+      expect(Object.keys(configContent.hooks)).toEqual(
+        expect.arrayContaining([
+          'errorOccurred',
+          'postToolUse',
+          'preToolUse',
+          'sessionEnd',
+          'sessionStart',
+          'userPromptSubmitted',
+        ]),
+      );
+      expect(scriptContent).toContain('http://localhost:4821/hooks/copilot-cli');
+
+      await setup.revert();
+
+      await expect(readFile(setup.getConfigPath(), 'utf8')).rejects.toThrow();
+      await expect(readFile(scriptPath, 'utf8')).rejects.toThrow();
+    } finally {
+      await rm(workspaceDirectory, { recursive: true, force: true });
     }
   });
 

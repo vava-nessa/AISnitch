@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, useApp, useStdout } from 'ink';
 
 import type { ToolName } from '../core/index.js';
+import { EventInspector } from './components/EventInspector.js';
 import { EventStream } from './components/EventStream.js';
 import { FilterBar } from './components/FilterBar.js';
 import { Header } from './components/Header.js';
@@ -14,6 +15,7 @@ import {
   applySessionFilters,
   countActiveFilters,
 } from './filters.js';
+import { buildEventInspectorLines } from './event-inspector.js';
 import { TUI_THEME } from './theme.js';
 import type { TuiInitialFilters, TuiStatusSnapshot } from './types.js';
 import {
@@ -70,16 +72,23 @@ export function App({
   const { exit } = useApp();
   const { stdout } = useStdout();
   const [columns, setColumns] = useState(stdout.columns ?? 80);
+  const [rows, setRows] = useState(stdout.rows ?? 24);
+  const [inspectorLineOffset, setInspectorLineOffset] = useState(0);
+  const [selectedEventIndex, setSelectedEventIndex] = useState<number | null>(
+    null,
+  );
   const [uptimeMs, setUptimeMs] = useState(status.uptimeMs);
   const initialTuiFilters = {
     eventType: initialFilters?.type ?? null,
     query: initialFilters?.query ?? '',
     tool: initialFilters?.tool ?? null,
   };
+  const initialFullDataMode = initialFilters?.view === 'full-data';
 
   useEffect(() => {
     const handleResize = (): void => {
       setColumns(stdout.columns ?? 80);
+      setRows(stdout.rows ?? 24);
     };
 
     stdout.on('resize', handleResize);
@@ -101,15 +110,53 @@ export function App({
   const [frozenFilteredEventCount, setFrozenFilteredEventCount] = useState<
     number | null
   >(null);
+  const inspectorVisibleLineCount = Math.max(
+    10,
+    compactLayout ? rows - 22 : rows - 18,
+  );
   const keyBinds = useKeyBinds({
+    fullDataModeEnabled: initialFullDataMode,
     initialFilters: initialTuiFilters,
     onClearStream: () => {
       eventStream.clearEvents();
       setFrozenFilteredEventCount(null);
+      setSelectedEventIndex(null);
+      setInspectorLineOffset(0);
+    },
+    onInspectorPageScroll: (delta) => {
+      setInspectorLineOffset((currentValue) =>
+        Math.max(0, currentValue + delta * inspectorVisibleLineCount),
+      );
+    },
+    onInspectorScroll: (delta) => {
+      setInspectorLineOffset((currentValue) =>
+        Math.max(0, currentValue + delta),
+      );
     },
     onQuit: () => {
       onQuit?.();
       exit();
+    },
+    onSelectNextEvent: () => {
+      setSelectedEventIndex((currentValue) => {
+        if (displayedEvents.length === 0) {
+          return null;
+        }
+
+        return Math.min(
+          displayedEvents.length - 1,
+          (currentValue ?? displayedEvents.length - 1) + 1,
+        );
+      });
+    },
+    onSelectPreviousEvent: () => {
+      setSelectedEventIndex((currentValue) => {
+        if (displayedEvents.length === 0) {
+          return null;
+        }
+
+        return Math.max(0, (currentValue ?? displayedEvents.length - 1) - 1);
+      });
     },
     onToggleFreeze: () => {
       const nextFrozen = !eventStream.isFrozen;
@@ -117,13 +164,34 @@ export function App({
       eventStream.toggleFrozen();
       setFrozenFilteredEventCount(nextFrozen ? displayedEvents.length : null);
     },
+    onToggleFullDataMode: () => {
+      setInspectorLineOffset(0);
+    },
     toolOptions: configuredAdapters,
   });
   const displayedEvents = applyEventFilters(
     eventStream.bufferedEvents,
     keyBinds.filters,
   );
+  const fullDataModeEnabled = keyBinds.viewMode === 'full-data';
   const displayedSessions = applySessionFilters(sessions, keyBinds.filters);
+  const safeSelectedEventIndex =
+    displayedEvents.length === 0
+      ? null
+      : Math.min(
+          selectedEventIndex ?? displayedEvents.length - 1,
+          displayedEvents.length - 1,
+        );
+  const selectedEvent =
+    safeSelectedEventIndex === null
+      ? null
+      : displayedEvents[safeSelectedEventIndex] ?? null;
+  const inspectorLines =
+    selectedEvent === null ? [] : buildEventInspectorLines(selectedEvent);
+  const maxInspectorLineOffset = Math.max(
+    0,
+    inspectorLines.length - inspectorVisibleLineCount,
+  );
   const pendingFilteredEvents = eventStream.isFrozen
     ? getPendingFrozenEventCount(
         displayedEvents.length,
@@ -131,6 +199,7 @@ export function App({
       )
     : 0;
   const visibleEvents = getVisibleEventWindow(displayedEvents, {
+    anchorIndex: fullDataModeEnabled ? safeSelectedEventIndex : null,
     frozenAtTotalEvents: eventStream.isFrozen ? frozenFilteredEventCount : null,
     totalEvents: displayedEvents.length,
     visibleCount: compactLayout ? 4 : 6,
@@ -162,6 +231,36 @@ export function App({
     keyBinds.filters.tool,
   ]);
 
+  useEffect(() => {
+    if (displayedEvents.length === 0) {
+      setSelectedEventIndex(null);
+      return;
+    }
+
+    if (!fullDataModeEnabled) {
+      setSelectedEventIndex(displayedEvents.length - 1);
+      return;
+    }
+
+    setSelectedEventIndex((currentValue) => {
+      if (currentValue === null) {
+        return displayedEvents.length - 1;
+      }
+
+      return Math.min(currentValue, displayedEvents.length - 1);
+    });
+  }, [displayedEvents.length, fullDataModeEnabled]);
+
+  useEffect(() => {
+    setInspectorLineOffset(0);
+  }, [selectedEvent?.id]);
+
+  useEffect(() => {
+    setInspectorLineOffset((currentValue) =>
+      Math.min(currentValue, maxInspectorLineOffset),
+    );
+  }, [maxInspectorLineOffset]);
+
   return (
     <Box flexDirection="column">
       <Header
@@ -176,6 +275,7 @@ export function App({
         filters={keyBinds.filters}
         focusPanel={keyBinds.focusPanel}
         interaction={keyBinds.interaction}
+        viewMode={keyBinds.viewMode}
       />
       {keyBinds.interaction.kind === 'help' ? <HelpOverlay /> : null}
       <Box marginTop={1}>
@@ -192,14 +292,25 @@ export function App({
               events={visibleEvents}
               frozen={eventStream.isFrozen}
               pendingEventCount={pendingFilteredEvents}
+              selectedEventId={selectedEvent?.id ?? null}
             />
           </Panel>
           <Panel
-            accentColor={TUI_THEME.success}
+            accentColor={fullDataModeEnabled ? TUI_THEME.warning : TUI_THEME.success}
             focused={keyBinds.focusPanel === 'sessions'}
-            title="Sessions"
+            title={fullDataModeEnabled ? 'Full Data Inspector' : 'Sessions'}
           >
-            <SessionPanel sessions={displayedSessions} />
+            {fullDataModeEnabled ? (
+              <EventInspector
+                event={selectedEvent}
+                lineOffset={inspectorLineOffset}
+                selectedEventIndex={safeSelectedEventIndex}
+                totalEventCount={displayedEvents.length}
+                visibleLineCount={inspectorVisibleLineCount}
+              />
+            ) : (
+              <SessionPanel sessions={displayedSessions} />
+            )}
           </Panel>
         </PanelStack>
       </Box>
@@ -216,6 +327,7 @@ export function App({
           pendingEventCount={pendingFilteredEvents}
           streamFrozen={eventStream.isFrozen}
           uptimeMs={uptimeMs}
+          viewMode={keyBinds.viewMode}
         />
       </Box>
     </Box>

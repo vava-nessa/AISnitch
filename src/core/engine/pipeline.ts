@@ -147,9 +147,20 @@ export class Pipeline {
     const resolvedWsPort = await resolveAvailablePort(config.wsPort, {
       logger: (message) => logger.info(message),
     });
-    const resolvedHttpPort = await resolveAvailablePort(config.httpPort, {
+    let resolvedHttpPort = await resolveAvailablePort(config.httpPort, {
       logger: (message) => logger.info(message),
     });
+
+    if (resolvedHttpPort === resolvedWsPort) {
+      /**
+       * 📖 Port probing happens before either server is actually listening, so
+       * two independent probes can "win" the same candidate port. Reserve the
+       * WebSocket choice first and bump HTTP to the next free candidate.
+       */
+      resolvedHttpPort = await resolveAvailablePort(resolvedHttpPort + 1, {
+        logger: (message) => logger.info(message),
+      });
+    }
     const aisnitchHomePath = getAISnitchHomePath(pathOptions);
     const socketPath = getSocketPath(aisnitchHomePath);
     const activeTools = Object.entries(config.adapters)

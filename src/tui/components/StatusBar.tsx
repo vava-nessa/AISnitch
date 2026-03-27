@@ -4,6 +4,7 @@ import { Box, Text } from 'ink';
 import type { AISnitchEvent } from '../../core/index.js';
 import type { FocusedPanel } from '../hooks/useKeyBinds.js';
 import { TUI_THEME } from '../theme.js';
+import type { TuiViewMode } from '../types.js';
 
 /**
  * @file src/tui/components/StatusBar.tsx
@@ -29,6 +30,7 @@ export interface StatusBarProps {
   readonly pendingEventCount?: number;
   readonly streamFrozen: boolean;
   readonly uptimeMs: number;
+  readonly viewMode: TuiViewMode;
 }
 
 /**
@@ -46,10 +48,17 @@ export function StatusBar({
   pendingEventCount = 0,
   streamFrozen,
   uptimeMs,
+  viewMode,
 }: StatusBarProps): React.JSX.Element {
   const streamState = streamFrozen
     ? `Frozen +${pendingEventCount}`
     : latestEvent?.type ?? 'Live';
+  const focusLabel =
+    focusPanel === 'events'
+      ? 'events'
+      : viewMode === 'full-data'
+        ? 'inspector'
+        : 'sessions';
 
   return (
     <Box
@@ -60,15 +69,15 @@ export function StatusBar({
       paddingY={0}
     >
       <Text color={TUI_THEME.panelBody}>
-        {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Filters ${activeFilterCount} | Focus ${focusPanel} | Up ${formatUptime(
+        {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Filters ${activeFilterCount} | Focus ${focusLabel} | View ${viewMode} | Up ${formatUptime(
           uptimeMs,
         )} | ${streamState} | Size ${columns}c`}
       </Text>
       <Text color={TUI_THEME.muted}>
         {connected
           ? streamFrozen
-            ? '[space] resume  [q] quit  [?] help  [f/t//] filters  [c] clear'
-            : '[space] freeze  [q] quit  [?] help  [f/t//] filters  [c] clear'
+            ? '[space] resume  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'
+            : '[space] freeze  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'
           : '[q] quit  waiting for foreground bus'}
       </Text>
     </Box>

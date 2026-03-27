@@ -2,7 +2,7 @@
 
 ## Purpose
 
-AISnitch now covers the first secondary-adapter block beyond Claude Code and OpenCode. The current pass adds Gemini CLI and Codex with the same best-effort mindset as the rest of the MVP: use the most stable passive signal first, then fall back to weaker signals when needed.
+AISnitch now covers the first three secondary-adapter passes beyond Claude Code and OpenCode. The guiding rule stays the same across all of them: use the strongest stable signal available for a tool, then fall back to weaker local signals only when necessary.
 
 ## Gemini CLI
 
@@ -43,6 +43,116 @@ This is intentionally conservative. Codex also documents `codex exec --json`, bu
 
 `aisnitch setup codex` now exists as a passive-arm setup flow. It does not modify Codex files; it only documents the watched log path and enables the adapter in AISnitch config so operators do not have to hand-edit `~/.aisnitch/config.json`.
 
+## Goose
+
+`src/adapters/goose.ts` is intentionally layered because Goose exposes multiple passive and semi-active surfaces:
+
+- Goose daemon API polling on `http://127.0.0.1:8080`
+- per-session SSE event streams from `goosed`
+- SQLite session snapshots from `~/.config/goose/sessions.db`
+- lightweight `pgrep -lf goose|goosed` process detection
+
+Research for this task was verified with Exa against Goose server docs. The practical result is important: the live session path is SSE, not a durable WebSocket feed. AISnitch therefore polls `/status` and `/sessions`, then opens `/sessions/{id}/events` as an SSE stream for the hottest sessions.
+
+The adapter maps Goose activity like this:
+
+- new or newly discovered sessions -> `session.start` + `agent.idle`
+- advancing session snapshots -> `agent.streaming`
+- user `Message` entries -> `task.start`
+- assistant `thinking` / `redactedThinking` parts -> `agent.thinking`
+- assistant `text` parts -> `agent.streaming`
+- assistant `toolRequest` parts -> `agent.tool_call` or `agent.coding`
+- `Finish` -> `task.complete`
+- `Notification` / `actionRequired` / confirmations -> `agent.asking_user`
+- `Error` -> `agent.error`
+
+The SQLite path stays intentionally conservative. It does not pretend to reconstruct the entire agent loop. It gives AISnitch enough metadata to discover or refresh sessions when the live daemon stream is not reachable.
+
+`aisnitch setup goose` is passive by design. It does not edit Goose config files; it simply documents the expected local sources and enables the adapter in AISnitch config.
+
+## Copilot CLI
+
+`src/adapters/copilot-cli.ts` combines repository hooks with the local session-state files that Copilot CLI already writes:
+
+- repository-scoped hooks under `.github/hooks/*.json`
+- session-state JSONL watching under `~/.copilot/session-state/`
+- workspace metadata enrichment from adjacent `workspace.yaml`
+- lightweight `pgrep -lf copilot` process detection
+
+Exa verification against GitHub Docs confirmed the currently supported hook triggers: `sessionStart`, `sessionEnd`, `userPromptSubmitted`, `preToolUse`, `postToolUse`, and `errorOccurred`. AISnitch now installs a tiny Node bridge script that tags each stdin payload with its hook name and forwards it to `http://localhost:<port>/hooks/copilot-cli`.
+
+The hook layer covers fast, low-latency signals:
+
+- `sessionStart` -> `session.start` + `agent.idle`
+- `sessionEnd` -> `session.end`
+- `userPromptSubmitted` -> `task.start`
+- `preToolUse` -> `agent.tool_call` or `agent.coding`
+- `postToolUse` -> replay the tool/coding state on success, or `agent.error` on failure
+- `errorOccurred` -> `agent.error`
+
+The session-state watcher fills in richer passive details such as:
+
+- assistant reasoning text -> `agent.thinking`
+- assistant reply text -> `agent.streaming`
+- `tool.execution_start` -> `agent.tool_call` or `agent.coding`
+- `tool.execution_complete` failures -> `agent.error`
+- `session.task_complete` -> `task.complete`
+- `session.warning` -> `agent.asking_user`
+- `session.model_change` -> metadata refresh
+
+`aisnitch setup copilot-cli` now writes two repository-local files:
+
+- `.github/hooks/aisnitch.json` with the configured hook entries
+- `.github/hooks/scripts/aisnitch-forward.mjs` as the shared Bash/PowerShell bridge
+
+That choice matches the current GitHub Docs model for Copilot CLI hooks and avoids any global machine mutation for repository policy.
+
+## Aider
+
+`src/adapters/aider.ts` mixes three signals that complement each other well:
+
+- active `aider` process discovery to find the current project directory
+- per-project `.aider.chat.history.md` watching inside those active directories
+- `notifications-command` hooks that nudge AISnitch when Aider returns to an idle/waiting state
+
+The project-scoped history file is the key constraint. Aider does not keep one centralized session log, so AISnitch first finds active `aider` processes, resolves their CWD, then watches:
+
+- `<cwd>/.aider.chat.history.md`
+
+The markdown parser is intentionally conservative. It extracts only high-signal structures:
+
+- `#### ...` user headings -> `task.start` or `agent.tool_call` for slash commands
+- assistant prose blocks -> `agent.streaming`
+- SEARCH/REPLACE file blocks -> `agent.coding`
+- quoted `Tokens: ...` status lines -> `agent.thinking`
+- quoted failures/warnings -> `agent.error`
+- quoted confirmation prompts -> `agent.asking_user`
+
+`aisnitch setup aider` now updates `~/.aider.conf.yml` with a `notifications-command` that runs the AISnitch internal `aider-notify` bridge. That bridge is intentionally fire-and-forget so Aider never blocks on local observability.
+
+## Generic PTY fallback
+
+`src/adapters/generic-pty.ts` is not a background adapter registered in config. It is a runtime wrapper used by:
+
+- `aisnitch wrap <command>`
+
+The PTY wrapper does four things:
+
+1. spawn the target command inside `@lydell/node-pty`
+2. forward the terminal output unchanged so the user sees the normal tool UX
+3. forward parent stdin plus terminal resizes back into the PTY
+4. emit best-effort AISnitch events from ANSI/text heuristics
+
+The heuristics intentionally stay explainable:
+
+- spinner frames and "thinking"/"planning" text -> `agent.thinking`
+- patch/apply/write/update text and file-path hits -> `agent.coding`
+- confirmation/prompt patterns -> `agent.asking_user`
+- red ANSI or explicit error text -> `agent.error`
+- everything else with meaningful output -> `agent.streaming`
+
+When a daemon is already running, `wrap` forwards events into that daemon over the local UDS ingress. When no daemon is running, AISnitch spins up a temporary in-process pipeline with a local text monitor so the wrapped session is still observable without background setup.
+
 ## Validation Notes
 
 This pass adds automated coverage for:
@@ -53,6 +163,13 @@ This pass adds automated coverage for:
 - Codex command log parsing
 - Codex patch-target parsing
 - Codex process detection
-- Gemini/Codex setup command support
+- Goose API polling and SQLite fallback parsing
+- Goose SSE tool-request mapping
+- Goose process detection
+- Copilot hook mapping, session-state parsing, and process detection
+- Goose/Copilot setup command support
+- Aider markdown parsing and process-driven session discovery
+- Aider setup command support for `notifications-command`
+- Generic PTY heuristics plus CLI `wrap` argument passthrough
 
-What remains for later task groups is broader secondary-tool coverage, not deeper Gemini/Codex infrastructure in this pass.
+What remains for later task groups is the rest of the secondary-adapter backlog, not missing core infrastructure for Goose or Copilot CLI.
