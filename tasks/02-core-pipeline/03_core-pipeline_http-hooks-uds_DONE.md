@@ -24,36 +24,36 @@ Deux canaux d'ingestion supplémentaires :
 ## Sous-étapes
 
 ### HTTP Hook Receiver
-- [ ] Créer `src/core/engine/http-receiver.ts` :
-  - [ ] Serveur HTTP léger (module `http` natif, pas de framework)
-  - [ ] Route `POST /hooks/:tool` — reçoit le JSON body, identifie le tool, passe à l'adapter
-  - [ ] Route `GET /health` — retourne `{ status: "ok", uptime, consumers, events }`
-  - [ ] Bind `127.0.0.1` uniquement
-  - [ ] Port configurable (défaut 4821)
-  - [ ] Gestion erreur : body malformé → 400, tool inconnu → 404, pas de crash
-  - [ ] Response rapide (< 10ms) — fire & forget, pas de processing synchrone
+- [x] Créer `src/core/engine/http-receiver.ts` :
+  - [x] Serveur HTTP léger (module `http` natif, pas de framework)
+  - [x] Route `POST /hooks/:tool` — reçoit le JSON body, identifie le tool, passe à l'adapter
+  - [x] Route `GET /health` — retourne `{ status: "ok", uptime, consumers, events }`
+  - [x] Bind `127.0.0.1` uniquement
+  - [x] Port configurable (défaut 4821)
+  - [x] Gestion erreur : body malformé → 400, tool inconnu → 404, pas de crash
+  - [x] Response rapide (< 10ms) — fire & forget, pas de processing synchrone
 
 ### Unix Domain Socket
-- [ ] Créer `src/core/engine/uds-server.ts` :
-  - [ ] Serveur UDS via `net.createServer()` sur `~/.aisnitch/aisnitch.sock`
-  - [ ] Protocol : NDJSON (une ligne JSON = un event)
-  - [ ] Chaque connexion UDS est parsée ligne par ligne
-  - [ ] Events validés avec Zod puis publiés sur l'EventBus
-  - [ ] Cleanup du socket file au shutdown (`fs.unlinkSync`)
-  - [ ] Gestion du cas "socket file existe déjà" (stale PID check)
+- [x] Créer `src/core/engine/uds-server.ts` :
+  - [x] Serveur UDS via `net.createServer()` sur `~/.aisnitch/aisnitch.sock`
+  - [x] Protocol : NDJSON (une ligne JSON = un event)
+  - [x] Chaque connexion UDS est parsée ligne par ligne
+  - [x] Events validés avec Zod puis publiés sur l'EventBus
+  - [x] Cleanup du socket file au shutdown (`fs.unlinkSync`)
+  - [x] Gestion du cas "socket file existe déjà" (stale PID check)
 
 ### Intégration
-- [ ] Créer `src/core/engine/pipeline.ts` — Classe `Pipeline` qui orchestre tout :
-  - [ ] `start(config)` — démarre EventBus + WSServer + HTTPReceiver + UDSServer
-  - [ ] `stop()` — shutdown propre de tous les composants
-  - [ ] `getStatus()` — retourne l'état de chaque composant
-- [ ] Écrire tests unitaires :
-  - [ ] POST sur `/hooks/claude-code` → event reçu sur WS
-  - [ ] POST body malformé → 400 sans crash
-  - [ ] Connexion UDS + envoi NDJSON → event reçu sur WS
-  - [ ] Health endpoint retourne les bonnes stats
-  - [ ] Pipeline start/stop lifecycle propre
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Créer `src/core/engine/pipeline.ts` — Classe `Pipeline` qui orchestre tout :
+  - [x] `start(config)` — démarre EventBus + WSServer + HTTPReceiver + UDSServer
+  - [x] `stop()` — shutdown propre de tous les composants
+  - [x] `getStatus()` — retourne l'état de chaque composant
+- [x] Écrire tests unitaires :
+  - [x] POST sur `/hooks/claude-code` → event reçu sur WS
+  - [x] POST body malformé → 400 sans crash
+  - [x] Connexion UDS + envoi NDJSON → event reçu sur WS
+  - [x] Health endpoint retourne les bonnes stats
+  - [x] Pipeline start/stop lifecycle propre
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -124,15 +124,24 @@ class UDSServer {
 
 ## Critères de complétion
 
-- [ ] HTTP receiver accepte des POST JSON et les route vers les adapters
-- [ ] Health endpoint retourne les stats
-- [ ] UDS server accepte des connexions NDJSON
-- [ ] Pipeline orchestre tous les composants
-- [ ] Tout bind sur localhost uniquement
-- [ ] Tests passent (min 5 tests)
-- [ ] Code documenté
+- [x] HTTP receiver accepte des POST JSON et les route vers les adapters
+- [x] Health endpoint retourne les stats
+- [x] UDS server accepte des connexions NDJSON
+- [x] Pipeline orchestre tous les composants
+- [x] Tout bind sur localhost uniquement
+- [x] Tests passent (min 5 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Réalisé :
+> - Ajout du `HTTPReceiver` avec `POST /hooks/:tool`, `GET /health`, réponses rapides et gestion d’erreurs sans crash
+> - Ajout du `UDSServer` NDJSON avec nettoyage de socket stale et suppression propre au shutdown
+> - Ajout du `Pipeline` pour orchestrer EventBus, WebSocket, HTTP et UDS dans un seul cycle de vie
+> - Ajout de 5 tests d’intégration couvrant hook HTTP, invalid body, UDS, health et lifecycle
+>
+> Vérifications :
+> - `pnpm test`
+> - `pnpm build`
+> - `pnpm check`

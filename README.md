@@ -13,6 +13,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **Kanban & tâches MVP**: [`tasks/tasks.md`](./tasks/tasks.md)
 - **Research source**: [`CLAUDE_DATA.md`](./CLAUDE_DATA.md)
 - **Technical docs index**: [`docs/index.md`](./docs/index.md)
+- **Core pipeline internals**: [`docs/core-pipeline.md`](./docs/core-pipeline.md)
 
 ## Current Scope
 
@@ -21,6 +22,10 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - `tsup` build output for both ESM and CJS consumers
 - CloudEvents-based event schema with UUIDv7 factory and CESP compatibility mapping
 - Persistent config system for `~/.aisnitch/config.json` with port fallback helpers
+- Typed in-memory `EventBus` powered by `eventemitter3` and structured `pino` logging
+- Localhost-only WebSocket stream with welcome payloads, per-consumer ring buffers, and heartbeat checks
+- Localhost-only HTTP hook receiver and NDJSON Unix domain socket ingress orchestrated by a central `Pipeline`
+- Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install

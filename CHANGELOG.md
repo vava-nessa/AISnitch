@@ -11,11 +11,15 @@ All notable changes to this project will be documented in this file.
 - Persistent config schema, defaults, file loader, and port fallback helpers under `src/core/config/`.
 - Technical docs bootstrap in `docs/index.md` and `docs/project-setup.md`.
 - Additional technical docs for the event contract and config system in `docs/events-schema.md` and `docs/config-system.md`.
+- In-memory core engine under `src/core/engine/` with a typed `eventemitter3` EventBus, shared `pino` logger, localhost WebSocket streaming, HTTP hook ingress, UDS NDJSON ingress, and pipeline orchestration.
+- Best-effort runtime context enrichment for terminal, cwd, pid, and instance metadata via `ContextDetector`.
+- Core pipeline technical documentation in `docs/core-pipeline.md`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
 - Reworked the root README around the current single-package AISnitch scope and development workflow.
 - Replaced the initial `events` and `config` placeholders with production-ready modules and test coverage.
+- Extended the README and docs index to reflect the now-implemented runtime pipeline.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

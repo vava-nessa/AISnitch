@@ -26,13 +26,12 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) | 0/4 | P0 |
-| 2 | [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | 0/3 | P0 |
-| 3 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
-| 4 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
-| 5 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 6 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 7 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | 0/3 | P0 |
+| 2 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
+| 3 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
+| 4 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
+| 5 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 6 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
@@ -48,6 +47,11 @@
 - [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
 - [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
 - [03 — Config System](./01-project-setup/03_project-setup_config-system_DONE.md) — config persistée + defaults + loader + fallback ports
+- [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) — 4/4 — EventBus + WS localhost + hooks HTTP/UDS + context enrichment
+- [01 — Event Bus](./02-core-pipeline/01_core-pipeline_event-bus_DONE.md) — bus typed `eventemitter3` + logger `pino` + stats
+- [02 — WebSocket Server](./02-core-pipeline/02_core-pipeline_ws-server_DONE.md) — stream WS localhost + welcome + heartbeat + ring buffer
+- [03 — HTTP Hooks & UDS](./02-core-pipeline/03_core-pipeline_http-hooks-uds_DONE.md) — ingest HTTP/UDS + health + orchestration pipeline
+- [04 — Context Detector](./02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
 
 ---
 

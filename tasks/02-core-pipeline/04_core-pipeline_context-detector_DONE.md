@@ -33,10 +33,10 @@ Ces données sont essentielles pour différencier des agents parallèles travail
 
 ### Module ContextDetector
 
-- [ ] Créer `src/core/engine/context-detector.ts` — classe `ContextDetector`
+- [x] Créer `src/core/engine/context-detector.ts` — classe `ContextDetector`
 
 #### Terminal Detection
-- [ ] Implémenter `detectTerminal(env: NodeJS.ProcessEnv): string` :
+- [x] Implémenter `detectTerminal(env: NodeJS.ProcessEnv): string` :
   ```
   1. TERM_PROGRAM === "iTerm.app"      → "iTerm2"
   2. TERM_PROGRAM === "Apple_Terminal" → "Terminal.app"
@@ -50,41 +50,41 @@ Ces données sont essentielles pour différencier des agents parallèles travail
   10. Fallback walk PPID chain        → lire le nom du process parent
   11. "unknown"
   ```
-- [ ] Implémenter `getTerminalFromPPIDChain(pid: number): Promise<string>` :
+- [x] Implémenter `getTerminalFromPPIDChain(pid: number): Promise<string>` :
   - Lire le nom du process via `ps -p <ppid> -o comm=` (macOS)
   - Mapper les process names connus : "iTerm2", "ghostty", "WezTerm.app", "kitty", "Terminal", "Alacritty", "tmux", "screen"
   - Remonter jusqu'à 3 niveaux de PPID si besoin
 
 #### CWD Detection par PID
-- [ ] Installer `pid-cwd` (npm) — `pnpm add pid-cwd`
-- [ ] Implémenter `getCWDForPID(pid: number): Promise<string | undefined>` :
+- [x] Installer `pid-cwd` (npm) — `pnpm add pid-cwd`
+- [x] Implémenter `getCWDForPID(pid: number): Promise<string | undefined>` :
   - Tenter `pid-cwd(pid)` en priorité (cross-platform)
   - Fallback macOS : `lsof -a -p ${pid} -d cwd -Fn | tail -1 | sed 's/^n//'` via child_process
   - Logger un warning si non disponible
   - Timeout 500ms max (ne pas bloquer le pipeline)
-- [ ] Implémenter `decodeCWDFromTranscriptPath(transcriptPath: string): string | undefined` :
+- [x] Implémenter `decodeCWDFromTranscriptPath(transcriptPath: string): string | undefined` :
   - Pattern : `~/.claude/projects/-Users-foo-bar-myproject/<uuid>.jsonl`
   - Extraire le segment encodé → remplacer `-` par `/` (sauf premier)
   - Retourner le chemin décodé : `/Users/foo/bar/myproject`
 
 #### Instance Detection
-- [ ] Implémenter `enumerateInstances(toolBinary: string): Promise<ProcessInfo[]>` :
+- [x] Implémenter `enumerateInstances(toolBinary: string): Promise<ProcessInfo[]>` :
   - `pgrep -lf ${toolBinary}` (macOS/Linux) pour lister les PIDs
   - Retourner `Array<{ pid: number; cwd?: string; startTime?: number }>`
   - Trier par PID (stable, reproductible)
-- [ ] Implémenter `getInstanceIndex(pid: number, toolBinary: string): Promise<number>` :
+- [x] Implémenter `getInstanceIndex(pid: number, toolBinary: string): Promise<number>` :
   - Énumérer toutes les instances du tool
   - Retourner la position 1-based du PID dans la liste triée
   - Si seule instance → 1 (pas de suffix dans le TUI)
-- [ ] Implémenter `buildInstanceId(toolName: string, pid: number, sessionId?: string): string` :
+- [x] Implémenter `buildInstanceId(toolName: string, pid: number, sessionId?: string): string` :
   - Format : `${toolName}:${sessionId ?? pid}`
   - Stable pour la durée de la session
 
 #### API Principale
-- [ ] Méthode publique `enrich(event: AISnitchEvent, context: ProcessContext): AISnitchEvent` :
+- [x] Méthode publique `enrich(event: AISnitchEvent, context: ProcessContext): AISnitchEvent` :
   - Ajoute `terminal`, `cwd`, `pid`, `instanceId`, `instanceIndex` si non déjà présents
   - Non-bloquant : si la détection échoue → champs omis, pas de crash
-- [ ] Interface `ProcessContext` :
+- [x] Interface `ProcessContext` :
   ```typescript
   interface ProcessContext {
     pid: number;
@@ -94,18 +94,18 @@ Ces données sont essentielles pour différencier des agents parallèles travail
     hookPayload?: Record<string, unknown>;
   }
   ```
-- [ ] Cache interne : `Map<pid, EnrichedContext>` avec TTL 30s (éviter les appels répétés à lsof)
-- [ ] Créer `src/core/engine/context-detector.test.ts` :
-  - [ ] `detectTerminal` reconnaît TERM_PROGRAM connus
-  - [ ] `detectTerminal` fallback sur KITTY_WINDOW_ID
-  - [ ] `decodeCWDFromTranscriptPath` décode correctement le path Claude
-  - [ ] `buildInstanceId` retourne format correct
-  - [ ] `enrich` ne crashe pas si détection échoue
+- [x] Cache interne : `Map<pid, EnrichedContext>` avec TTL 30s (éviter les appels répétés à lsof)
+- [x] Créer `src/core/engine/context-detector.test.ts` :
+  - [x] `detectTerminal` reconnaît TERM_PROGRAM connus
+  - [x] `detectTerminal` fallback sur KITTY_WINDOW_ID
+  - [x] `decodeCWDFromTranscriptPath` décode correctement le path Claude
+  - [x] `buildInstanceId` retourne format correct
+  - [x] `enrich` ne crashe pas si détection échoue
 
 ### Intégration dans BaseAdapter
-- [ ] Appeler `contextDetector.enrich(event, { pid, sessionId, transcriptPath })` dans la méthode `emit()` de BaseAdapter
-- [ ] Les hooks de Claude Code fournissent `cwd` directement dans le payload → l'utiliser en priorité
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Appeler `contextDetector.enrich(event, { pid, sessionId, transcriptPath })` dans le point central d’émission actuel (`Pipeline.publishEvent()`), équivalent provisoire en attendant `BaseAdapter`
+- [x] Les hooks de Claude Code fournissent `cwd` directement dans le payload → l'utiliser en priorité
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -294,17 +294,27 @@ async function getInstanceIndex(
 
 ## Critères de complétion
 
-- [ ] `detectTerminal` reconnaît les 8+ terminaux courants
-- [ ] `getCWDForPID` fonctionne sur macOS avec pid-cwd + fallback lsof
-- [ ] `decodeCWDFromTranscriptPath` décode correctement les paths Claude
-- [ ] Instance enumeration + index fonctionnent avec plusieurs instances
-- [ ] `enrich()` non-bloquant — timeout 500ms max
-- [ ] Zéro crash si détection échoue (graceful degradation)
-- [ ] Tests unitaires passent (min 6 tests)
-- [ ] Code documenté avec `📖` et JSDoc
-- [ ] Intégré dans BaseAdapter
+- [x] `detectTerminal` reconnaît les 8+ terminaux courants
+- [x] `getCWDForPID` fonctionne sur macOS avec pid-cwd + fallback lsof
+- [x] `decodeCWDFromTranscriptPath` décode correctement les paths Claude
+- [x] Instance enumeration + index fonctionnent avec plusieurs instances
+- [x] `enrich()` non-bloquant — timeout 500ms max
+- [x] Zéro crash si détection échoue (graceful degradation)
+- [x] Tests unitaires passent (min 6 tests)
+- [x] Code documenté avec `📖` et JSDoc
+- [x] Intégré dans le point d’émission partagé actuel (`Pipeline.publishEvent()`), en attendant l’existence de `BaseAdapter`
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Réalisé :
+> - Ajout du `ContextDetector` avec détection terminal, lookup CWD via `pid-cwd` puis fallback `lsof`, décodage de transcript Claude et énumération d’instances via `pgrep`
+> - Ajout d’un cache TTL 30s pour éviter les lookups process coûteux à chaque event
+> - Priorité au `cwd` explicite des hooks quand il est fourni, avant les fallbacks PID et transcript
+> - Intégration de l’enrichissement dans `Pipeline.publishEvent()`, point partagé actuel de publication, car aucun `BaseAdapter` n’existe encore dans le repo
+> - Ajout de 6 tests unitaires ciblant terminaux connus, fallback kitty, transcript decode, instance ID, instance index et enrich gracieux
+>
+> Vérifications :
+> - `pnpm test`
+> - `pnpm build`
+> - `pnpm check`

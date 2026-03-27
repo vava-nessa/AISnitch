@@ -20,28 +20,28 @@ Le WebSocket server est l'**API principale** d'AISnitch. C'est par là que tous 
 
 ## Sous-étapes
 
-- [ ] Installer `ws` et `@types/ws`
+- [x] Installer `ws` et `@types/ws`
 - [ ] Créer `src/core/engine/ws-server.ts` :
-  - [ ] Classe `WSServer` encapsulant le serveur WebSocket
-  - [ ] `start(port, eventBus)` — lance le serveur, s'abonne à l'EventBus
-  - [ ] `stop()` — ferme proprement toutes les connexions
-  - [ ] Gestion des connexions : chaque client reçoit les events en JSON
-  - [ ] **Ring buffer par consumer** : max 1,000 events en attente. Si le buffer déborde, les plus anciens sont droppés (oldest-first)
-  - [ ] **Backpressure** : vérifier `ws.bufferedAmount` avant d'envoyer. Si > seuil, skip l'event pour ce consumer
-  - [ ] Compteurs : nombre de consumers connectés, events envoyés, events droppés
-  - [ ] Bind `localhost` uniquement (sécurité)
+  - [x] Classe `WSServer` encapsulant le serveur WebSocket
+  - [x] `start(port, eventBus)` — lance le serveur, s'abonne à l'EventBus
+  - [x] `stop()` — ferme proprement toutes les connexions
+  - [x] Gestion des connexions : chaque client reçoit les events en JSON
+  - [x] **Ring buffer par consumer** : max 1,000 events en attente. Si le buffer déborde, les plus anciens sont droppés (oldest-first)
+  - [x] **Backpressure** : vérifier `ws.bufferedAmount` avant d'envoyer. Si > seuil, skip l'event pour ce consumer
+  - [x] Compteurs : nombre de consumers connectés, events envoyés, events droppés
+  - [x] Bind `localhost` uniquement (sécurité)
 - [ ] Créer `src/core/engine/ring-buffer.ts` :
-  - [ ] Classe `RingBuffer<T>` générique avec taille configurable
-  - [ ] `push(item)`, `drain()`, `size`, `isFull`
-- [ ] Gestion heartbeat/ping : ping toutes les 30s, déconnexion si pas de pong en 10s
-- [ ] Message de bienvenue à la connexion : `{ type: "welcome", version: "0.1.0", tools: [...activeAdapters] }`
-- [ ] Écrire tests unitaires :
-  - [ ] Serveur démarre et accepte connexions
-  - [ ] Event publié sur EventBus → reçu par client WS
-  - [ ] Ring buffer : overflow drop oldest
-  - [ ] Déconnexion propre
-  - [ ] Multiple clients simultanés
-- [ ] Vérifier `pnpm build` + `pnpm test`
+  - [x] Classe `RingBuffer<T>` générique avec taille configurable
+  - [x] `push(item)`, `drain()`, `size`, `isFull`
+- [x] Gestion heartbeat/ping : ping toutes les 30s, déconnexion si pas de pong en 10s
+- [x] Message de bienvenue à la connexion : `{ type: "welcome", version: "0.1.0", tools: [...activeAdapters] }`
+- [x] Écrire tests unitaires :
+  - [x] Serveur démarre et accepte connexions
+  - [x] Event publié sur EventBus → reçu par client WS
+  - [x] Ring buffer : overflow drop oldest
+  - [x] Déconnexion propre
+  - [x] Multiple clients simultanés
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -98,16 +98,24 @@ class RingBuffer<T> {
 
 ## Critères de complétion
 
-- [ ] Serveur WS écoute sur le port configuré (localhost only)
-- [ ] Events de l'EventBus diffusés en temps réel à tous les consumers
-- [ ] Ring buffer fonctionne (oldest-first drop)
-- [ ] Backpressure détectée et gérée (pas de OOM)
-- [ ] Heartbeat ping/pong actif
-- [ ] Message de bienvenue envoyé à la connexion
-- [ ] Tests passent (min 5 tests)
-- [ ] Code documenté
+- [x] Serveur WS écoute sur le port configuré (localhost only)
+- [x] Events de l'EventBus diffusés en temps réel à tous les consumers
+- [x] Ring buffer fonctionne (oldest-first drop)
+- [x] Backpressure détectée et gérée (pas de OOM)
+- [x] Heartbeat ping/pong actif
+- [x] Message de bienvenue envoyé à la connexion
+- [x] Tests passent (min 5 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Réalisé :
+> - Ajout du `WSServer` localhost-only avec message de bienvenue, heartbeat, compteurs et diffusion vers plusieurs consumers
+> - Ajout du `RingBuffer<T>` oldest-first pour absorber la backpressure par consumer
+> - Vérification explicite de `bufferedAmount` avant envoi et file d'attente locale quand un consumer ralentit
+> - Ajout de tests d’intégration WebSocket et de tests unitaires dédiés au ring buffer
+>
+> Vérifications :
+> - `pnpm test`
+> - `pnpm build`

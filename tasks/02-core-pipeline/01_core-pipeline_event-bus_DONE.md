@@ -20,25 +20,25 @@ L'Event Bus est le cœur du pipeline AISnitch. C'est un pub/sub in-memory typé 
 
 ## Sous-étapes
 
-- [ ] Installer `eventemitter3`
+- [x] Installer `eventemitter3`
 - [ ] Créer `src/core/engine/event-bus.ts` :
-  - [ ] Classe `EventBus` wrappant eventemitter3 avec typage strict
-  - [ ] Méthode `publish(event: AISnitchEvent)` — valide avec Zod, émet sur le bus
-  - [ ] Méthode `subscribe(handler: (event: AISnitchEvent) => void)` — écoute tous les events
-  - [ ] Méthode `subscribeType(type: AISnitchEventType, handler)` — écoute un type spécifique
-  - [ ] Méthode `unsubscribe(handler)` / `unsubscribeAll()`
-  - [ ] Compteur interne : nombre d'events publiés (pour `aisnitch status`)
-  - [ ] Log via `pino` en mode debug : chaque event publié
-- [ ] Installer `pino` pour le logging structuré
-- [ ] Créer `src/core/engine/logger.ts` — instance pino partagée (stdout only, **aucun fichier**)
-- [ ] Créer `src/core/engine/index.ts` — barrel export
-- [ ] Écrire tests unitaires (`src/core/engine/__tests__/event-bus.test.ts`) :
-  - [ ] Publish + subscribe reçoit l'event
-  - [ ] subscribeType filtre correctement
-  - [ ] Unsubscribe fonctionne
-  - [ ] Event invalide (Zod) est rejeté gracieusement (log error, pas crash)
-  - [ ] Compteur incrémente
-- [ ] Vérifier `pnpm build` + `pnpm test`
+  - [x] Classe `EventBus` wrappant eventemitter3 avec typage strict
+  - [x] Méthode `publish(event: AISnitchEvent)` — valide avec Zod, émet sur le bus
+  - [x] Méthode `subscribe(handler: (event: AISnitchEvent) => void)` — écoute tous les events
+  - [x] Méthode `subscribeType(type: AISnitchEventType, handler)` — écoute un type spécifique
+  - [x] Méthode `unsubscribe(handler)` / `unsubscribeAll()`
+  - [x] Compteur interne : nombre d'events publiés (pour `aisnitch status`)
+  - [x] Log via `pino` en mode debug : chaque event publié
+- [x] Installer `pino` pour le logging structuré
+- [x] Créer `src/core/engine/logger.ts` — instance pino partagée (stdout only, **aucun fichier**)
+- [x] Créer `src/core/engine/index.ts` — barrel export
+- [x] Écrire tests unitaires (`src/core/engine/__tests__/event-bus.test.ts`) :
+  - [x] Publish + subscribe reçoit l'event
+  - [x] subscribeType filtre correctement
+  - [x] Unsubscribe fonctionne
+  - [x] Event invalide (Zod) est rejeté gracieusement (log error, pas crash)
+  - [x] Compteur incrémente
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -89,14 +89,22 @@ export const logger = pino({
 
 ## Critères de complétion
 
-- [ ] EventBus publie et distribue les events correctement
-- [ ] Typage strict sans `any`
-- [ ] Events invalides rejetés gracieusement (pas de crash)
-- [ ] Logger pino fonctionne (stdout only)
-- [ ] Tests unitaires passent (min 5 tests)
-- [ ] Code documenté
+- [x] EventBus publie et distribue les events correctement
+- [x] Typage strict sans `any`
+- [x] Events invalides rejetés gracieusement (pas de crash)
+- [x] Logger pino fonctionne (stdout only)
+- [x] Tests unitaires passent (min 5 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Réalisé :
+> - Ajout de `EventBus` avec abonnements globaux et typés, validation Zod, compteurs runtime et logs debug
+> - Ajout du logger `pino` partagé dans `src/core/engine/logger.ts`
+> - Mise à jour du barrel `src/core/engine/index.ts`
+> - Ajout de 5 tests unitaires ciblant publication, filtrage par type, unsubscribe, rejet gracieux et statistiques
+>
+> Vérifications :
+> - `pnpm test`
+> - `pnpm build`
