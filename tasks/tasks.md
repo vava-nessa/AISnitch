@@ -26,26 +26,25 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [🏗️ Project Setup](./01-project-setup/task-project-setup.md) | 0/3 | P0 |
-| 2 | [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) | 0/4 | P0 |
-| 3 | [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | 0/3 | P0 |
-| 4 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
-| 5 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
-| 6 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 7 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 8 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) | 0/4 | P0 |
+| 2 | [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | 0/3 | P0 |
+| 3 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
+| 4 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
+| 5 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
+| 6 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 7 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
 ## 🔵 In Progress
 
-- (vide)
+- [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 1/3 — P0 — sous-tâche `01` validée, prochaine étape : `02 — Schemas & Types`
 
 ---
 
 ## ✅ Done
 
-- (vide)
+- [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
 
 ---
 

@@ -19,11 +19,11 @@ Initialiser le projet AISnitch comme un **seul package npm** avec une architectu
 
 ## Sous-étapes
 
-- [ ] Init `package.json` avec `pnpm init` — nom: `aisnitch`, license: Apache-2.0
-- [ ] Créer `tsconfig.json` — strict mode, ES2022 target, NodeNext module
-- [ ] Configurer ESLint flat config (`eslint.config.js`) — TypeScript strict, no `any`
-- [ ] Configurer `tsup.config.ts` — entry `src/index.ts`, format CJS+ESM, DTS
-- [ ] Créer la structure de dossiers :
+- [x] Init `package.json` avec `pnpm init` — nom: `aisnitch`, license: Apache-2.0
+- [x] Créer `tsconfig.json` — strict mode, ES2022 target, NodeNext module
+- [x] Configurer ESLint flat config (`eslint.config.js`) — TypeScript strict, no `any`
+- [x] Configurer `tsup.config.ts` — entry `src/index.ts`, format CJS+ESM, DTS
+- [x] Créer la structure de dossiers :
   ```
   src/
   ├── core/           # Event bus, schemas, types, state machine
@@ -35,12 +35,12 @@ Initialiser le projet AISnitch comme un **seul package npm** avec une architectu
   ├── tui/            # Ink components
   └── index.ts        # Entry point
   ```
-- [ ] Installer les deps de base : `typescript`, `tsup`, `eslint`, `@typescript-eslint/parser`, `vitest`
-- [ ] Configurer `.gitignore`, `.npmignore`, `.editorconfig`
-- [ ] Ajouter le fichier `LICENSE` (Apache 2.0 avec attribution : vava-nessa / Vanessa Depraute / vanessadepraute.dev)
-- [ ] Créer un `README.md` initial avec : nom, description one-liner, badges, section install vide
-- [ ] Vérifier que `pnpm build` fonctionne (produit un output dans `dist/`)
-- [ ] 👤 Validation utilisateur : structure OK ?
+- [x] Installer les deps de base : `typescript`, `tsup`, `eslint`, `@typescript-eslint/parser`, `vitest`
+- [x] Configurer `.gitignore`, `.npmignore`, `.editorconfig`
+- [x] Ajouter le fichier `LICENSE` (Apache 2.0 avec attribution : vava-nessa / Vanessa Depraute / vanessadepraute.dev)
+- [x] Créer un `README.md` initial avec : nom, description one-liner, badges, section install vide
+- [x] Vérifier que `pnpm build` fonctionne (produit un output dans `dist/`)
+- [x] 👤 Validation utilisateur : structure OK ?
 
 ## Spécifications techniques
 
@@ -82,14 +82,31 @@ Initialiser le projet AISnitch comme un **seul package npm** avec une architectu
 
 ## Critères de complétion
 
-- [ ] `pnpm build` compile sans erreur
-- [ ] `pnpm lint` passe sans erreur
-- [ ] Structure dossiers créée et cohérente
-- [ ] LICENSE Apache 2.0 présente avec attribution correcte
-- [ ] README initial en place
-- [ ] Validé par l'utilisateur
+- [x] `pnpm build` compile sans erreur
+- [x] `pnpm lint` passe sans erreur
+- [x] Structure dossiers créée et cohérente
+- [x] LICENSE Apache 2.0 présente avec attribution correcte
+- [x] README initial en place
+- [x] Validé par l'utilisateur
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Statut : tâche validée et prête à être archivée en `_DONE`.
+>
+> Réalisé :
+> - Bootstrap `pnpm` du package unique `aisnitch`
+> - Configuration TypeScript stricte (`NodeNext`) + ESLint flat config + `tsup`
+> - Création de la structure `src/core`, `src/adapters`, `src/cli`, `src/tui`
+> - Ajout de placeholders typés et documentés (`📖`) pour stabiliser la surface publique
+> - Ajout de la doc technique dans `docs/index.md` et `docs/project-setup.md`
+> - Migration de la licence vers Apache 2.0
+>
+> Vérifications passées :
+> - `pnpm lint`
+> - `pnpm typecheck`
+> - `pnpm test`
+> - `pnpm build`
+>
+> Validation :
+> - structure validée par l'utilisateur, renommage `_DONE` autorisé

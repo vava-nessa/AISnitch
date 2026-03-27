@@ -7,3 +7,5 @@ Comment code with full explanations, in english, and create/update documentation
 Tasks are managed in ./tasks/tasks.md <-- kanban board, with tasks organized by status (todo, in-progress, done, etc...) 
 
 When i say "work" please check the current state of what is done, pick a task, ask me if it is ok, and continue with it. When you fibnish it, please update the ./tasks/ files accordingly, check done things, update and add remarks etc...
+
+When publishing work (commit/push), the commit message must explicitly reference the current task from the markdown task files (task number and/or task slug/title). This is now the standard for future commits.

@@ -1,0 +1,10 @@
+src/
+tasks/
+docs/
+AGENTS.md
+CLAUDE_DATA.md
+PLAN.md
+eslint.config.js
+tsconfig.json
+tsup.config.ts
+coverage/

@@ -6,8 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Structured MVP task files under `tasks/` (8 task groups, 23 subtasks, Kanban in `tasks/tasks.md`).
+- Initial `pnpm` project scaffold for `aisnitch` with strict TypeScript, ESLint flat config, `tsup`, and Vitest.
+- Public source layout under `src/` with typed placeholders for `core`, `adapters`, `cli`, and `tui`.
+- Technical docs bootstrap in `docs/index.md` and `docs/project-setup.md`.
 
 ### Changed
+- Migrated the project license from MIT to Apache 2.0.
+- Reworked the root README around the current single-package AISnitch scope and development workflow.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.
