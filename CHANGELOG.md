@@ -23,7 +23,10 @@ All notable changes to this project will be documented in this file.
 - Built-in adapter subsystem with `BaseAdapter`, `AdapterRegistry`, and default adapter wiring inside the pipeline.
 - Claude Code adapter with raw hook mapping, transcript JSONL enrichment, and process fallback detection.
 - OpenCode adapter with plugin-event mapping and process fallback detection.
+- Gemini CLI adapter with command-hook mapping, local `logs.json` fallback parsing, and process detection.
+- Codex adapter with passive `codex-tui.log` parsing and process detection.
 - Priority adapter technical documentation in `docs/priority-adapters.md`.
+- Secondary adapter technical documentation in `docs/secondary-adapters.md`.
 - Ink-based foreground TUI foundation with responsive layout primitives, shared theme tokens, and a live status shell.
 - Dedicated TUI technical documentation in `docs/tui.md`.
 - Live event stream UI for the foreground TUI with formatted event rows, bounded buffering, and freeze/resume controls.

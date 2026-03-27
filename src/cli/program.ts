@@ -61,6 +61,8 @@ Examples:
   aisnitch status
   aisnitch attach
   aisnitch setup claude-code
+  aisnitch setup gemini-cli
+  aisnitch setup codex
   aisnitch install
 `,
     );
@@ -150,7 +152,7 @@ function addSetupCommand(program: Command, runtime: CliRuntime): void {
     program
       .command('setup')
       .description('Configure supported AI tools to forward events into AISnitch')
-      .argument('<tool>', 'Tool to configure (claude-code, opencode)', parseSetupToolName)
+      .argument('<tool>', 'Tool to configure (claude-code, opencode, gemini-cli, codex)', parseSetupToolName)
       .option('--revert', 'Restore the previous tool configuration from backup'),
   ).action(async (toolName: SetupToolName, options: SetupCliOptions) => {
     await runtime.setup(toolName, options);

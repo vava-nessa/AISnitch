@@ -42,6 +42,7 @@ const NormalizedAdapterHookPayloadSchema = z.strictObject({
 export type InterceptionStrategy =
   | 'hooks'
   | 'jsonl-watch'
+  | 'log-watch'
   | 'sqlite-watch'
   | 'stream-json'
   | 'process-detect'

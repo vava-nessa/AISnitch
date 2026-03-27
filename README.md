@@ -17,6 +17,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
 - **Tool setup internals**: [`docs/tool-setup.md`](./docs/tool-setup.md)
 - **Priority adapters internals**: [`docs/priority-adapters.md`](./docs/priority-adapters.md)
+- **Secondary adapters internals**: [`docs/secondary-adapters.md`](./docs/secondary-adapters.md)
 - **TUI internals**: [`docs/tui.md`](./docs/tui.md)
 
 ## Current Scope
@@ -31,6 +32,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Localhost-only HTTP hook receiver and NDJSON Unix domain socket ingress orchestrated by a central `Pipeline`
 - Built-in adapter layer with `BaseAdapter`, `AdapterRegistry`, and pipeline-managed lifecycle
 - Priority adapters for Claude Code (hooks + JSONL + process fallback) and OpenCode (plugin hooks + process fallback)
+- Secondary adapters for Gemini CLI (hooks + local logs + process fallback) and Codex (passive log watching + process fallback)
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
 - Detached daemon mode with PID/state files and a shared Ink attach/foreground monitoring surface
@@ -72,6 +74,8 @@ node dist/cli/index.js stop
 # Configure supported tools
 node dist/cli/index.js setup claude-code
 node dist/cli/index.js setup opencode
+node dist/cli/index.js setup gemini-cli
+node dist/cli/index.js setup codex
 node dist/cli/index.js setup claude-code --revert
 ```
 

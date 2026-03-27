@@ -28,7 +28,7 @@ import {
 
 const execFile = promisify(execFileCallback);
 
-const SETUP_TOOL_NAMES = ['claude-code', 'opencode'] as const;
+const SETUP_TOOL_NAMES = ['claude-code', 'opencode', 'gemini-cli', 'codex'] as const;
 const ANSI_RESET = '\u001B[0m';
 const ANSI_RED = '\u001B[31m';
 const ANSI_GREEN = '\u001B[32m';
@@ -63,6 +63,17 @@ const CLAUDE_CODE_HOOK_EVENTS = [
   'SessionEnd',
 ] as const;
 
+const GEMINI_HOOK_EVENTS = [
+  'SessionStart',
+  'SessionEnd',
+  'BeforeAgent',
+  'AfterAgent',
+  'BeforeTool',
+  'AfterTool',
+  'Notification',
+  'PreCompress',
+] as const;
+
 type ClaudeHookEventName = (typeof CLAUDE_CODE_HOOK_EVENTS)[number];
 
 interface ClaudeHookHandler extends Record<string, unknown> {
@@ -80,12 +91,32 @@ interface ClaudeSettings extends Record<string, unknown> {
   readonly hooks?: Record<string, ClaudeHookMatcherGroup[]>;
 }
 
+interface GeminiHookHandler extends Record<string, unknown> {
+  readonly command?: string;
+  readonly description?: string;
+  readonly name?: string;
+  readonly timeout?: number;
+  readonly type: string;
+}
+
+interface GeminiHookMatcherGroup extends Record<string, unknown> {
+  readonly hooks: GeminiHookHandler[];
+  readonly matcher?: string;
+  readonly sequential?: boolean;
+}
+
+interface GeminiSettings extends Record<string, unknown> {
+  readonly hooks?: Record<string, GeminiHookMatcherGroup[]>;
+}
+
 interface ToolSetupDependencies {
   readonly binaryExists?: (binaryName: string) => Promise<boolean>;
   readonly confirm?: (diff: string, prompt: string) => Promise<boolean>;
   readonly homeDirectory?: string;
   readonly claudeSettingsPath?: string;
+  readonly geminiSettingsPath?: string;
   readonly opencodeConfigDirectory?: string;
+  readonly codexHomeDirectory?: string;
   readonly output?: SetupOutput;
 }
 
@@ -337,6 +368,110 @@ export class OpenCodeSetup extends FileToolSetupBase {
 }
 
 /**
+ * Gemini CLI setup mutates `~/.gemini/settings.json` and merges wildcard
+ * command hooks that forward the raw stdin JSON into AISnitch over HTTP.
+ */
+export class GeminiCLISetup extends FileToolSetupBase {
+  private readonly settingsPath: string;
+
+  private readonly hookUrl: string;
+
+  public constructor(
+    httpPort: number,
+    dependencies: ToolSetupDependencies = {},
+  ) {
+    super('gemini-cli', dependencies.binaryExists);
+    this.settingsPath =
+      dependencies.geminiSettingsPath ??
+      join(dependencies.homeDirectory ?? homedir(), '.gemini', 'settings.json');
+    this.hookUrl = `http://localhost:${httpPort}/hooks/gemini-cli`;
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('gemini')) ||
+      (await fileExists(this.settingsPath))
+    );
+  }
+
+  public getConfigPath(): string {
+    return this.settingsPath;
+  }
+
+  protected buildNextContent(
+    currentContent: string | null,
+  ): Promise<string> {
+    const parsedSettings = parseGeminiSettings(currentContent);
+    const currentHooks = parsedSettings.hooks ?? {};
+    const nextHooks: Record<string, GeminiHookMatcherGroup[]> = {
+      ...currentHooks,
+    };
+
+    for (const hookEventName of GEMINI_HOOK_EVENTS) {
+      nextHooks[hookEventName] = ensureGeminiAISnitchHook(
+        currentHooks[hookEventName] ?? [],
+        this.hookUrl,
+      );
+    }
+
+    const nextSettings: GeminiSettings = {
+      ...parsedSettings,
+      hooks: nextHooks,
+    };
+
+    return Promise.resolve(`${JSON.stringify(nextSettings, null, 2)}\n`);
+  }
+}
+
+/**
+ * Codex uses passive log watching for the MVP, so setup only arms the adapter
+ * and documents the watched source path rather than editing Codex files.
+ */
+export class CodexSetup implements ToolSetup {
+  private readonly codexHomeDirectory: string;
+
+  public readonly toolName = 'codex' as const;
+
+  private readonly binaryExists: (binaryName: string) => Promise<boolean>;
+
+  public constructor(dependencies: ToolSetupDependencies = {}) {
+    this.binaryExists = dependencies.binaryExists ?? isBinaryAvailable;
+    this.codexHomeDirectory =
+      dependencies.codexHomeDirectory ??
+      join(dependencies.homeDirectory ?? homedir(), '.codex');
+  }
+
+  public async detect(): Promise<boolean> {
+    return (
+      (await this.binaryExists('codex')) ||
+      (await fileExists(this.getConfigPath()))
+    );
+  }
+
+  public getConfigPath(): string {
+    return join(this.codexHomeDirectory, 'log', 'codex-tui.log');
+  }
+
+  public computeDiff(): Promise<string> {
+    return Promise.resolve(
+      [
+        `${ANSI_CYAN}--- ${this.getConfigPath()} (passive source)${ANSI_RESET}`,
+        `${ANSI_GREEN}+ Enable passive Codex log watching in AISnitch.${ANSI_RESET}`,
+        `${ANSI_GREEN}+ No external Codex config changes are required for this adapter.${ANSI_RESET}`,
+      ].join('\n'),
+    );
+  }
+
+  public apply(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  public revert(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+/**
  * Creates one concrete setup implementation for the selected tool.
  */
 export async function createToolSetup(
@@ -349,6 +484,14 @@ export async function createToolSetup(
 
   if (toolName === 'claude-code') {
     return new ClaudeCodeSetup(httpPort, dependencies);
+  }
+
+  if (toolName === 'gemini-cli') {
+    return new GeminiCLISetup(httpPort, dependencies);
+  }
+
+  if (toolName === 'codex') {
+    return new CodexSetup(dependencies);
   }
 
   return new OpenCodeSetup(httpPort, dependencies);
@@ -690,6 +833,62 @@ function isClaudeAISnitchHook(
   return handler.type === 'http' && handler.url === hookUrl;
 }
 
+function ensureGeminiAISnitchHook(
+  groups: readonly GeminiHookMatcherGroup[],
+  hookUrl: string,
+): GeminiHookMatcherGroup[] {
+  const clonedGroups = groups.map((group) => ({
+    ...group,
+    hooks: group.hooks.map((handler) => ({ ...handler })),
+  }));
+  const matchingGroup = clonedGroups.find((group) => group.matcher === '*');
+
+  if (matchingGroup) {
+    const existingHook = matchingGroup.hooks.find((handler) =>
+      isGeminiAISnitchHook(handler, hookUrl),
+    );
+
+    if (existingHook) {
+      return clonedGroups;
+    }
+
+    matchingGroup.hooks.push(createGeminiAISnitchHook(hookUrl));
+    return clonedGroups;
+  }
+
+  clonedGroups.push({
+    hooks: [createGeminiAISnitchHook(hookUrl)],
+    matcher: '*',
+  });
+
+  return clonedGroups;
+}
+
+function createGeminiAISnitchHook(hookUrl: string): GeminiHookHandler {
+  return {
+    command: buildGeminiForwardCommand(hookUrl),
+    description: 'Forward Gemini CLI hook payloads to AISnitch.',
+    name: 'aisnitch-forward',
+    timeout: 5_000,
+    type: 'command',
+  };
+}
+
+function buildGeminiForwardCommand(hookUrl: string): string {
+  return `sh -c 'curl -fsS -X POST -H "content-type: application/json" --data-binary @- ${hookUrl} >/dev/null 2>&1 || true'`;
+}
+
+function isGeminiAISnitchHook(
+  handler: GeminiHookHandler,
+  hookUrl: string,
+): boolean {
+  return (
+    handler.type === 'command' &&
+    typeof handler.command === 'string' &&
+    handler.command.includes(hookUrl)
+  );
+}
+
 function parseClaudeSettings(currentContent: string | null): ClaudeSettings {
   if (currentContent === null || currentContent.trim().length === 0) {
     return {};
@@ -717,6 +916,46 @@ function parseClaudeSettings(currentContent: string | null): ClaudeSettings {
             }
 
             const groups = value.map((group) => parseClaudeHookMatcherGroup(group, hookEventName));
+
+            return [hookEventName, groups];
+          }),
+        );
+
+  return {
+    ...parsedJson,
+    hooks: parsedHooks,
+  };
+}
+
+function parseGeminiSettings(currentContent: string | null): GeminiSettings {
+  if (currentContent === null || currentContent.trim().length === 0) {
+    return {};
+  }
+
+  const parsedJson: unknown = JSON.parse(currentContent);
+
+  if (!isRecord(parsedJson)) {
+    throw new Error('Gemini CLI settings.json must contain a JSON object.');
+  }
+
+  if (parsedJson.hooks !== undefined && !isRecord(parsedJson.hooks)) {
+    throw new Error('Gemini CLI hooks configuration must be an object.');
+  }
+
+  const parsedHooks =
+    parsedJson.hooks === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(parsedJson.hooks).map(([hookEventName, value]) => {
+            if (!Array.isArray(value)) {
+              throw new Error(
+                `Gemini hook group "${hookEventName}" must be an array.`,
+              );
+            }
+
+            const groups = value.map((group) =>
+              parseGeminiHookMatcherGroup(group, hookEventName),
+            );
 
             return [hookEventName, groups];
           }),
@@ -770,6 +1009,59 @@ function parseClaudeHookHandler(
   if (!isRecord(value) || typeof value.type !== 'string') {
     throw new Error(
       `Claude Code hook handler "${hookEventName}" must be an object with a string type.`,
+    );
+  }
+
+  return {
+    ...value,
+    type: value.type,
+  };
+}
+
+function parseGeminiHookMatcherGroup(
+  value: unknown,
+  hookEventName: string,
+): GeminiHookMatcherGroup {
+  if (!isRecord(value)) {
+    throw new Error(
+      `Gemini hook matcher group "${hookEventName}" must be an object.`,
+    );
+  }
+
+  if (!Array.isArray(value.hooks)) {
+    throw new Error(
+      `Gemini matcher group "${hookEventName}" must include a hooks array.`,
+    );
+  }
+
+  const hooks = value.hooks.map((handler) =>
+    parseGeminiHookHandler(handler, hookEventName),
+  );
+  const matcher =
+    value.matcher === undefined
+      ? undefined
+      : typeof value.matcher === 'string'
+        ? value.matcher
+        : (() => {
+            throw new Error(
+              `Gemini matcher "${hookEventName}" must be a string when present.`,
+            );
+          })();
+
+  return {
+    ...value,
+    hooks,
+    ...(matcher === undefined ? {} : { matcher }),
+  };
+}
+
+function parseGeminiHookHandler(
+  value: unknown,
+  hookEventName: string,
+): GeminiHookHandler {
+  if (!isRecord(value) || typeof value.type !== 'string') {
+    throw new Error(
+      `Gemini hook handler "${hookEventName}" must be an object with a string type.`,
     );
   }
 

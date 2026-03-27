@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ClaudeCodeSetup,
+  CodexSetup,
+  GeminiCLISetup,
   OpenCodeSetup,
   parseSetupToolName,
   runSetupCommand,
@@ -28,8 +30,10 @@ async function createTempHome(): Promise<string> {
 describe('setup command helpers', () => {
   it('parses supported setup tool names', () => {
     expect(parseSetupToolName('claude-code')).toBe('claude-code');
+    expect(parseSetupToolName('gemini-cli')).toBe('gemini-cli');
+    expect(parseSetupToolName('codex')).toBe('codex');
     expect(parseSetupToolName('opencode')).toBe('opencode');
-    expect(() => parseSetupToolName('codex')).toThrow(/Unsupported setup tool/);
+    expect(() => parseSetupToolName('goose')).toThrow(/Unsupported setup tool/);
   });
 
   it('merges AISnitch HTTP hooks into Claude Code settings without dropping existing hooks', async () => {
@@ -130,6 +134,91 @@ describe('setup command helpers', () => {
     }
   });
 
+  it('merges AISnitch command hooks into Gemini CLI settings', async () => {
+    const homeDirectory = await createTempHome();
+    const settingsPath = join(homeDirectory, '.gemini', 'settings.json');
+
+    try {
+      await mkdir(dirname(settingsPath), { recursive: true });
+      await writeFile(
+        settingsPath,
+        `${JSON.stringify(
+          {
+            theme: 'Pro',
+            hooks: {
+              BeforeTool: [
+                {
+                  hooks: [
+                    {
+                      command: 'echo existing',
+                      type: 'command',
+                    },
+                  ],
+                  matcher: '*',
+                },
+              ],
+            },
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      );
+
+      const setup = new GeminiCLISetup(4821, {
+        binaryExists: () => Promise.resolve(true),
+        homeDirectory,
+      });
+
+      await setup.apply();
+
+      const updatedSettings = JSON.parse(
+        await readFile(settingsPath, 'utf8'),
+      ) as {
+        hooks: Record<string, Array<{ hooks: Array<Record<string, unknown>> }>>;
+      };
+      const beforeToolHooks = updatedSettings.hooks.BeforeTool?.[0]?.hooks ?? [];
+
+      expect(updatedSettings.hooks.BeforeAgent).toBeDefined();
+      expect(beforeToolHooks).toContainEqual(
+        expect.objectContaining({
+          command: 'echo existing',
+          type: 'command',
+        }),
+      );
+      expect(
+        beforeToolHooks.some(
+          (hook) =>
+            hook.name === 'aisnitch-forward' &&
+            hook.type === 'command' &&
+            typeof hook.command === 'string' &&
+            hook.command.includes('http://localhost:4821/hooks/gemini-cli'),
+        ),
+      ).toBe(true);
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('supports passive codex setup without mutating external files', async () => {
+    const homeDirectory = await createTempHome();
+
+    try {
+      const setup = new CodexSetup({
+        binaryExists: () => Promise.resolve(true),
+        homeDirectory,
+      });
+
+      expect(await setup.detect()).toBe(true);
+      expect(await setup.computeDiff()).toContain('passive Codex log watching');
+
+      await expect(setup.apply()).resolves.toBeUndefined();
+      await expect(setup.revert()).resolves.toBeUndefined();
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
   it('runs the interactive setup flow and enables the configured adapter', async () => {
     const homeDirectory = await createTempHome();
     const configPath = join(homeDirectory, 'aisnitch', 'config.json');
@@ -158,6 +247,35 @@ describe('setup command helpers', () => {
       expect(aisnitchConfig.adapters['claude-code']).toEqual({ enabled: true });
       expect(claudeSettings).toContain('http://localhost:4821/hooks/claude-code');
       expect(outputs.join('')).toContain('Configured claude-code for AISnitch');
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('enables codex in AISnitch config through passive setup', async () => {
+    const homeDirectory = await createTempHome();
+    const configPath = join(homeDirectory, 'aisnitch', 'config.json');
+    const outputs: string[] = [];
+
+    try {
+      await runSetupCommand(
+        'codex',
+        { config: configPath },
+        {
+          binaryExists: () => Promise.resolve(true),
+          confirm: () => Promise.resolve(true),
+          homeDirectory,
+          output: {
+            stderr: (text) => outputs.push(text),
+            stdout: (text) => outputs.push(text),
+          },
+        },
+      );
+
+      const aisnitchConfig = await loadConfig({ configPath });
+
+      expect(aisnitchConfig.adapters.codex).toEqual({ enabled: true });
+      expect(outputs.join('')).toContain('Configured codex for AISnitch');
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }

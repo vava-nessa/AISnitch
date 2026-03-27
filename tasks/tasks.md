@@ -26,19 +26,19 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 2 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 3 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 2 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
 ## 🔵 In Progress
-- Aucun chantier actif. La prochaine tranche logique est `06-adapters-secondary`.
+- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 1/4 — Gemini CLI + Codex livrés, Goose/Copilot puis Aider/PTY/OpenClaw à suivre
 
 ---
 
 ## ✅ Done
 
+- [01 — Gemini CLI & Codex](./06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
 - [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
 - [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
 - [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
