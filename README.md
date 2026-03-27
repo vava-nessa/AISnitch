@@ -2,7 +2,7 @@
 
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
-[![Status: Scaffold](https://img.shields.io/badge/status-scaffold-orange)](./tasks/tasks.md)
+[![Status: Foundation](https://img.shields.io/badge/status-foundation-orange)](./tasks/tasks.md)
 
 Universal AI coding activity bridge for capturing, normalizing, and streaming tool events in real time.
 
@@ -19,7 +19,8 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Single npm package named `aisnitch`
 - TypeScript strict mode with ESM-first source
 - `tsup` build output for both ESM and CJS consumers
-- Placeholder module layout for `core`, `adapters`, `cli`, and `tui`
+- CloudEvents-based event schema with UUIDv7 factory and CESP compatibility mapping
+- Persistent config system for `~/.aisnitch/config.json` with port fallback helpers
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install

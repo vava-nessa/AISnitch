@@ -1,27 +1,16 @@
 /**
  * @file src/core/events/index.ts
- * @description Placeholder for the future CloudEvents and AISnitch event schema module.
+ * @description Barrel export for the AISnitch event contract, mappings, and factory helpers.
  * @functions
  *   → none
- * @exports EVENTS_MODULE_PLACEHOLDER, EventsModulePlaceholder
- * @see ../../tasks/01-project-setup/02_project-setup_schemas-types.md
+ * @exports all event schemas, types, mapping helpers, and factory helpers
+ * @see ./schema.ts
+ * @see ./types.ts
+ * @see ./cesp.ts
+ * @see ./factory.ts
  */
 
-/**
- * Describes the current state of the events module before real schemas land.
- */
-export interface EventsModulePlaceholder {
-  readonly area: 'events';
-  readonly status: 'pending';
-  readonly nextTask: 'project-setup-schemas-types';
-}
-
-/**
- * 📖 A typed placeholder is better than an empty file because it keeps the
- * public package graph valid while clearly pointing to the next task.
- */
-export const EVENTS_MODULE_PLACEHOLDER: EventsModulePlaceholder = {
-  area: 'events',
-  status: 'pending',
-  nextTask: 'project-setup-schemas-types',
-};
+export * from './schema.js';
+export * from './types.js';
+export * from './cesp.js';
+export * from './factory.js';

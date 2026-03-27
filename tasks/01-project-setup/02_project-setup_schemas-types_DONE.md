@@ -20,28 +20,28 @@ Définir le schéma d'événements universel AISnitch basé sur **CloudEvents v1
 
 ## Sous-étapes
 
-- [ ] Installer `zod` et `nanoid` (ou package UUIDv7)
-- [ ] Créer `src/core/events/schema.ts` — Zod schemas pour :
-  - [ ] `AISnitchEventSchema` — enveloppe CloudEvents complète
-  - [ ] `AISnitchEventTypeSchema` — enum des 12 types d'events
-  - [ ] `ToolNameSchema` — enum des tools supportés
-  - [ ] `EventDataSchema` — bloc `data` avec tous les champs optionnels
-- [ ] Créer `src/core/events/types.ts` — Types TypeScript inférés depuis Zod :
-  - [ ] `type AISnitchEvent = z.infer<typeof AISnitchEventSchema>`
-  - [ ] `type AISnitchEventType = z.infer<typeof AISnitchEventTypeSchema>`
-  - [ ] `type ToolName = z.infer<typeof ToolNameSchema>`
-- [ ] Créer `src/core/events/cesp.ts` — Mapping CESP PeonPing :
-  - [ ] `getCESPCategory(event)` → retourne la catégorie CESP correspondante
-  - [ ] Table de mapping des 12 types vers les 6 catégories CESP
-- [ ] Créer `src/core/events/factory.ts` — Factory function :
-  - [ ] `createEvent(partial)` → génère id (UUIDv7), time (ISO 8601), specversion, valide avec Zod
-- [ ] Créer `src/core/events/index.ts` — barrel export
-- [ ] Écrire tests unitaires (`src/core/events/__tests__/schema.test.ts`) :
-  - [ ] Validation d'un event valide
-  - [ ] Rejet d'un event invalide (champ manquant, type inconnu)
-  - [ ] CESP mapping correct pour chaque type
-  - [ ] Factory crée un event valide
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Installer `zod` et `nanoid` (ou package UUIDv7)
+- [x] Créer `src/core/events/schema.ts` — Zod schemas pour :
+  - [x] `AISnitchEventSchema` — enveloppe CloudEvents complète
+  - [x] `AISnitchEventTypeSchema` — enum des 12 types d'events
+  - [x] `ToolNameSchema` — enum des tools supportés
+  - [x] `EventDataSchema` — bloc `data` avec tous les champs optionnels
+- [x] Créer `src/core/events/types.ts` — Types TypeScript inférés depuis Zod :
+  - [x] `type AISnitchEvent = z.infer<typeof AISnitchEventSchema>`
+  - [x] `type AISnitchEventType = z.infer<typeof AISnitchEventTypeSchema>`
+  - [x] `type ToolName = z.infer<typeof ToolNameSchema>`
+- [x] Créer `src/core/events/cesp.ts` — Mapping CESP PeonPing :
+  - [x] `getCESPCategory(event)` → retourne la catégorie CESP correspondante
+  - [x] Table de mapping des 12 types vers les 6 catégories CESP
+- [x] Créer `src/core/events/factory.ts` — Factory function :
+  - [x] `createEvent(partial)` → génère id (UUIDv7), time (ISO 8601), specversion, valide avec Zod
+- [x] Créer `src/core/events/index.ts` — barrel export
+- [x] Écrire tests unitaires (`src/core/events/__tests__/schema.test.ts`) :
+  - [x] Validation d'un event valide
+  - [x] Rejet d'un event invalide (champ manquant, type inconnu)
+  - [x] CESP mapping correct pour chaque type
+  - [x] Factory crée un event valide
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -150,15 +150,28 @@ const EventDataSchema = z.object({
 
 ## Critères de complétion
 
-- [ ] Tous les schemas Zod compilent et valident correctement
-- [ ] Types TypeScript inférés automatiquement (aucun `any`)
-- [ ] CESP mapping couvre les 12 types
-- [ ] Factory produit des events valides avec UUIDv7 + ISO timestamp
-- [ ] Tests unitaires passent (min 8 tests)
-- [ ] Code documenté avec `📖` et JSDoc
-- [ ] `pnpm build` + `pnpm test` OK
+- [x] Tous les schemas Zod compilent et valident correctement
+- [x] Types TypeScript inférés automatiquement (aucun `any`)
+- [x] CESP mapping couvre les 12 types
+- [x] Factory produit des events valides avec UUIDv7 + ISO timestamp
+- [x] Tests unitaires passent (min 8 tests)
+- [x] Code documenté avec `📖` et JSDoc
+- [x] `pnpm build` + `pnpm test` OK
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+> Réalisé :
+> - Recherche Exa sur la spec CloudEvents 1.0 et les patterns Zod actuels
+> - Implémentation du contrat d’event complet dans `src/core/events/`
+> - Ajout du factory UUIDv7 avec validation stricte via Zod
+> - Ajout du mapping CESP et des types inférés TypeScript
+> - Ajout de tests unitaires ciblés sur validation, mapping et factory
+>
+> Note d’implémentation :
+> - Zod **4** a été utilisé au lieu de Zod 3, car c’est la version stable actuelle vérifiée pendant la recherche
+> - `uuid` a été retenu pour générer des UUIDv7 standardisés
+>
+> Vérifications :
+> - `pnpm test`
+> - `pnpm build`

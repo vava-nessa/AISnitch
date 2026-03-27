@@ -3,7 +3,7 @@
  * @description Barrel export for the core modules that will power schemas, engine logic, and config.
  * @functions
  *   → none
- * @exports EVENTS_MODULE_PLACEHOLDER, ENGINE_MODULE_PLACEHOLDER, CONFIG_MODULE_PLACEHOLDER
+ * @exports all core config, engine, and events modules
  * @see ./events/index.ts
  * @see ./engine/index.ts
  * @see ./config/index.ts

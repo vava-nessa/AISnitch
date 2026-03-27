@@ -1,6 +1,6 @@
 /**
  * @file src/index.ts
- * @description Public entrypoint for the AISnitch package scaffold.
+ * @description Public entrypoint for the AISnitch package and its foundational modules.
  * @functions
  *   → getPackageScaffoldInfo
  * @exports AISNITCH_PACKAGE_NAME, AISNITCH_DESCRIPTION, AISnitchScaffoldInfo, getPackageScaffoldInfo
@@ -19,8 +19,8 @@ export * from './tui/index.js';
 export const AISNITCH_PACKAGE_NAME = 'aisnitch';
 
 /**
- * 📖 This description matches the npm metadata and is reused by the placeholder
- * CLI so the initial scaffold already behaves consistently.
+ * 📖 This description matches the npm metadata and is reused by the CLI so the
+ * package surface behaves consistently across runtime entrypoints.
  */
 export const AISNITCH_DESCRIPTION =
   'Universal bridge for AI coding tool activity — capture, normalize, stream.';

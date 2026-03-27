@@ -38,13 +38,16 @@
 
 ## 🔵 In Progress
 
-- [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 1/3 — P0 — sous-tâche `01` validée, prochaine étape : `02 — Schemas & Types`
+- (vide)
 
 ---
 
 ## ✅ Done
 
+- [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
 - [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
+- [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
+- [03 — Config System](./01-project-setup/03_project-setup_config-system_DONE.md) — config persistée + defaults + loader + fallback ports
 
 ---
 
