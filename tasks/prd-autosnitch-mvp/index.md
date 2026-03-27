@@ -16,10 +16,11 @@ Ce PRD est structuré en plusieurs fichiers pour faciliter la lecture, l’itér
 4. [Roadmap & Milestones](./04-roadmap-milestones.md)
 5. [Risks, Assumptions, Open Questions](./05-risks-open-questions.md)
 
-## Décision structurante
+## Décisions structurantes
 
-AutoSnitch est défini en **live streaming only** :
-- ❌ aucun stockage persistant des events
-- ❌ aucun replay historique
-- ✅ transit mémoire vive uniquement
-- ✅ monitoring temps réel via TUI (consumer principal du MVP)
+AutoSnitch est défini en **live streaming only** avec une architecture orientée events :
+- ❌ aucun stockage persistant sur le long terme des events
+- ❌ aucun replay historique (API REST historique exclue)
+- ✅ transit mémoire vive ou fichier WAL temporisé et rotatif `better-sqlite3` uniquement
+- ✅ monitoring temps réel via TUI (consumer principal du MVP) abonné au websocket local (`ws://localhost:4820`).
+- ✅ Stack hybride : noyau TypeScript complété par un module natif Rust via `napi-rs` (`@autosnitch/native`) pour les syscalls système et PTY sans compilation chez l'utilisateur.
