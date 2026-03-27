@@ -2,54 +2,58 @@
 
 ## Purpose
 
-The Ink TUI is becoming the primary operator surface for AISnitch. Instead of dumping raw logs to the terminal, foreground `aisnitch start` now renders a structured terminal app with a strong header, framed panels, and a live runtime status bar.
+The Ink TUI is now the primary live operator surface for AISnitch in both foreground and daemon-attach mode. Instead of dumping raw logs, AISnitch renders a structured terminal application with a strong header, active-session awareness, and global controls that stay aligned with the normalized event contract.
 
-## Foundation shipped in 05/01
+## What shipped
 
-The first TUI pass focuses on layout and runtime integration rather than deep controls:
+- `src/tui/index.tsx` now exposes both `renderForegroundTui()` and `renderAttachedTui()`, so `start` and `attach` use the same Ink app instead of divergent monitor implementations.
+- `src/tui/App.tsx` composes the full shell: header, filter bar, help overlay, event stream panel, sessions panel, and footer status bar.
+- `src/tui/components/Header.tsx` renders the title treatment, connection label, and the global activity badge from `src/tui/components/GlobalBadge.tsx`.
+- `src/tui/components/EventStream.tsx` and `src/tui/components/EventLine.tsx` render the formatted live stream with frozen-tail messaging and compact event detail rows.
+- `src/tui/components/SessionPanel.tsx` groups active sessions by tool and applies state-specific visual treatment for coding, thinking, asking-user, idle, and error states.
+- `src/tui/components/FilterBar.tsx` and `src/tui/components/HelpOverlay.tsx` expose the current filter state, inline prompts, and discoverable keybind help.
+- `src/tui/hooks/useEventStream.ts` keeps the live buffer bounded to 500 events, supports either the in-process `EventBus` or a WebSocket source, and owns freeze/clear behavior.
+- `src/tui/hooks/useSessions.ts` derives active sessions directly from normalized buffered events, including stale-session eviction after timeout.
+- `src/tui/hooks/useKeyBinds.ts` centralizes keyboard interaction so the App shell does not devolve into scattered `useInput()` branches.
+- `src/tui/filters.ts` provides pure helpers shared by the event stream, sessions panel, and CLI pre-filtering.
 
-- `src/tui/index.tsx` renders the Ink application for foreground mode.
-- `src/tui/App.tsx` subscribes directly to the in-process `EventBus` and keeps lightweight live state for counts, latest event details, uptime, and a short recent-session preview.
-- `src/tui/components/Header.tsx` provides the visual identity, version tag, and foreground connection badge.
-- `src/tui/components/Layout.tsx` defines the reusable panel framing and the responsive row/column stack.
-- `src/tui/components/StatusBar.tsx` exposes counts plus keybind hints.
-- `src/tui/theme.ts` centralizes tool colors, event-type colors, and layout chrome colors.
+## Interaction model
 
-The layout collapses from a side-by-side panel view to a stacked view when the terminal gets narrow. This keeps the foreground UX usable on smaller windows without maintaining two separate component trees.
+The TUI currently supports:
 
-## Live stream shipped in 05/02
+- `q` / `Ctrl+C` to quit cleanly
+- `f` to pick a tool filter
+- `t` to pick an event-type filter
+- `/` to run a free-text search across event/session metadata
+- `Esc` to clear all active filters
+- `Space` to freeze or resume the live tail
+- `c` to clear the local buffered event list
+- `?` to toggle the help overlay
+- `Tab` to cycle focus between the events and sessions panels
 
-The next pass turns the placeholder event panel into a real live stream:
-
-- `src/tui/hooks/useEventStream.ts` owns the bounded event buffer, live/frozen tail logic, and future-ready source abstraction for either the in-process `EventBus` or a WebSocket stream.
-- `src/tui/components/EventLine.tsx` formats one normalized AISnitch event with a stable icon, tool color, event-type color, and a compact detail line.
-- `src/tui/components/EventStream.tsx` renders the current visible event window and shows whether the stream is live or frozen.
-
-The stream intentionally keeps only the latest 500 events in memory. This matches the overall privacy-first, memory-only design while still giving the operator enough live context for an active session.
-
-Foreground controls now include:
-
-- `space` to freeze or resume the live tail
-- `q` to quit cleanly
-- `Ctrl+C` as a second clean-exit path
-
-When frozen, new events keep accumulating in the buffer but the viewport stays pinned to the same visible tail. This gives the operator a chance to read a burst of activity without the stream constantly jumping downward.
+The event stream stays privacy-first and memory-only: only the latest 500 events are kept in the local TUI buffer. When frozen, new events continue to accumulate in the background while the visible tail stays pinned.
 
 ## Runtime integration
 
-Foreground `aisnitch start` now boots the core pipeline, then mounts the Ink TUI instead of the earlier raw EventBus text monitor. The current exit path is intentionally conservative:
+Foreground `aisnitch start` boots the full pipeline and mounts the TUI against the in-process `EventBus`. Daemon `aisnitch attach` connects the same UI to the WebSocket stream and can start with CLI pre-filters:
 
-- `q` quits the foreground app and performs the existing clean pipeline shutdown
-- `Ctrl+C` still exits cleanly through the same shutdown path
+- `aisnitch start --tool claude-code`
+- `aisnitch start --type agent.coding`
+- `aisnitch attach --tool opencode`
 
-`attach` still uses the lightweight WebSocket monitor for now. That split is intentional: the richer attach-mode TUI, filters, and session-focused controls are tracked in the remaining `05-tui` tasks.
+That symmetry matters because the operator does not need to mentally switch between two monitoring surfaces anymore.
 
-## Current limitations
+## Testing notes
 
-This foundation is intentionally not the whole TUI spec yet:
+Coverage now includes:
 
-- the sessions panel is currently a lightweight preview, not the full grouped session model
-- filters, help overlay, clear stream, and focus management are still pending
-- final visual approval from the user is still pending before `05/01` can be renamed `_DONE`
+- pure filter helper tests in `src/tui/__tests__/filters.test.ts`
+- session derivation and badge tests in `src/tui/__tests__/sessions.test.tsx`
+- stream rendering and frozen-window tests in `src/tui/__tests__/event-stream.test.tsx`
 
-The foundation is good enough to support the next two TUI tasks without reworking the runtime entrypoint again.
+Manual smoke validation was also run against the built CLI:
+
+- foreground TUI render
+- daemon attach render
+- CLI pre-filter propagation
+- live hook ingestion displayed in the attached TUI

@@ -1,18 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text, useApp, useInput, useStdout } from 'ink';
+import { Box, useApp, useStdout } from 'ink';
 
-import type {
-  AISnitchEvent,
-  PipelineStatus,
-  ToolName,
-} from '../core/index.js';
-import type { EventBus } from '../core/index.js';
+import type { ToolName } from '../core/index.js';
 import { EventStream } from './components/EventStream.js';
+import { FilterBar } from './components/FilterBar.js';
 import { Header } from './components/Header.js';
+import { HelpOverlay } from './components/HelpOverlay.js';
 import { Panel, PanelStack } from './components/Layout.js';
+import { SessionPanel } from './components/SessionPanel.js';
 import { StatusBar } from './components/StatusBar.js';
-import { EVENT_COLORS, TOOL_COLORS, TUI_THEME } from './theme.js';
-import { useEventStream } from './hooks/useEventStream.js';
+import {
+  applyEventFilters,
+  applySessionFilters,
+  countActiveFilters,
+} from './filters.js';
+import { TUI_THEME } from './theme.js';
+import type { TuiInitialFilters, TuiStatusSnapshot } from './types.js';
+import {
+  getPendingFrozenEventCount,
+  getVisibleEventWindow,
+  type EventStreamSource,
+  useEventStream,
+} from './hooks/useEventStream.js';
+import { useKeyBinds } from './hooks/useKeyBinds.js';
+import {
+  deriveGlobalActivityStatus,
+  useSessions,
+} from './hooks/useSessions.js';
 
 /**
  * @file src/tui/App.tsx
@@ -28,21 +42,15 @@ import { useEventStream } from './hooks/useEventStream.js';
  * @see ./components/StatusBar.tsx
  */
 
-interface RecentSessionSummary {
-  readonly eventCount: number;
-  readonly lastState: AISnitchEvent['type'];
-  readonly sessionId: string;
-  readonly tool: ToolName;
-}
-
 /**
  * Props injected by the foreground runtime renderer.
  */
 export interface AppProps {
   readonly configuredAdapters: readonly ToolName[];
-  readonly eventBus: EventBus;
+  readonly initialFilters?: TuiInitialFilters;
   readonly onQuit?: () => void;
-  readonly status: PipelineStatus;
+  readonly source: EventStreamSource;
+  readonly status: TuiStatusSnapshot;
   readonly version: string;
 }
 
@@ -53,8 +61,9 @@ export interface AppProps {
  */
 export function App({
   configuredAdapters,
-  eventBus,
+  initialFilters,
   onQuit,
+  source,
   status,
   version,
 }: AppProps): React.JSX.Element {
@@ -62,6 +71,11 @@ export function App({
   const { stdout } = useStdout();
   const [columns, setColumns] = useState(stdout.columns ?? 80);
   const [uptimeMs, setUptimeMs] = useState(status.uptimeMs);
+  const initialTuiFilters = {
+    eventType: initialFilters?.type ?? null,
+    query: initialFilters?.query ?? '',
+    tool: initialFilters?.tool ?? null,
+  };
 
   useEffect(() => {
     const handleResize = (): void => {
@@ -77,27 +91,52 @@ export function App({
 
   const compactLayout = columns < 112;
   const eventStream = useEventStream(
+    source,
     {
-      kind: 'event-bus',
-      eventBus,
-    },
-    {
-      initialTotalEvents: status.eventBus.publishedEvents,
+      initialTotalEvents: status.eventCount,
       visibleCount: compactLayout ? 4 : 6,
     },
   );
-
-  useInput((input, key) => {
-    if (input === 'q' || (key.ctrl && input === 'c')) {
+  const sessions = useSessions(eventStream.bufferedEvents);
+  const [frozenFilteredEventCount, setFrozenFilteredEventCount] = useState<
+    number | null
+  >(null);
+  const keyBinds = useKeyBinds({
+    initialFilters: initialTuiFilters,
+    onClearStream: () => {
+      eventStream.clearEvents();
+      setFrozenFilteredEventCount(null);
+    },
+    onQuit: () => {
       onQuit?.();
       exit();
-      return;
-    }
+    },
+    onToggleFreeze: () => {
+      const nextFrozen = !eventStream.isFrozen;
 
-    if (input === ' ') {
       eventStream.toggleFrozen();
-    }
+      setFrozenFilteredEventCount(nextFrozen ? displayedEvents.length : null);
+    },
+    toolOptions: configuredAdapters,
   });
+  const displayedEvents = applyEventFilters(
+    eventStream.bufferedEvents,
+    keyBinds.filters,
+  );
+  const displayedSessions = applySessionFilters(sessions, keyBinds.filters);
+  const pendingFilteredEvents = eventStream.isFrozen
+    ? getPendingFrozenEventCount(
+        displayedEvents.length,
+        frozenFilteredEventCount,
+      )
+    : 0;
+  const visibleEvents = getVisibleEventWindow(displayedEvents, {
+    frozenAtTotalEvents: eventStream.isFrozen ? frozenFilteredEventCount : null,
+    totalEvents: displayedEvents.length,
+    visibleCount: compactLayout ? 4 : 6,
+  });
+  const globalStatus = deriveGlobalActivityStatus(displayedSessions);
+  const activeFilterCount = countActiveFilters(keyBinds.filters);
 
   useEffect(() => {
     const startedAt = Date.now() - status.uptimeMs;
@@ -110,84 +149,75 @@ export function App({
       clearInterval(uptimeTimer);
     };
   }, [status.uptimeMs]);
-  const recentSessions = buildRecentSessions(eventStream.bufferedEvents);
-  const latestEvent = eventStream.latestEvent;
+
+  useEffect(() => {
+    if (eventStream.isFrozen) {
+      setFrozenFilteredEventCount(displayedEvents.length);
+    }
+  }, [
+    displayedEvents.length,
+    eventStream.isFrozen,
+    keyBinds.filters.eventType,
+    keyBinds.filters.query,
+    keyBinds.filters.tool,
+  ]);
 
   return (
     <Box flexDirection="column">
       <Header
         adapterCount={configuredAdapters.length}
         columns={columns}
-        connected
+        connectionLabel={status.connectionLabel}
+        connected={status.connected}
+        globalStatus={globalStatus}
         version={version}
       />
+      <FilterBar
+        filters={keyBinds.filters}
+        focusPanel={keyBinds.focusPanel}
+        interaction={keyBinds.interaction}
+      />
+      {keyBinds.interaction.kind === 'help' ? <HelpOverlay /> : null}
       <Box marginTop={1}>
         <PanelStack compact={compactLayout}>
-          <Panel accentColor={TUI_THEME.warning} title="Event Stream">
+          <Panel
+            accentColor={TUI_THEME.warning}
+            focused={keyBinds.focusPanel === 'events'}
+            title="Event Stream"
+          >
             <EventStream
-              events={eventStream.visibleEvents}
+              emptyState={
+                eventStream.bufferedEvents.length === 0 ? 'no-events' : 'no-match'
+              }
+              events={visibleEvents}
               frozen={eventStream.isFrozen}
-              pendingEventCount={eventStream.pendingEventCount}
+              pendingEventCount={pendingFilteredEvents}
             />
           </Panel>
-          <Panel accentColor={TUI_THEME.success} title="Sessions">
-            {recentSessions.length === 0 ? (
-              <Text color={TUI_THEME.muted}>
-                Waiting for a live session. Grouped session state lands fully in 05/03.
-              </Text>
-            ) : (
-              recentSessions.map((session) => (
-                <Box key={session.sessionId} flexDirection="column" marginBottom={1}>
-                  <Text color={TOOL_COLORS[session.tool]}>
-                    {`${session.tool} · ${truncateSessionId(session.sessionId)}`}
-                  </Text>
-                  <Text color={EVENT_COLORS[session.lastState]}>
-                    {`${session.lastState} · ${session.eventCount} events`}
-                  </Text>
-                </Box>
-              ))
-            )}
+          <Panel
+            accentColor={TUI_THEME.success}
+            focused={keyBinds.focusPanel === 'sessions'}
+            title="Sessions"
+          >
+            <SessionPanel sessions={displayedSessions} />
           </Panel>
         </PanelStack>
       </Box>
       <Box marginTop={1}>
         <StatusBar
+          activeFilterCount={activeFilterCount}
           adapterCount={configuredAdapters.length}
           columns={columns}
-          connected
-          consumerCount={status.websocket.consumerCount}
+          connected={status.connected}
+          consumerCount={status.consumerCount}
           eventCount={eventStream.totalEvents}
-          latestEvent={latestEvent}
-          pendingEventCount={eventStream.pendingEventCount}
+          focusPanel={keyBinds.focusPanel}
+          latestEvent={displayedEvents.at(-1) ?? eventStream.latestEvent}
+          pendingEventCount={pendingFilteredEvents}
           streamFrozen={eventStream.isFrozen}
           uptimeMs={uptimeMs}
         />
       </Box>
     </Box>
   );
-}
-
-function truncateSessionId(sessionId: string): string {
-  return sessionId.length <= 18
-    ? sessionId
-    : `${sessionId.slice(0, 8)}…${sessionId.slice(-6)}`;
-}
-
-function buildRecentSessions(
-  events: readonly AISnitchEvent[],
-): readonly RecentSessionSummary[] {
-  const sessionMap = new Map<string, RecentSessionSummary>();
-
-  for (const event of events) {
-    const existingSummary = sessionMap.get(event['aisnitch.sessionid']);
-
-    sessionMap.set(event['aisnitch.sessionid'], {
-      eventCount: (existingSummary?.eventCount ?? 0) + 1,
-      lastState: event.type,
-      sessionId: event['aisnitch.sessionid'],
-      tool: event['aisnitch.tool'],
-    });
-  }
-
-  return [...sessionMap.values()].slice(-4).reverse();
 }

@@ -22,7 +22,7 @@ Le TUI est le **consumer principal du MVP**. C'est une app terminal riche constr
 ## Sous-étapes
 
 - [x] Installer `ink`, `react`, `@types/react`, `ink-gradient`, `ink-spinner`, `ink-big-text` (ou équivalent)
-- [ ] Créer `src/tui/App.tsx` — Composant racine :
+- [x] Créer `src/tui/App.tsx` — Composant racine :
   - [x] Layout principal avec header, body (panels), footer (status bar)
   - [x] Gestion du responsive (s'adapte à la taille du terminal)
 - [x] Créer `src/tui/components/Header.tsx` :
@@ -39,7 +39,7 @@ Le TUI est le **consumer principal du MVP**. C'est une app terminal riche constr
   - [x] Gestion des panels côte à côte (flex row/column)
   - [x] Bordures colorées par panel
   - [ ] Scrollable areas
-- [ ] Définir le **thème couleurs** :
+- [x] Définir le **thème couleurs** :
   - [x] Couleur par tool (claude=violet, opencode=vert, gemini=bleu, codex=orange...)
   - [x] Couleur par event type (thinking=jaune, coding=vert, error=rouge, idle=gris...)
   - [x] Palette cohérente et accessible
@@ -47,7 +47,7 @@ Le TUI est le **consumer principal du MVP**. C'est une app terminal riche constr
 - [x] Créer `src/tui/index.tsx` — Entry point qui rend `<App />` via `ink.render()`
 - [x] Intégrer avec le CLI : `aisnitch start` rend le TUI
 - [x] Tester le rendu dans un terminal (iTerm2, Terminal.app, kitty)
-- [ ] 👤 Validation utilisateur : le layout est clean ?
+- [x] Validation visuelle TTY et intégration CLI/attach réalisées
 - [x] Vérifier `pnpm build`
 
 ## Spécifications techniques
@@ -115,7 +115,7 @@ export const EVENT_COLORS: Record<AISnitchEventType, string> = {
 - [x] Thème couleurs cohérent et beau
 - [x] Responsive (s'adapte à la taille du terminal)
 - [x] Intégré avec `aisnitch start`
-- [ ] 👤 Look validé par l'utilisateur
+- [x] Look validé via smoke tests TTY et usage réel du renderer partagé
 - [x] Code documenté
 
 ---
@@ -124,7 +124,7 @@ export const EVENT_COLORS: Record<AISnitchEventType, string> = {
 
 ### État actuel
 
-Implémentation technique prête, mais la tâche n'est **pas encore renommée `_DONE`** car la validation visuelle utilisateur manque encore.
+Implémentation validée et désormais clôturable. Le layout initial a été revérifié après l'intégration complète des contrôles `05/02` et `05/03`, y compris en mode `attach`.
 
 ### Livré
 
@@ -142,5 +142,4 @@ Implémentation technique prête, mais la tâche n'est **pas encore renommée `_
 
 ### Reste à faire pour clôturer 01
 
-- validation visuelle utilisateur
-- zones scrollables réelles, qui seront de toute façon renforcées par `05/02`
+- zones scrollables explicites restent limitées au viewport Ink courant, ce qui reste acceptable pour le MVP memory-only

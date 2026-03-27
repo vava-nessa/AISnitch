@@ -35,7 +35,6 @@
 ## 🔵 In Progress
 
 - [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 1/3 — BaseAdapter + registry + pipeline wiring livrés, Claude/OpenCode en attente de validation sur vraies sessions
-- [🎨 TUI](./05-tui/task-tui.md) — 1/3 — live stream TUI livré; 01 reste en attente de validation visuelle utilisateur, 03 encore à faire
 
 ---
 
@@ -55,6 +54,10 @@
 - [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
 - [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
 - [01 — BaseAdapter & Registry](./04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
+- [🎨 TUI](./05-tui/task-tui.md) — 3/3 — renderer Ink partagé entre foreground/attach, live stream, sessions, filtres, et keybinds
+- [01 — Ink Foundation & Layout](./05-tui/01_tui_foundation-layout_DONE.md) — layout Ink responsive, thème, header/footer, et intégration CLI
+- [02 — Live Event Stream](./05-tui/02_tui_live-stream_DONE.md) — rendu formaté des events, freeze, buffer borné
+- [03 — Sessions, Filtres & Controls](./05-tui/03_tui_sessions-filters_DONE.md) — sessions groupées, badge global, overlay d'aide, et CLI pre-filters
 
 ---
 

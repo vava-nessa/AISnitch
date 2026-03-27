@@ -28,6 +28,8 @@ All notable changes to this project will be documented in this file.
 - Dedicated TUI technical documentation in `docs/tui.md`.
 - Live event stream UI for the foreground TUI with formatted event rows, bounded buffering, and freeze/resume controls.
 - TUI event-stream tests covering icon rendering, 500-event retention, and frozen-tail behavior.
+- Session-aware TUI controls with grouped active sessions, a global activity badge, tool/type/query filters, help overlay, and shared foreground/attach Ink rendering.
+- TUI tests for filters, session derivation, session-panel rendering, and CLI pre-filter parsing.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -37,7 +39,7 @@ All notable changes to this project will be documented in this file.
 - Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
 - Reworked the CLI docs to include tool setup flows and current OpenCode plugin-based integration.
 - Reworked the runtime so enabled tool hooks are handled by built-in adapters before entering the shared event pipeline.
-- Replaced the foreground text monitor with an Ink TUI foundation while keeping `attach` on the lightweight WebSocket monitor for now.
+- Replaced the foreground and attach text monitors with one shared Ink TUI flow, including CLI-applied `--tool` / `--type` filters.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

@@ -12,9 +12,12 @@ import {
 } from './commands/setup.js';
 import {
   createCliRuntime,
+  parseEventTypeFilterOption,
   parseLogLevelOption,
   parsePortOption,
+  parseToolFilterOption,
   type CliRuntime,
+  type AttachCliOptions,
   type CommonCliOptions,
   type StartCliOptions,
 } from './runtime.js';
@@ -89,6 +92,16 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
       .description('Start AISnitch in foreground mode by default')
       .option('--daemon', 'Run AISnitch as a detached daemon')
       .option(
+        '--tool <tool>',
+        'Pre-filter the foreground TUI by tool',
+        wrapOptionParser(parseToolFilterOption),
+      )
+      .option(
+        '--type <type>',
+        'Pre-filter the foreground TUI by event type',
+        wrapOptionParser(parseEventTypeFilterOption),
+      )
+      .option(
         '--ws-port <port>',
         'Override the WebSocket port',
         wrapOptionParser(parsePortOption),
@@ -146,8 +159,20 @@ function addSetupCommand(program: Command, runtime: CliRuntime): void {
 
 function addAttachCommand(program: Command, runtime: CliRuntime): void {
   addCommonOptions(
-    program.command('attach').description('Attach a live monitor to the running daemon'),
-  ).action(async (options: CommonCliOptions) => {
+    program
+      .command('attach')
+      .description('Attach the Ink TUI to the running daemon')
+      .option(
+        '--tool <tool>',
+        'Pre-filter the attached TUI by tool',
+        wrapOptionParser(parseToolFilterOption),
+      )
+      .option(
+        '--type <type>',
+        'Pre-filter the attached TUI by event type',
+        wrapOptionParser(parseEventTypeFilterOption),
+      ),
+  ).action(async (options: AttachCliOptions) => {
     await runtime.attach(options);
   });
 }

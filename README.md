@@ -33,8 +33,8 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Priority adapters for Claude Code (hooks + JSONL + process fallback) and OpenCode (plugin hooks + process fallback)
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
-- Detached daemon mode with PID/state files and a lightweight attach monitor while the richer attach-mode TUI ships
-- Ink-based foreground TUI with responsive header, live event stream, freeze control, live counters, and session preview
+- Detached daemon mode with PID/state files and a shared Ink attach/foreground monitoring surface
+- Ink-based TUI with responsive header, live event stream, session panel, filters, help overlay, and CLI pre-filters
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install
@@ -54,13 +54,17 @@ When the package is installed globally, the same commands will be available thro
 ```bash
 # Foreground mode with the Ink TUI
 node dist/cli/index.js start
+node dist/cli/index.js start --tool claude-code
+node dist/cli/index.js start --type agent.coding
 
 # Detached daemon mode
 node dist/cli/index.js start --daemon
 
 # Inspect or attach to the daemon
+node dist/cli/index.js adapters
 node dist/cli/index.js status
 node dist/cli/index.js attach
+node dist/cli/index.js attach --tool opencode
 
 # Stop the detached daemon
 node dist/cli/index.js stop
@@ -71,9 +75,25 @@ node dist/cli/index.js setup opencode
 node dist/cli/index.js setup claude-code --revert
 ```
 
-Foreground `start` now renders the Ink TUI foundation. `attach` still uses the lightweight text monitor over WebSocket until the remaining `05-tui` tasks land.
+Both foreground `start` and daemon `attach` now render the same Ink TUI shell. `--tool` and `--type` can pre-apply filters when the TUI opens.
 
 `setup` is interactive by design: AISnitch prints the proposed diff, asks for confirmation, then writes a `.bak` backup before applying changes. Claude Code is configured through `~/.claude/settings.json`, while OpenCode uses a local plugin file under `~/.config/opencode/plugins/`.
+
+Adapters are disabled by default until a setup flow enables them in `~/.aisnitch/config.json`. Use `node dist/cli/index.js adapters` to confirm the armed tools before expecting Claude Code or OpenCode activity to appear in the TUI.
+
+## TUI Usage & Keybinds
+
+The TUI is now the main live operator surface for both foreground and attach mode. It shows a formatted event stream on the left, active sessions on the right, a global activity badge in the header, and a filter bar above the panels.
+
+- `q` / `Ctrl+C` quit cleanly
+- `f` opens the tool filter selector
+- `t` opens the event-type filter selector
+- `/` starts free-text search over buffered events and sessions
+- `Esc` clears all active filters
+- `Space` freezes or resumes the live tail
+- `c` clears the local buffered event view
+- `?` toggles the help overlay
+- `Tab` cycles focus between the event and session panels
 
 ## Development
 

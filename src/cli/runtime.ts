@@ -4,7 +4,13 @@ import { rename, rm, writeFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { promisify } from 'node:util';
 
-import { ToolNameSchema, type AISnitchConfig, type ToolName } from '../core/index.js';
+import {
+  AISnitchEventTypeSchema,
+  ToolNameSchema,
+  type AISnitchConfig,
+  type AISnitchEventType,
+  type ToolName,
+} from '../core/index.js';
 import {
   ConfigSchema,
   LOG_LEVELS,
@@ -14,7 +20,7 @@ import {
   type HealthSnapshot,
 } from '../core/index.js';
 import {
-  attachWebSocketMonitor,
+  renderAttachedTui,
   renderForegroundTui,
   type MonitorOutput,
 } from '../tui/index.js';
@@ -55,7 +61,7 @@ import {
  *   → parsePortOption
  *   → parseLogLevelOption
  *   → buildLaunchAgentPlist
- * @exports CliOutput, CommonCliOptions, StartCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, buildLaunchAgentPlist
+ * @exports CliOutput, CommonCliOptions, AttachCliOptions, StartCliOptions, createCliRuntime, parsePortOption, parseLogLevelOption, parseToolFilterOption, parseEventTypeFilterOption, buildLaunchAgentPlist
  * @see ./pid.ts
  * @see ../tui/live-monitor.ts
  * @see ../core/engine/pipeline.ts
@@ -82,9 +88,17 @@ export interface CommonCliOptions {
 }
 
 /**
+ * TUI filter options accepted by foreground and attach commands.
+ */
+export interface AttachCliOptions extends CommonCliOptions {
+  readonly tool?: ToolName;
+  readonly type?: AISnitchEventType;
+}
+
+/**
  * Options accepted by `aisnitch start`.
  */
-export interface StartCliOptions extends CommonCliOptions {
+export interface StartCliOptions extends AttachCliOptions {
   readonly daemon?: boolean;
   readonly httpPort?: number;
   readonly logLevel?: AISnitchConfig['logLevel'];
@@ -96,7 +110,7 @@ export interface StartCliOptions extends CommonCliOptions {
  */
 export interface CliRuntime {
   readonly adapters: (options: CommonCliOptions) => Promise<void>;
-  readonly attach: (options: CommonCliOptions) => Promise<void>;
+  readonly attach: (options: AttachCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
   readonly runDaemonProcess: (options: StartCliOptions) => Promise<void>;
   readonly setup: (
@@ -385,6 +399,7 @@ export function createCliRuntime(
     await renderForegroundTui({
       configuredAdapters: getEnabledAdapters(config),
       eventBus: pipeline.getEventBus(),
+      initialFilters: toInitialTuiFilters(options),
       onQuit: () => {
         void shutdown('tui-exit');
       },
@@ -513,34 +528,22 @@ export function createCliRuntime(
     }
   }
 
-  async function attach(options: CommonCliOptions): Promise<void> {
+  async function attach(options: AttachCliOptions): Promise<void> {
     const snapshot = await getStatusSnapshot(options);
 
     if (!snapshot.running || snapshot.daemonPid === null) {
       throw new Error('AISnitch daemon is not running. Start it with `aisnitch start --daemon` first.');
     }
 
-    output.stdout(
-      `Attaching to ws://127.0.0.1:${snapshot.wsPort}. Press Ctrl+C to detach.\n`,
-    );
-
-    const closeMonitor = await attachWebSocketMonitor(
-      `ws://127.0.0.1:${snapshot.wsPort}`,
-      output,
-    );
-
-    await new Promise<void>((resolve) => {
-      const detach = (): void => {
-        process.removeListener('SIGINT', onSignal);
-        process.removeListener('SIGTERM', onSignal);
-        void Promise.resolve(closeMonitor()).finally(resolve);
-      };
-      const onSignal = (): void => {
-        detach();
-      };
-
-      process.once('SIGINT', onSignal);
-      process.once('SIGTERM', onSignal);
+    await renderAttachedTui({
+      configuredAdapters: snapshot.configuredAdapters,
+      initialFilters: toInitialTuiFilters(options),
+      status: {
+        consumerCount: (snapshot.health?.consumers ?? 0) + 1,
+        eventCount: snapshot.health?.events ?? 0,
+        uptimeMs: snapshot.health?.uptime ?? 0,
+      },
+      wsUrl: `ws://127.0.0.1:${snapshot.wsPort}`,
     });
   }
 
@@ -671,6 +674,34 @@ export function parseLogLevelOption(
   }
 
   return rawValue as AISnitchConfig['logLevel'];
+}
+
+/**
+ * Parses and validates a CLI tool filter.
+ */
+export function parseToolFilterOption(rawValue: string): ToolName {
+  const parsedTool = ToolNameSchema.safeParse(rawValue);
+
+  if (!parsedTool.success || parsedTool.data === 'unknown') {
+    throw new Error(`Invalid tool filter: ${rawValue}`);
+  }
+
+  return parsedTool.data;
+}
+
+/**
+ * Parses and validates a CLI event-type filter.
+ */
+export function parseEventTypeFilterOption(
+  rawValue: string,
+): AISnitchEventType {
+  const parsedEventType = AISnitchEventTypeSchema.safeParse(rawValue);
+
+  if (!parsedEventType.success) {
+    throw new Error(`Invalid event type filter: ${rawValue}`);
+  }
+
+  return parsedEventType.data;
 }
 
 /**
@@ -815,6 +846,22 @@ function toDaemonArgv(options: StartCliOptions): string[] {
   }
 
   return args;
+}
+
+function toInitialTuiFilters(
+  options: AttachCliOptions,
+): {
+  readonly tool?: ToolName;
+  readonly type?: AISnitchEventType;
+} | undefined {
+  if (options.tool === undefined && options.type === undefined) {
+    return undefined;
+  }
+
+  return {
+    tool: options.tool,
+    type: options.type,
+  };
 }
 
 function toPathOptions(options: CommonCliOptions): ConfigPathOptions {

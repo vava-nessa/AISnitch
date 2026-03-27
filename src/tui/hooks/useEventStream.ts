@@ -58,6 +58,7 @@ export interface UseEventStreamOptions {
  */
 export interface UseEventStreamState {
   readonly bufferedEvents: readonly AISnitchEvent[];
+  readonly clearEvents: () => void;
   readonly isFrozen: boolean;
   readonly latestEvent: AISnitchEvent | null;
   readonly pendingEventCount: number;
@@ -112,6 +113,11 @@ export function useEventStream(
 
   return {
     bufferedEvents,
+    clearEvents: () => {
+      setBufferedEvents([]);
+      setFrozenAtTotalEvents(null);
+      setLatestEvent(null);
+    },
     isFrozen: frozenAtTotalEvents !== null,
     latestEvent,
     pendingEventCount,

@@ -64,6 +64,7 @@ export const EVENT_COLORS: Record<AISnitchEventType, TuiThemeColor> = {
 export const TUI_THEME = {
   background: '#111827',
   border: '#1f2937',
+  danger: '#ef4444',
   footer: '#0f172a',
   frame: '#334155',
   headerGradient: ['#f59e0b', '#fb7185', '#22d3ee'] as const,

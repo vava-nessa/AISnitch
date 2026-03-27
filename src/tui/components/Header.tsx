@@ -4,7 +4,9 @@ import BigText from 'ink-big-text';
 import Gradient from 'ink-gradient';
 import Spinner from 'ink-spinner';
 
+import type { GlobalActivityStatus } from '../hooks/useSessions.js';
 import { TUI_THEME } from '../theme.js';
+import { GlobalBadge } from './GlobalBadge.js';
 
 /**
  * @file src/tui/components/Header.tsx
@@ -22,7 +24,9 @@ import { TUI_THEME } from '../theme.js';
 export interface HeaderProps {
   readonly adapterCount: number;
   readonly columns: number;
+  readonly connectionLabel: string;
   readonly connected: boolean;
+  readonly globalStatus: GlobalActivityStatus;
   readonly version: string;
 }
 
@@ -33,7 +37,9 @@ export interface HeaderProps {
 export function Header({
   adapterCount,
   columns,
+  connectionLabel,
   connected,
+  globalStatus,
   version,
 }: HeaderProps): React.JSX.Element {
   const showBigTitle = columns >= 88;
@@ -74,7 +80,7 @@ export function Header({
           <Box>
             {connected ? (
               <Text bold color={TUI_THEME.success}>
-                ● Connected · Foreground Bus
+                ● Connected · {connectionLabel}
               </Text>
             ) : (
               <>
@@ -85,6 +91,7 @@ export function Header({
               </>
             )}
           </Box>
+          <GlobalBadge status={globalStatus} />
           <Text color={TUI_THEME.muted}>{adapterCount} adapters armed</Text>
         </Box>
       </Box>

@@ -19,6 +19,7 @@ import { EventLine } from './EventLine.js';
  * Props accepted by the live event stream component.
  */
 export interface EventStreamProps {
+  readonly emptyState?: 'no-events' | 'no-match';
   readonly events: readonly AISnitchEvent[];
   readonly frozen: boolean;
   readonly pendingEventCount: number;
@@ -28,6 +29,7 @@ export interface EventStreamProps {
  * Renders the current visible portion of the live event stream.
  */
 export function EventStream({
+  emptyState = 'no-events',
   events,
   frozen,
   pendingEventCount,
@@ -36,12 +38,14 @@ export function EventStream({
     return (
       <Box flexDirection="column">
         <Text color={TUI_THEME.panelTitle}>
-          No events yet. Start with Claude Code or OpenCode and the foreground bus
-          will light up here.
+          {emptyState === 'no-events'
+            ? 'No events yet. Start with Claude Code or OpenCode and the foreground bus will light up here.'
+            : 'No buffered events match the current filters.'}
         </Text>
         <Text color={TUI_THEME.muted}>
-          Detailed live stream controls land in 05/03. Freeze already works with
-          the space bar.
+          {emptyState === 'no-events'
+            ? 'Use [f], [t], [/], and [?] to shape the live view once events start flowing.'
+            : 'Change the active filters or clear them with Esc.'}
         </Text>
       </Box>
     );

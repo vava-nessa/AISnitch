@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 
 import type { AISnitchEvent } from '../../core/index.js';
+import type { FocusedPanel } from '../hooks/useKeyBinds.js';
 import { TUI_THEME } from '../theme.js';
 
 /**
@@ -17,11 +18,13 @@ import { TUI_THEME } from '../theme.js';
  * Props accepted by the status bar component.
  */
 export interface StatusBarProps {
+  readonly activeFilterCount: number;
   readonly adapterCount: number;
   readonly columns: number;
   readonly connected: boolean;
   readonly consumerCount: number;
   readonly eventCount: number;
+  readonly focusPanel: FocusedPanel;
   readonly latestEvent: AISnitchEvent | null;
   readonly pendingEventCount?: number;
   readonly streamFrozen: boolean;
@@ -32,11 +35,13 @@ export interface StatusBarProps {
  * Renders the lower chrome with lightweight stats and keyboard hints.
  */
 export function StatusBar({
+  activeFilterCount,
   adapterCount,
   columns,
   connected,
   consumerCount,
   eventCount,
+  focusPanel,
   latestEvent,
   pendingEventCount = 0,
   streamFrozen,
@@ -55,15 +60,15 @@ export function StatusBar({
       paddingY={0}
     >
       <Text color={TUI_THEME.panelBody}>
-        {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Up ${formatUptime(
+        {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Filters ${activeFilterCount} | Focus ${focusPanel} | Up ${formatUptime(
           uptimeMs,
         )} | ${streamState} | Size ${columns}c`}
       </Text>
       <Text color={TUI_THEME.muted}>
         {connected
           ? streamFrozen
-            ? '[space] resume  [q] quit  [?] help  [f] filters soon'
-            : '[space] freeze  [q] quit  [?] help  [f] filters soon'
+            ? '[space] resume  [q] quit  [?] help  [f/t//] filters  [c] clear'
+            : '[space] freeze  [q] quit  [?] help  [f/t//] filters  [c] clear'
           : '[q] quit  waiting for foreground bus'}
       </Text>
     </Box>

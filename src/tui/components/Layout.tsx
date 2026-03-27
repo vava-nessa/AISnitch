@@ -22,6 +22,7 @@ export interface PanelProps {
   readonly accentColor: TuiThemeColor;
   readonly children: React.ReactNode;
   readonly flexGrow?: number;
+  readonly focused?: boolean;
   readonly title: string;
 }
 
@@ -41,11 +42,12 @@ export function Panel({
   accentColor,
   children,
   flexGrow = 1,
+  focused = false,
   title,
 }: PanelProps): React.JSX.Element {
   return (
     <Box
-      borderColor={TUI_THEME.frame}
+      borderColor={focused ? accentColor : TUI_THEME.frame}
       borderStyle="round"
       flexDirection="column"
       flexGrow={flexGrow}
