@@ -21,34 +21,34 @@ Le TUI est le **consumer principal du MVP**. C'est une app terminal riche constr
 
 ## Sous-étapes
 
-- [ ] Installer `ink`, `react`, `@types/react`, `ink-gradient`, `ink-spinner`, `ink-big-text` (ou équivalent)
+- [x] Installer `ink`, `react`, `@types/react`, `ink-gradient`, `ink-spinner`, `ink-big-text` (ou équivalent)
 - [ ] Créer `src/tui/App.tsx` — Composant racine :
-  - [ ] Layout principal avec header, body (panels), footer (status bar)
-  - [ ] Gestion du responsive (s'adapte à la taille du terminal)
-- [ ] Créer `src/tui/components/Header.tsx` :
-  - [ ] Logo/titre "AISnitch" en ASCII art ou gradient
-  - [ ] Version
-  - [ ] Indicateur de connexion WebSocket (🟢 Connected / 🔴 Disconnected)
-- [ ] Créer `src/tui/components/StatusBar.tsx` :
-  - [ ] Nombre d'events reçus
-  - [ ] Adapters actifs
-  - [ ] Consumers WebSocket connectés
-  - [ ] Uptime
-  - [ ] Keybinds hints (q: quit, f: filter, etc.)
-- [ ] Créer `src/tui/components/Layout.tsx` :
-  - [ ] Gestion des panels côte à côte (flex row/column)
-  - [ ] Bordures colorées par panel
+  - [x] Layout principal avec header, body (panels), footer (status bar)
+  - [x] Gestion du responsive (s'adapte à la taille du terminal)
+- [x] Créer `src/tui/components/Header.tsx` :
+  - [x] Logo/titre "AISnitch" en ASCII art ou gradient
+  - [x] Version
+  - [x] Indicateur de connexion WebSocket (🟢 Connected / 🔴 Disconnected)
+- [x] Créer `src/tui/components/StatusBar.tsx` :
+  - [x] Nombre d'events reçus
+  - [x] Adapters actifs
+  - [x] Consumers WebSocket connectés
+  - [x] Uptime
+  - [x] Keybinds hints (q: quit, f: filter, etc.)
+- [x] Créer `src/tui/components/Layout.tsx` :
+  - [x] Gestion des panels côte à côte (flex row/column)
+  - [x] Bordures colorées par panel
   - [ ] Scrollable areas
 - [ ] Définir le **thème couleurs** :
-  - [ ] Couleur par tool (claude=violet, opencode=vert, gemini=bleu, codex=orange...)
-  - [ ] Couleur par event type (thinking=jaune, coding=vert, error=rouge, idle=gris...)
-  - [ ] Palette cohérente et accessible
-- [ ] Créer `src/tui/theme.ts` — constantes couleurs exportées
-- [ ] Créer `src/tui/index.tsx` — Entry point qui rend `<App />` via `ink.render()`
-- [ ] Intégrer avec le CLI : `aisnitch start` rend le TUI
-- [ ] Tester le rendu dans un terminal (iTerm2, Terminal.app, kitty)
+  - [x] Couleur par tool (claude=violet, opencode=vert, gemini=bleu, codex=orange...)
+  - [x] Couleur par event type (thinking=jaune, coding=vert, error=rouge, idle=gris...)
+  - [x] Palette cohérente et accessible
+- [x] Créer `src/tui/theme.ts` — constantes couleurs exportées
+- [x] Créer `src/tui/index.tsx` — Entry point qui rend `<App />` via `ink.render()`
+- [x] Intégrer avec le CLI : `aisnitch start` rend le TUI
+- [x] Tester le rendu dans un terminal (iTerm2, Terminal.app, kitty)
 - [ ] 👤 Validation utilisateur : le layout est clean ?
-- [ ] Vérifier `pnpm build`
+- [x] Vérifier `pnpm build`
 
 ## Spécifications techniques
 
@@ -109,16 +109,38 @@ export const EVENT_COLORS: Record<AISnitchEventType, string> = {
 
 ## Critères de complétion
 
-- [ ] Layout principal rend correctement dans le terminal
-- [ ] Header avec titre, version, indicateur connexion
-- [ ] Status bar avec stats live
-- [ ] Thème couleurs cohérent et beau
-- [ ] Responsive (s'adapte à la taille du terminal)
-- [ ] Intégré avec `aisnitch start`
+- [x] Layout principal rend correctement dans le terminal
+- [x] Header avec titre, version, indicateur connexion
+- [x] Status bar avec stats live
+- [x] Thème couleurs cohérent et beau
+- [x] Responsive (s'adapte à la taille du terminal)
+- [x] Intégré avec `aisnitch start`
 - [ ] 👤 Look validé par l'utilisateur
-- [ ] Code documenté
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
-> ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+### État actuel
+
+Implémentation technique prête, mais la tâche n'est **pas encore renommée `_DONE`** car la validation visuelle utilisateur manque encore.
+
+### Livré
+
+- Installation de la stack Ink moderne (`ink@6`, `react@19`, `ink-gradient`, `ink-spinner`, `ink-big-text`)
+- Nouveau point d'entrée `src/tui/index.tsx` pour rendre le TUI foreground
+- Layout responsive avec header, panels, status bar, thème couleurs, et preview live des sessions
+- Intégration CLI: `aisnitch start` ouvre désormais le TUI Ink au lieu du monitor texte temporaire
+- Nettoyage d'architecture: métadonnées package extraites dans `src/package-info.ts` pour éviter un cycle d'import entre le TUI et l'index public
+
+### Validation réalisée
+
+- `pnpm check` vert (`lint`, `typecheck`, `test`, `build`)
+- Smoke test réel en TTY avec `node dist/cli/index.js start --config <temp-config>`
+- Vérification complémentaire: le foreground TUI ne spam plus les logs `info` par défaut
+
+### Reste à faire pour clôturer 01
+
+- validation visuelle utilisateur
+- zones scrollables réelles, qui seront de toute façon renforcées par `05/02`

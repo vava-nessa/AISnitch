@@ -11,6 +11,7 @@ This folder tracks the technical documentation that complements the task board a
 - [`cli-daemon.md`](./cli-daemon.md) — commander command surface, daemon supervision files, and LaunchAgent flow
 - [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code and OpenCode forwarding into AISnitch
 - [`priority-adapters.md`](./priority-adapters.md) — BaseAdapter lifecycle, Claude Code mapping, and OpenCode plugin integration
+- [`tui.md`](./tui.md) — Ink foundation layout, foreground runtime rendering, and the remaining interactive gaps
 
 ## Related project sources
 

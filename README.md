@@ -17,6 +17,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
 - **Tool setup internals**: [`docs/tool-setup.md`](./docs/tool-setup.md)
 - **Priority adapters internals**: [`docs/priority-adapters.md`](./docs/priority-adapters.md)
+- **TUI internals**: [`docs/tui.md`](./docs/tui.md)
 
 ## Current Scope
 
@@ -32,7 +33,8 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Priority adapters for Claude Code (hooks + JSONL + process fallback) and OpenCode (plugin hooks + process fallback)
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
-- Detached daemon mode with PID/state files and a temporary live monitor until the full Ink TUI ships
+- Detached daemon mode with PID/state files and a lightweight attach monitor while the richer attach-mode TUI ships
+- Ink-based foreground TUI foundation with responsive header, framed panels, live counters, and session preview
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install
@@ -50,7 +52,7 @@ When the package is installed globally, the same commands will be available thro
 ## CLI Usage
 
 ```bash
-# Foreground mode with an inline live monitor
+# Foreground mode with the Ink TUI
 node dist/cli/index.js start
 
 # Detached daemon mode
@@ -69,7 +71,7 @@ node dist/cli/index.js setup opencode
 node dist/cli/index.js setup claude-code --revert
 ```
 
-`attach` currently uses a lightweight text monitor over WebSocket. The richer Ink-based TUI is still tracked separately in `05-tui`.
+Foreground `start` now renders the Ink TUI foundation. `attach` still uses the lightweight text monitor over WebSocket until the remaining `05-tui` tasks land.
 
 `setup` is interactive by design: AISnitch prints the proposed diff, asks for confirmation, then writes a `.bak` backup before applying changes. Claude Code is configured through `~/.claude/settings.json`, while OpenCode uses a local plugin file under `~/.config/opencode/plugins/`.
 

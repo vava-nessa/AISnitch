@@ -26,16 +26,16 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
-| 2 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 3 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 4 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
+| 2 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 3 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
 ## 🔵 In Progress
 
 - [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 1/3 — BaseAdapter + registry + pipeline wiring livrés, Claude/OpenCode en attente de validation sur vraies sessions
+- [🎨 TUI](./05-tui/task-tui.md) — 0/3 — foundation Ink branchée sur `aisnitch start`, smoke testée en terminal, validation visuelle utilisateur encore en attente pour clôturer 01
 
 ---
 

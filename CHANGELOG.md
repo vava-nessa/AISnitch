@@ -24,6 +24,8 @@ All notable changes to this project will be documented in this file.
 - Claude Code adapter with raw hook mapping, transcript JSONL enrichment, and process fallback detection.
 - OpenCode adapter with plugin-event mapping and process fallback detection.
 - Priority adapter technical documentation in `docs/priority-adapters.md`.
+- Ink-based foreground TUI foundation with responsive layout primitives, shared theme tokens, and a live status shell.
+- Dedicated TUI technical documentation in `docs/tui.md`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -33,6 +35,7 @@ All notable changes to this project will be documented in this file.
 - Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
 - Reworked the CLI docs to include tool setup flows and current OpenCode plugin-based integration.
 - Reworked the runtime so enabled tool hooks are handled by built-in adapters before entering the shared event pipeline.
+- Replaced the foreground text monitor with an Ink TUI foundation while keeping `attach` on the lightweight WebSocket monitor for now.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

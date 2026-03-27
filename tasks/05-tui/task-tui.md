@@ -8,7 +8,7 @@ Construire un TUI riche, coloré et élégant façon charmbracelet avec `ink` (R
 
 ## Sous-tâches
 
-- [ ] [01 — Ink Foundation & Layout](./01_tui_foundation-layout.md) — Setup ink, layout panels, thème couleurs
+- [ ] [01 — Ink Foundation & Layout](./01_tui_foundation-layout.md) — Implémenté en code et branché au CLI, en attente de validation visuelle utilisateur avant `_DONE`
 - [ ] [02 — Live Event Stream](./02_tui_live-stream.md) — Panel de flux d'events en direct
 - [ ] [03 — Sessions, Filtres & Controls](./03_tui_sessions-filters.md) — Panels sessions, filtres tool/type, keybinds
 

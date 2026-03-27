@@ -3,7 +3,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import globals from 'globals';
 
-const typescriptFiles = ['src/**/*.ts', 'tsup.config.ts'];
+const typescriptFiles = ['src/**/*.ts', 'src/**/*.tsx', 'tsup.config.ts'];
 
 export default [
   {

@@ -4,7 +4,7 @@ import {
   AISNITCH_DESCRIPTION,
   AISNITCH_PACKAGE_NAME,
   AISNITCH_VERSION,
-} from '../index.js';
+} from '../package-info.js';
 import {
   parseSetupToolName,
   type SetupCliOptions,

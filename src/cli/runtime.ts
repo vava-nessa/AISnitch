@@ -14,8 +14,8 @@ import {
   type HealthSnapshot,
 } from '../core/index.js';
 import {
-  attachEventBusMonitor,
   attachWebSocketMonitor,
+  renderForegroundTui,
   type MonitorOutput,
 } from '../tui/index.js';
 import {
@@ -287,37 +287,13 @@ export function createCliRuntime(
     return !isProcessRunning(pid);
   }
 
-  function printForegroundBanner(
-    config: AISnitchConfig,
-    pathOptions: ConfigPathOptions,
-    status: Awaited<ReturnType<Pipeline['start']>>,
-  ): void {
-    output.stdout(
-      `AISnitch foreground mode running on ws://${status.websocket.host}:${status.wsPort} and http://${status.http.host}:${status.httpPort}\n`,
-    );
-    output.stdout(
-      `Config: ${getEffectiveCliConfigPath(pathOptions)}\n`,
-    );
-
-    const enabledAdapters = getEnabledAdapters(config);
-
-    output.stdout(
-      `Configured adapters: ${
-        enabledAdapters.length > 0 ? enabledAdapters.join(', ') : 'none'
-      }\n`,
-    );
-    output.stdout(
-      'Press Ctrl+C to stop the pipeline. The live monitor below is temporary until the full Ink TUI lands.\n',
-    );
-  }
-
   async function runPipelineHeadless(
     options: StartCliOptions,
     daemonMode: boolean,
   ): Promise<never> {
     const { config, pathOptions } = await loadEffectiveConfig(options);
 
-    setLoggerLevel(config.logLevel);
+    setLoggerLevel(getForegroundSafeLogLevel(config.logLevel, daemonMode));
 
     const pipeline = new Pipeline();
     const status = await pipeline.start({
@@ -399,10 +375,6 @@ export function createCliRuntime(
       return await new Promise<never>(() => undefined);
     }
 
-    printForegroundBanner(config, pathOptions, status);
-
-    const detachMonitor = attachEventBusMonitor(pipeline.getEventBus(), output);
-
     process.once('SIGTERM', () => {
       void shutdown('SIGTERM');
     });
@@ -410,14 +382,16 @@ export function createCliRuntime(
       void shutdown('SIGINT');
     });
 
-    return await new Promise<never>((_resolve) => {
-      process.once('SIGTERM', () => {
-        void Promise.resolve(detachMonitor());
-      });
-      process.once('SIGINT', () => {
-        void Promise.resolve(detachMonitor());
-      });
+    await renderForegroundTui({
+      configuredAdapters: getEnabledAdapters(config),
+      eventBus: pipeline.getEventBus(),
+      onQuit: () => {
+        void shutdown('tui-exit');
+      },
+      status,
     });
+
+    return await new Promise<never>(() => undefined);
   }
 
   async function start(options: StartCliOptions): Promise<void> {
@@ -795,6 +769,22 @@ function resolveCliEntryPath(): string {
   }
 
   return cliEntryPath;
+}
+
+function getForegroundSafeLogLevel(
+  configuredLevel: AISnitchConfig['logLevel'],
+  daemonMode: boolean,
+): AISnitchConfig['logLevel'] {
+  if (daemonMode || configuredLevel !== 'info') {
+    return configuredLevel;
+  }
+
+  /**
+   * 📖 The Ink UI is the primary foreground surface now, so the default
+   * info-level startup chatter only makes the screen dirtier without helping
+   * the operator. Warnings and errors still pass through.
+   */
+  return 'warn';
 }
 
 function getCurrentUid(): number {
