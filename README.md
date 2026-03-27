@@ -15,6 +15,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **Technical docs index**: [`docs/index.md`](./docs/index.md)
 - **Core pipeline internals**: [`docs/core-pipeline.md`](./docs/core-pipeline.md)
 - **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
+- **Tool setup internals**: [`docs/tool-setup.md`](./docs/tool-setup.md)
 
 ## Current Scope
 
@@ -58,9 +59,16 @@ node dist/cli/index.js attach
 
 # Stop the detached daemon
 node dist/cli/index.js stop
+
+# Configure supported tools
+node dist/cli/index.js setup claude-code
+node dist/cli/index.js setup opencode
+node dist/cli/index.js setup claude-code --revert
 ```
 
 `attach` currently uses a lightweight text monitor over WebSocket. The richer Ink-based TUI is still tracked separately in `05-tui`.
+
+`setup` is interactive by design: AISnitch prints the proposed diff, asks for confirmation, then writes a `.bak` backup before applying changes. Claude Code is configured through `~/.claude/settings.json`, while OpenCode uses a local plugin file under `~/.config/opencode/plugins/`.
 
 ## Development
 

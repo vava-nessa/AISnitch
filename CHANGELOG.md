@@ -18,6 +18,8 @@ All notable changes to this project will be documented in this file.
 - Detached daemon supervision files (`aisnitch.pid`, `daemon-state.json`, `daemon.log`) and macOS LaunchAgent plist generation.
 - Temporary live monitor for foreground mode and daemon attach while the full Ink TUI remains pending.
 - CLI/daemon technical documentation in `docs/cli-daemon.md`.
+- Interactive `setup <tool>` command for Claude Code and OpenCode, including diff preview, backups, and revert support.
+- Dedicated tool setup documentation in `docs/tool-setup.md`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -25,6 +27,7 @@ All notable changes to this project will be documented in this file.
 - Replaced the initial `events` and `config` placeholders with production-ready modules and test coverage.
 - Extended the README and docs index to reflect the now-implemented runtime pipeline.
 - Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
+- Reworked the CLI docs to include tool setup flows and current OpenCode plugin-based integration.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

@@ -36,7 +36,7 @@
 
 ## 🔵 In Progress
 
-- [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 2/3 — commander CLI + daemon mode + attach/launch agent, `setup <tool>` restant
+- (vide)
 
 ---
 
@@ -53,6 +53,8 @@
 - [04 — Context Detector](./02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
 - [01 — Commander CLI](./03-cli-daemon/01_cli-daemon_commands_DONE.md) — surface `commander` + start/stop/status/adapters + `--config`
 - [02 — Daemon Mode](./03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
+- [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
+- [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
 
 ---
 

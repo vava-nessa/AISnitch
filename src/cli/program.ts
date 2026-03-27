@@ -6,6 +6,11 @@ import {
   AISNITCH_VERSION,
 } from '../index.js';
 import {
+  parseSetupToolName,
+  type SetupCliOptions,
+  type SetupToolName,
+} from './commands/setup.js';
+import {
   createCliRuntime,
   parseLogLevelOption,
   parsePortOption,
@@ -52,6 +57,7 @@ Examples:
   aisnitch start --daemon
   aisnitch status
   aisnitch attach
+  aisnitch setup claude-code
   aisnitch install
 `,
     );
@@ -60,6 +66,7 @@ Examples:
   addStopCommand(program, runtime);
   addStatusCommand(program, runtime);
   addAdaptersCommand(program, runtime);
+  addSetupCommand(program, runtime);
   addAttachCommand(program, runtime);
   addInstallCommand(program, runtime);
   addUninstallCommand(program, runtime);
@@ -122,6 +129,18 @@ function addAdaptersCommand(program: Command, runtime: CliRuntime): void {
     program.command('adapters').description('List configured AISnitch adapters'),
   ).action(async (options: CommonCliOptions) => {
     await runtime.adapters(options);
+  });
+}
+
+function addSetupCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('setup')
+      .description('Configure supported AI tools to forward events into AISnitch')
+      .argument('<tool>', 'Tool to configure (claude-code, opencode)', parseSetupToolName)
+      .option('--revert', 'Restore the previous tool configuration from backup'),
+  ).action(async (toolName: SetupToolName, options: SetupCliOptions) => {
+    await runtime.setup(toolName, options);
   });
 }
 

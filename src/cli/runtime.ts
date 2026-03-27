@@ -40,6 +40,12 @@ import {
   getAISnitchHomePath,
   loadConfig,
 } from '../core/config/index.js';
+import {
+  runSetupCommand,
+  type SetupCliOptions,
+  type SetupOutput,
+  type SetupToolName,
+} from './commands/setup.js';
 
 /**
  * @file src/cli/runtime.ts
@@ -93,6 +99,10 @@ export interface CliRuntime {
   readonly attach: (options: CommonCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
   readonly runDaemonProcess: (options: StartCliOptions) => Promise<void>;
+  readonly setup: (
+    toolName: SetupToolName,
+    options: SetupCliOptions,
+  ) => Promise<void>;
   readonly start: (options: StartCliOptions) => Promise<void>;
   readonly status: (options: CommonCliOptions) => Promise<void>;
   readonly stop: (options: CommonCliOptions) => Promise<void>;
@@ -637,11 +647,21 @@ export function createCliRuntime(
     };
   }
 
+  async function setup(
+    toolName: SetupToolName,
+    options: SetupCliOptions,
+  ): Promise<void> {
+    await runSetupCommand(toolName, options, {
+      output: output as SetupOutput,
+    });
+  }
+
   return {
     adapters,
     attach,
     install,
     runDaemonProcess,
+    setup,
     start,
     status,
     stop,

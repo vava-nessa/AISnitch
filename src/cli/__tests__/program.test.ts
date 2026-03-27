@@ -18,6 +18,7 @@ function createNoopRuntime() {
     attach: () => Promise.resolve(),
     install: () => Promise.resolve(),
     runDaemonProcess: () => Promise.resolve(),
+    setup: () => Promise.resolve(),
     start: () => Promise.resolve(),
     status: () => Promise.resolve(),
     stop: () => Promise.resolve(),
