@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import { DEFAULT_CONFIG } from './defaults.js';
 import { ConfigSchema } from './schema.js';
@@ -28,6 +28,7 @@ import type { AISnitchConfig } from './schema.js';
 export interface ConfigPathOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly homeDirectory?: string;
+  readonly configPath?: string;
 }
 
 /**
@@ -43,6 +44,10 @@ export interface PortResolutionOptions {
  * Returns the root directory used by AISnitch to store config and daemon state.
  */
 export function getAISnitchHomePath(options: ConfigPathOptions = {}): string {
+  if (options.configPath && options.configPath.trim().length > 0) {
+    return dirname(resolve(options.configPath));
+  }
+
   const configuredHome = options.env?.AISNITCH_HOME;
 
   if (configuredHome && configuredHome.trim().length > 0) {
@@ -56,6 +61,10 @@ export function getAISnitchHomePath(options: ConfigPathOptions = {}): string {
  * Resolves the absolute path of `config.json`, honoring `AISNITCH_HOME`.
  */
 export function getConfigPath(options: ConfigPathOptions = {}): string {
+  if (options.configPath && options.configPath.trim().length > 0) {
+    return resolve(options.configPath);
+  }
+
   return join(getAISnitchHomePath(options), 'config.json');
 }
 

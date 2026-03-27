@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import {
   DEFAULT_CONFIG,
+  type ConfigPathOptions,
   ensureConfigDir,
   getAISnitchHomePath,
   resolveAvailablePort,
@@ -64,6 +65,8 @@ export type HookHandler = (payload: unknown) => Promise<void> | void;
  */
 export interface PipelineStartOptions {
   readonly config?: AISnitchConfig;
+  readonly configPath?: string;
+  readonly env?: NodeJS.ProcessEnv;
   readonly homeDirectory?: string;
 }
 
@@ -127,9 +130,13 @@ export class Pipeline {
     }
 
     const config = options.config ?? DEFAULT_CONFIG;
-    const homeDirectory = options.homeDirectory;
+    const pathOptions: ConfigPathOptions = {
+      configPath: options.configPath,
+      env: options.env,
+      homeDirectory: options.homeDirectory,
+    };
 
-    await ensureConfigDir({ homeDirectory });
+    await ensureConfigDir(pathOptions);
 
     const resolvedWsPort = await resolveAvailablePort(config.wsPort, {
       logger: (message) => logger.info(message),
@@ -137,7 +144,7 @@ export class Pipeline {
     const resolvedHttpPort = await resolveAvailablePort(config.httpPort, {
       logger: (message) => logger.info(message),
     });
-    const aisnitchHomePath = getAISnitchHomePath({ homeDirectory });
+    const aisnitchHomePath = getAISnitchHomePath(pathOptions);
     const socketPath = getSocketPath(aisnitchHomePath);
     const activeTools = Object.entries(config.adapters)
       .filter((entry): entry is [ToolName, { enabled: boolean }] => {

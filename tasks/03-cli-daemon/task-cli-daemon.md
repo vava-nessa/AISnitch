@@ -8,8 +8,8 @@ Construire l'interface CLI (`aisnitch` commande) avec mode foreground par défau
 
 ## Sous-tâches
 
-- [ ] [01 — Commander CLI](./01_cli-daemon_commands.md) — Setup commander + commandes start/stop/status
-- [ ] [02 — Daemon Mode](./02_cli-daemon_daemon-mode.md) — Foreground default + `--daemon` + `attach`
+- [x] [01 — Commander CLI](./01_cli-daemon_commands_DONE.md) — Setup commander + commandes start/stop/status
+- [x] [02 — Daemon Mode](./02_cli-daemon_daemon-mode_DONE.md) — Foreground default + `--daemon` + `attach`
 - [ ] [03 — Setup Tools](./03_cli-daemon_setup-tools.md) — `aisnitch setup <tool>` (injection hooks)
 
 ## Dépendances

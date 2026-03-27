@@ -14,6 +14,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **Research source**: [`CLAUDE_DATA.md`](./CLAUDE_DATA.md)
 - **Technical docs index**: [`docs/index.md`](./docs/index.md)
 - **Core pipeline internals**: [`docs/core-pipeline.md`](./docs/core-pipeline.md)
+- **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
 
 ## Current Scope
 
@@ -26,11 +27,40 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Localhost-only WebSocket stream with welcome payloads, per-consumer ring buffers, and heartbeat checks
 - Localhost-only HTTP hook receiver and NDJSON Unix domain socket ingress orchestrated by a central `Pipeline`
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
+- Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
+- Detached daemon mode with PID/state files and a temporary live monitor until the full Ink TUI ships
 - `pnpm` workflow with lint, typecheck, test, and build scripts
 
 ## Install
 
-Installation instructions will be added once the CLI bootstrap and first runnable commands are in place.
+The package is not published yet, but the CLI is runnable locally after a build:
+
+```bash
+pnpm install
+pnpm build
+node dist/cli/index.js --help
+```
+
+When the package is installed globally, the same commands will be available through `aisnitch`.
+
+## CLI Usage
+
+```bash
+# Foreground mode with an inline live monitor
+node dist/cli/index.js start
+
+# Detached daemon mode
+node dist/cli/index.js start --daemon
+
+# Inspect or attach to the daemon
+node dist/cli/index.js status
+node dist/cli/index.js attach
+
+# Stop the detached daemon
+node dist/cli/index.js stop
+```
+
+`attach` currently uses a lightweight text monitor over WebSocket. The richer Ink-based TUI is still tracked separately in `05-tui`.
 
 ## Development
 

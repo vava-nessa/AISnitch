@@ -1,73 +1,56 @@
 #!/usr/bin/env node
 
-import { getPackageScaffoldInfo } from '../index.js';
+import { CommanderError } from 'commander';
+
+import { createProgram } from './program.js';
 
 /**
  * @file src/cli/index.ts
- * @description Minimal CLI entrypoint for the project scaffold.
+ * @description Executable AISnitch CLI entrypoint with centralized commander bootstrapping and error handling.
  * @functions
- *   → formatCliWelcome
  *   → runCli
  *   → handleCliError
- * @exports CliRunResult, formatCliWelcome, runCli
- * @see ../index.ts
+ * @exports runCli, createProgram
+ * @see ./program.ts
+ * @see ./runtime.ts
  */
 
 /**
- * Represents the result of a CLI execution.
+ * Runs the AISnitch CLI against the provided argv vector.
  */
-export interface CliRunResult {
-  readonly exitCode: number;
-  readonly output: string;
+export async function runCli(
+  argv: readonly string[] = process.argv,
+): Promise<void> {
+  const program = createProgram();
+
+  await program.parseAsync(argv, {
+    from: 'node',
+  });
 }
 
 /**
- * 📖 This formatter keeps the placeholder user-facing text isolated so the
- * real CLI command routing can replace it cleanly in the next task group.
- */
-export function formatCliWelcome(): string {
-  const scaffoldInfo = getPackageScaffoldInfo();
-
-  return `${scaffoldInfo.name} scaffold ready. ${scaffoldInfo.description}`;
-}
-
-/**
- * Executes the temporary CLI behaviour for the initial scaffold. The command
- * stays intentionally small so task 03 can replace it without undoing work.
- */
-export function runCli(
-  argv: readonly string[] = process.argv.slice(2),
-): CliRunResult {
-  if (argv.includes('--version')) {
-    return {
-      exitCode: 0,
-      output: '0.1.0',
-    };
-  }
-
-  return {
-    exitCode: 0,
-    output: formatCliWelcome(),
-  };
-}
-
-/**
- * Converts unknown runtime failures into a stable CLI error path so the
- * scaffold does not crash noisily during early manual checks.
+ * 📖 Commander already formats validation and help errors nicely, so this
+ * wrapper only normalizes everything else into one stable stderr path.
  */
 function handleCliError(error: unknown): void {
-  const message =
-    error instanceof Error ? error.message : 'Unknown CLI bootstrap error';
+  if (error instanceof CommanderError && error.exitCode === 0) {
+    process.exitCode = 0;
+    return;
+  }
 
-  process.stderr.write(`AISnitch CLI bootstrap failed: ${message}\n`);
+  const message =
+    error instanceof Error ? error.message : 'Unknown AISnitch CLI error';
+
+  process.stderr.write(`AISnitch CLI failed: ${message}\n`);
   process.exitCode = 1;
 }
 
-try {
-  const result = runCli();
-
-  process.stdout.write(`${result.output}\n`);
-  process.exitCode = result.exitCode;
-} catch (error: unknown) {
-  handleCliError(error);
+async function main(): Promise<void> {
+  try {
+    await runCli();
+  } catch (error: unknown) {
+    handleCliError(error);
+  }
 }
+
+void main();

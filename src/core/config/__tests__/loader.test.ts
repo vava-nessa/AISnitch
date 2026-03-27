@@ -183,4 +183,19 @@ describe('config loader', () => {
       expect(logMessages.at(0)).toMatch(/using/i);
     });
   });
+
+  it('derives the aisnitch home from an explicit config path override', async () => {
+    const homeDirectory = await createTempHome();
+
+    try {
+      const configPath = join(homeDirectory, 'custom', 'aisnitch.json');
+
+      expect(getAISnitchHomePath({ configPath })).toBe(
+        join(homeDirectory, 'custom'),
+      );
+      expect(getConfigPath({ configPath })).toBe(configPath);
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
 });

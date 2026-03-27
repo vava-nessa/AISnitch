@@ -26,18 +26,17 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | 0/3 | P0 |
-| 2 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
-| 3 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
-| 4 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 5 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 6 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
+| 2 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
+| 3 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
+| 4 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 5 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
 ## 🔵 In Progress
 
-- (vide)
+- [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 2/3 — commander CLI + daemon mode + attach/launch agent, `setup <tool>` restant
 
 ---
 
@@ -52,6 +51,8 @@
 - [02 — WebSocket Server](./02-core-pipeline/02_core-pipeline_ws-server_DONE.md) — stream WS localhost + welcome + heartbeat + ring buffer
 - [03 — HTTP Hooks & UDS](./02-core-pipeline/03_core-pipeline_http-hooks-uds_DONE.md) — ingest HTTP/UDS + health + orchestration pipeline
 - [04 — Context Detector](./02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
+- [01 — Commander CLI](./03-cli-daemon/01_cli-daemon_commands_DONE.md) — surface `commander` + start/stop/status/adapters + `--config`
+- [02 — Daemon Mode](./03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
 
 ---
 

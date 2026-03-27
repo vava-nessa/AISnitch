@@ -3,7 +3,7 @@
  * @description Placeholder entrypoint for the future Ink-based terminal UI.
  * @functions
  *   → none
- * @exports TUI_MODULE_PLACEHOLDER, TuiModulePlaceholder
+ * @exports TUI_MODULE_PLACEHOLDER, TuiModulePlaceholder, live monitor helpers
  * @see ../../tasks/05-tui/task-tui.md
  */
 
@@ -25,3 +25,5 @@ export const TUI_MODULE_PLACEHOLDER: TuiModulePlaceholder = {
   status: 'pending',
   nextTask: 'tui-foundation-layout',
 };
+
+export * from './live-monitor.js';

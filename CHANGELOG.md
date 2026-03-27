@@ -14,12 +14,17 @@ All notable changes to this project will be documented in this file.
 - In-memory core engine under `src/core/engine/` with a typed `eventemitter3` EventBus, shared `pino` logger, localhost WebSocket streaming, HTTP hook ingress, UDS NDJSON ingress, and pipeline orchestration.
 - Best-effort runtime context enrichment for terminal, cwd, pid, and instance metadata via `ContextDetector`.
 - Core pipeline technical documentation in `docs/core-pipeline.md`.
+- Commander-based CLI runtime with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`.
+- Detached daemon supervision files (`aisnitch.pid`, `daemon-state.json`, `daemon.log`) and macOS LaunchAgent plist generation.
+- Temporary live monitor for foreground mode and daemon attach while the full Ink TUI remains pending.
+- CLI/daemon technical documentation in `docs/cli-daemon.md`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
 - Reworked the root README around the current single-package AISnitch scope and development workflow.
 - Replaced the initial `events` and `config` placeholders with production-ready modules and test coverage.
 - Extended the README and docs index to reflect the now-implemented runtime pipeline.
+- Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

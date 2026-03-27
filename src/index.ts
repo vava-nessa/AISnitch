@@ -3,7 +3,7 @@
  * @description Public entrypoint for the AISnitch package and its foundational modules.
  * @functions
  *   → getPackageScaffoldInfo
- * @exports AISNITCH_PACKAGE_NAME, AISNITCH_DESCRIPTION, AISnitchScaffoldInfo, getPackageScaffoldInfo
+ * @exports AISNITCH_PACKAGE_NAME, AISNITCH_VERSION, AISNITCH_DESCRIPTION, AISnitchScaffoldInfo, getPackageScaffoldInfo
  * @see ./core/index.ts
  * @see ./cli/index.ts
  */
@@ -19,6 +19,12 @@ export * from './tui/index.js';
 export const AISNITCH_PACKAGE_NAME = 'aisnitch';
 
 /**
+ * 📖 The published version is kept in source so the CLI and runtime metadata
+ * can report a stable value without reading package.json at runtime.
+ */
+export const AISNITCH_VERSION = '0.1.0';
+
+/**
  * 📖 This description matches the npm metadata and is reused by the CLI so the
  * package surface behaves consistently across runtime entrypoints.
  */
@@ -30,6 +36,7 @@ export const AISNITCH_DESCRIPTION =
  */
 export interface AISnitchScaffoldInfo {
   readonly name: string;
+  readonly version: string;
   readonly description: string;
   readonly supportedNodeRange: string;
 }
@@ -41,6 +48,7 @@ export interface AISnitchScaffoldInfo {
 export function getPackageScaffoldInfo(): AISnitchScaffoldInfo {
   return {
     name: AISNITCH_PACKAGE_NAME,
+    version: AISNITCH_VERSION,
     description: AISNITCH_DESCRIPTION,
     supportedNodeRange: '>=20.0.0',
   };
