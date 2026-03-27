@@ -14,6 +14,7 @@ import {
   getPendingFrozenEventCount,
   getVisibleEventWindow,
 } from '../hooks/useEventStream.js';
+import { formatEventLine } from '../live-monitor.js';
 
 /**
  * @file src/tui/__tests__/event-stream.test.tsx
@@ -55,6 +56,33 @@ describe('EventLine', () => {
     );
 
     expect(output).toContain('Write: src/tui/App.tsx');
+  });
+
+  it('renders richer thinking details when transcript data exists', () => {
+    const output = renderToString(
+      <EventLine
+        event={createTestEvent('agent.thinking', {
+          data: {
+            model: 'claude-sonnet-4',
+            tokensUsed: 1234,
+            raw: {
+              message: {
+                content: [
+                  {
+                    thinking: 'Need to inspect README before editing.',
+                    type: 'thinking',
+                  },
+                ],
+              },
+            },
+          },
+        })}
+      />,
+    );
+
+    expect(output).toContain('thinking: Need to inspect README before editing.');
+    expect(output).toContain('model claude-sonnet-4');
+    expect(output).toContain('1,234 tok');
   });
 });
 
@@ -111,6 +139,29 @@ describe('useEventStream helpers', () => {
     expect(liveWindow.map((event) => event['aisnitch.seqnum'])).toEqual([4, 5, 6]);
     expect(frozenWindow.map((event) => event['aisnitch.seqnum'])).toEqual([2, 3, 4]);
     expect(getPendingFrozenEventCount(6, 4)).toBe(2);
+  });
+});
+
+describe('live monitor formatting', () => {
+  it('reuses the richer event detail formatter in text mode', () => {
+    const line = formatEventLine(
+      createTestEvent('agent.streaming', {
+        data: {
+          raw: {
+            message: {
+              content: [
+                {
+                  text: 'Applying the fix now.',
+                  type: 'text',
+                },
+              ],
+            },
+          },
+        },
+      }),
+    );
+
+    expect(line).toContain(':: reply: Applying the fix now.');
   });
 });
 

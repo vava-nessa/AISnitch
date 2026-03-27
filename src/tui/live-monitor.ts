@@ -9,6 +9,7 @@ import type {
   WelcomeMessage,
 } from '../core/index.js';
 import { formatSessionLabelFromEvent } from '../core/index.js';
+import { formatEventDetail } from './event-details.js';
 
 /**
  * @file src/tui/live-monitor.ts
@@ -41,13 +42,8 @@ export type MonitorCloseHandler = () => Promise<void> | void;
  * still useful for tests and any future low-friction text fallbacks.
  */
 export function formatEventLine(event: AISnitchEvent): string {
-  const summaryParts = [
-    event.data.project,
-    event.data.activeFile,
-    event.data.toolName,
-    event.data.errorMessage,
-  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
-  const summary = summaryParts.length > 0 ? ` - ${summaryParts.join(' | ')}` : '';
+  const detail = formatEventDetail(event);
+  const summary = detail ? ` :: ${detail}` : '';
 
   return [
     `[${event.time}]`,

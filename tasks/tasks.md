@@ -33,8 +33,7 @@
 ---
 
 ## 🔵 In Progress
-
-- [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 1/3 — BaseAdapter + registry + pipeline wiring livrés, Claude/OpenCode en attente de validation sur vraies sessions
+- Aucun chantier actif. La prochaine tranche logique est `06-adapters-secondary`.
 
 ---
 
@@ -54,6 +53,9 @@
 - [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
 - [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
 - [01 — BaseAdapter & Registry](./04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
+- [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 3/3 — Claude Code + OpenCode validés sur vraies sessions, avec hooks/process fallback et identification de session améliorée
+- [02 — Claude Code Adapter](./04-adapters-priority/02_adapters-priority_claude-code_DONE.md) — hooks HTTP + JSONL watcher + process detection validés end-to-end
+- [03 — OpenCode Adapter](./04-adapters-priority/03_adapters-priority_opencode_DONE.md) — plugin hooks + process detection validés end-to-end
 - [🎨 TUI](./05-tui/task-tui.md) — 3/3 — renderer Ink partagé entre foreground/attach, live stream, sessions, filtres, et keybinds
 - [01 — Ink Foundation & Layout](./05-tui/01_tui_foundation-layout_DONE.md) — layout Ink responsive, thème, header/footer, et intégration CLI
 - [02 — Live Event Stream](./05-tui/02_tui_live-stream_DONE.md) — rendu formaté des events, freeze, buffer borné

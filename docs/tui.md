@@ -10,6 +10,7 @@ The Ink TUI is now the primary live operator surface for AISnitch in both foregr
 - `src/tui/App.tsx` composes the full shell: header, filter bar, help overlay, event stream panel, sessions panel, and footer status bar.
 - `src/tui/components/Header.tsx` renders the title treatment, connection label, and the global activity badge from `src/tui/components/GlobalBadge.tsx`.
 - `src/tui/components/EventStream.tsx` and `src/tui/components/EventLine.tsx` render the formatted live stream with frozen-tail messaging and compact event detail rows.
+- `src/tui/event-details.ts` extracts richer operator-facing detail from normalized fields plus `event.data.raw`, then feeds both the Ink stream and the plain-text monitor.
 - `src/tui/components/SessionPanel.tsx` groups active sessions by tool and applies state-specific visual treatment for coding, thinking, asking-user, idle, and error states.
 - `src/core/session-identity.ts` derives stable fallback session ids plus readable labels so the UI can distinguish concurrent sessions from the same tool without showing only opaque ids.
 - `src/tui/components/FilterBar.tsx` and `src/tui/components/HelpOverlay.tsx` expose the current filter state, inline prompts, and discoverable keybind help.
@@ -35,6 +36,8 @@ The TUI currently supports:
 The event stream stays privacy-first and memory-only: only the latest 500 events are kept in the local TUI buffer. When frozen, new events continue to accumulate in the background while the visible tail stays pinned.
 
 Session labels now prefer project/workspace scope, then append instance index, PID, or a short session-id fragment when needed. That makes side-by-side Claude/OpenCode runs much easier to tell apart in both the event stream and the sessions panel.
+
+Event rows now try to show the useful payload, not just the state transition. When the adapter supplies it, the operator sees prompt snippets, transcript thinking text, streamed assistant replies, tool/file targets, shell commands, model names, and token counts directly in the stream.
 
 ## Runtime integration
 

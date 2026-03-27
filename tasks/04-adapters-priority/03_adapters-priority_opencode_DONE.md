@@ -74,7 +74,7 @@ OpenCode est l'adapter **#2 prioritaire**. Open source (MIT), écrit en Go, il o
   - [ ] Parse d'une entrée SQLite OpenCode
   - [x] Mapping correct des events
   - [x] Process detection
-- [ ] **Test E2E avec l'utilisateur** : 👤 lancer `opencode "hello"` et vérifier les events
+- [x] **Test E2E avec l'utilisateur** : 👤 lancer `opencode "hello"` et vérifier les events
 - [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
@@ -108,7 +108,7 @@ export default {
 - [x] Au moins 1 layer d'interception fonctionne (SQLite watcher OU ACP OU plugin)
 - [x] Events OpenCode mappés correctement vers AISnitch
 - [x] Process detection détecte les sessions OpenCode
-- [ ] **Testé avec une vraie session OpenCode** 👤
+- [x] **Testé avec une vraie session OpenCode** 👤
 - [x] Tests unitaires passent
 - [x] Code documenté
 
@@ -120,4 +120,4 @@ export default {
 - Recherche Exa faite sur les docs officielles OpenCode pour les plugins et ACP. Conclusion pratique : le plugin system est la surface passive stable pour AISnitch, alors que `opencode acp` est un transport JSON-RPC editor-facing, pas un tap passif sur une session TUI existante.
 - `src/adapters/opencode.ts` consomme les events du plugin installé par `setup opencode`, les mappe vers AISnitch, et ajoute un fallback process detection.
 - Le watcher SQLite n'est pas implémenté dans ce pass MVP parce que le contrat externe passif n'est pas assez documenté pour justifier du reverse engineering opaque dans une couche supposée fiable.
-- Il reste la validation end-to-end sur une vraie session OpenCode utilisateur avant de renommer ce fichier en `_DONE`.
+- Validation utilisateur faite sur une vraie session OpenCode branchée à AISnitch. Les events plugin/hook remontent bien, avec une dérivation de session plus lisible pour éviter les collisions entre runs.

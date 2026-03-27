@@ -9,8 +9,8 @@ Implémenter le système d'adapters avec la classe abstraite `BaseAdapter`, puis
 ## Sous-tâches
 
 - [x] [01 — BaseAdapter & Registry](./01_adapters-priority_base_DONE.md) — Classe abstraite + adapter registry + lifecycle
-- [ ] [02 — Claude Code Adapter](./02_adapters-priority_claude-code.md) — HTTP hooks + JSONL watcher + process detection
-- [ ] [03 — OpenCode Adapter](./03_adapters-priority_opencode.md) — Plugin hooks + process detection, ACP/SQLite investigués
+- [x] [02 — Claude Code Adapter](./02_adapters-priority_claude-code_DONE.md) — HTTP hooks + JSONL watcher + process detection
+- [x] [03 — OpenCode Adapter](./03_adapters-priority_opencode_DONE.md) — Plugin hooks + process detection, ACP/SQLite investigués
 
 ## Dépendances
 

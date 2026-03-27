@@ -58,4 +58,4 @@ Automated coverage now includes:
 - OpenCode plugin-event mapping and process fallback
 - Pipeline integration from a raw Claude hook POST to the WebSocket stream
 
-What is still pending is the final human validation step with a real Claude Code session and a real OpenCode session on the user's machine.
+Human validation is now done for both priority adapters on the user's machine. Claude Code and OpenCode both reached the live AISnitch surface, and the session-identity helpers were tightened so concurrent runs show readable labels instead of collapsing into generic fallback ids.

@@ -3,6 +3,7 @@ import type {
   AISnitchEventType,
   ToolName,
 } from '../core/index.js';
+import { formatEventDetail } from './event-details.js';
 
 /**
  * @file src/tui/filters.ts
@@ -139,6 +140,7 @@ function getEventSearchFields(event: AISnitchEvent): readonly (string | undefine
     event['aisnitch.tool'],
     event.type,
     event['aisnitch.sessionid'],
+    formatEventDetail(event) ?? undefined,
     event.data.toolName,
     event.data.toolInput?.filePath,
     event.data.toolInput?.command,

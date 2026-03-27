@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Session-aware TUI controls with grouped active sessions, a global activity badge, tool/type/query filters, help overlay, and shared foreground/attach Ink rendering.
 - TUI tests for filters, session derivation, session-panel rendering, and CLI pre-filter parsing.
 - Best-effort session-identity helpers that derive richer fallback session ids and more readable session labels for logs, hooks, and the TUI.
+- Richer event-detail formatting in the TUI and text monitor, surfacing prompts, transcript snippets, tool/file targets, commands, model names, and token counts when adapters provide them.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.

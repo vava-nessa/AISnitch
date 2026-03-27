@@ -87,7 +87,7 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
   - [x] JSONL parser extrait les thinking blocks
   - [x] State machine transitions correctes
   - [x] Idle detection fonctionne (couvert au niveau `BaseAdapter`)
-- [ ] **Test E2E avec l'utilisateur** : 👤 lancer une vraie session Claude Code et vérifier que les events arrivent dans le WS
+- [x] **Test E2E avec l'utilisateur** : 👤 lancer une vraie session Claude Code et vérifier que les events arrivent dans le WS
 - [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
@@ -128,7 +128,7 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
 - [x] Process detection détecte les sessions Claude Code
 - [x] State machine transitions fonctionnent
 - [x] Events arrivent dans le WebSocket en temps réel
-- [ ] **Testé avec une vraie session Claude Code** 👤
+- [x] **Testé avec une vraie session Claude Code** 👤
 - [x] Tests unitaires passent (min 8 tests)
 - [x] Code documenté
 
@@ -140,4 +140,4 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
 - Recherche Exa effectuée sur les docs officielles Claude Code (`hooks`) et revue ciblée de PeonPing pour confirmer le pattern de parsing hook-first + transcript fallback.
 - Les docs Claude Code actuelles exposent 25 hook events, pas seulement 21. L'adapter mappe le sous-ensemble utile au monitoring passif (`SessionStart`, `SessionEnd`, `UserPromptSubmit`, `Pre/PostToolUse`, `Notification`, `PermissionRequest`, `Task*`, `Subagent*`, `Compact`, `Stop*`, `TeammateIdle`).
 - `src/adapters/claude-code.ts` couvre hooks HTTP, JSONL watcher avec offsets/remainders, et fallback process detection. La diffusion WS brute est couverte via `src/core/engine/__tests__/pipeline.test.ts`.
-- Il reste la validation end-to-end sur une vraie session Claude Code utilisateur avant de renommer ce fichier en `_DONE`.
+- Validation utilisateur faite sur une vraie session Claude Code branchée à AISnitch. Le flux hook -> pipeline -> TUI a été confirmé, puis affiné avec une meilleure identification de session pour distinguer les runs concurrents.

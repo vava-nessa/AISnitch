@@ -6,6 +6,7 @@ import {
   type AISnitchEvent,
   type AISnitchEventType,
 } from '../../core/index.js';
+import { formatEventDetail } from '../event-details.js';
 import { EVENT_COLORS, TOOL_COLORS, TUI_THEME } from '../theme.js';
 
 /**
@@ -94,59 +95,4 @@ export function formatEventTime(timestamp: string): string {
     hour12: false,
   }).format(new Date(timestamp));
 }
-
-/**
- * 📖 Detail lines stay short on purpose: the main row should remain scannable,
- * while the second row gives just enough context to understand why the event
- * matters without turning the stream into paragraph soup.
- */
-export function formatEventDetail(event: AISnitchEvent): string | null {
-  switch (event.type) {
-    case 'agent.tool_call': {
-      const toolTarget =
-        event.data.toolInput?.filePath ??
-        event.data.toolInput?.command ??
-        event.data.activeFile ??
-        'no input detail yet';
-
-      return `${event.data.toolName ?? 'tool'}: ${toolTarget}`;
-    }
-
-    case 'agent.error':
-      return [
-        event.data.errorType ?? 'error',
-        event.data.errorMessage ?? 'Unknown runtime error',
-      ].join(': ');
-
-    case 'task.start':
-      return event.data.project
-        ? `Prompt submitted for ${event.data.project}`
-        : 'Prompt submitted';
-
-    case 'task.complete':
-      return event.data.duration
-        ? `Completed in ${event.data.duration}ms`
-        : 'Task completed';
-
-    case 'agent.compact':
-      return 'Context compaction triggered';
-
-    case 'agent.asking_user':
-      return event.data.errorMessage ?? 'User input required';
-
-    case 'agent.streaming':
-      return event.data.activeFile ?? event.data.cwd ?? 'Assistant response streaming';
-
-    case 'agent.coding':
-    case 'agent.thinking':
-    case 'agent.idle':
-      return event.data.activeFile ?? event.data.cwd ?? null;
-
-    case 'session.start':
-    case 'session.end':
-      return event.data.projectPath ?? event.data.cwd ?? null;
-
-    default:
-      return null;
-  }
-}
+export { formatEventDetail } from '../event-details.js';

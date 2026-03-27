@@ -87,6 +87,8 @@ The TUI is now the main live operator surface for both foreground and attach mod
 
 Session labels are now derived from the best available context instead of showing only a raw opaque id. AISnitch combines project/workspace hints, instance counts, PID fallback, and short session fragments so concurrent runs from the same tool stay distinguishable in both the TUI and text monitor output.
 
+The live stream is detail-aware too: when adapters expose enough signal, AISnitch surfaces prompt snippets, transcript thinking text, streamed assistant replies, tool/file targets, shell commands, model names, and token counts directly in the event rows and plain-text logs.
+
 - `q` / `Ctrl+C` quit cleanly
 - `f` opens the tool filter selector
 - `t` opens the event-type filter selector

@@ -37,6 +37,20 @@ describe('applyEventFilters', () => {
           },
         },
       }),
+      createTestEvent('agent.thinking', 'claude-code', {
+        data: {
+          raw: {
+            message: {
+              content: [
+                {
+                  thinking: 'Need to inspect the project config first.',
+                  type: 'thinking',
+                },
+              ],
+            },
+          },
+        },
+      }),
     ];
 
     expect(
@@ -53,6 +67,13 @@ describe('applyEventFilters', () => {
         tool: null,
       }),
     ).toEqual([events[1]]);
+    expect(
+      applyEventFilters(events, {
+        eventType: null,
+        query: 'project config first',
+        tool: null,
+      }),
+    ).toEqual([events[2]]);
   });
 });
 
