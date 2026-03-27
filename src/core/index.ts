@@ -7,8 +7,10 @@
  * @see ./events/index.ts
  * @see ./engine/index.ts
  * @see ./config/index.ts
+ * @see ./session-identity.ts
  */
 
 export * from './config/index.js';
 export * from './engine/index.js';
 export * from './events/index.js';
+export * from './session-identity.js';

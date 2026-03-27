@@ -49,13 +49,23 @@ export function SessionPanel({
           {toolSessions.map((session) => (
             <Box key={session.sessionId} flexDirection="column" marginLeft={1}>
               <Text color={TOOL_COLORS[session.tool]}>
-                ● {truncateSessionId(session.sessionId)}
+                ● {session.displayLabel}
               </Text>
+              {formatSessionLocation(session) ? (
+                <Text color={TUI_THEME.muted}>
+                  {`  ↳ ${formatSessionLocation(session)}`}
+                </Text>
+              ) : null}
               <Box marginLeft={2}>
                 {renderStateLabel(session)}
                 <Text color={TUI_THEME.muted}>
                   {` · ${session.eventCount} events · ${formatDuration(session.durationMs)}`}
                 </Text>
+                {session.shortSessionId ? (
+                  <Text color={TUI_THEME.muted}>
+                    {` · sid ${session.shortSessionId}`}
+                  </Text>
+                ) : null}
               </Box>
             </Box>
           ))}
@@ -115,6 +125,10 @@ function groupSessionsByTool(
   return [...groupedSessions.entries()];
 }
 
+function formatSessionLocation(session: SessionState): string | null {
+  return session.activeFile ?? session.projectPath ?? session.cwd ?? null;
+}
+
 function formatDuration(durationMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(durationMs / 1_000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -125,10 +139,4 @@ function formatDuration(durationMs: number): string {
   }
 
   return `${minutes}m ${seconds}s`;
-}
-
-function truncateSessionId(sessionId: string): string {
-  return sessionId.length <= 18
-    ? sessionId
-    : `${sessionId.slice(0, 8)}…${sessionId.slice(-6)}`;
 }

@@ -19,6 +19,7 @@ import {
 } from '../events/index.js';
 import type { AISnitchConfig } from '../config/index.js';
 import type { AISnitchEvent, ToolName } from '../events/index.js';
+import { resolveSessionId } from '../session-identity.js';
 import { ContextDetector, type ProcessContext } from './context-detector.js';
 import { EventBus, type EventBusStats } from './event-bus.js';
 import {
@@ -326,12 +327,21 @@ export class Pipeline {
       return;
     }
 
+    const resolvedSessionId = resolveSessionId({
+      activeFile: normalizedHook.data.data?.activeFile,
+      cwd: normalizedHook.data.data?.cwd ?? normalizedHook.data.cwd,
+      pid: normalizedHook.data.pid,
+      project: normalizedHook.data.data?.project,
+      projectPath: normalizedHook.data.data?.projectPath,
+      sessionId: normalizedHook.data.sessionId,
+      tool,
+      transcriptPath: normalizedHook.data.transcriptPath,
+    });
     const event = createEvent({
       source: normalizedHook.data.source ?? `aisnitch://hooks/${tool}`,
       type: normalizedHook.data.type,
       'aisnitch.tool': tool,
-      'aisnitch.sessionid':
-        normalizedHook.data.sessionId ?? `${tool}:hook-session`,
+      'aisnitch.sessionid': resolvedSessionId,
       'aisnitch.seqnum': normalizedHook.data.seqnum ?? 1,
       data: {
         ...normalizedHook.data.data,
@@ -344,7 +354,7 @@ export class Pipeline {
     await this.publishEvent(event, {
       pid: normalizedHook.data.pid,
       env: normalizedHook.data.env,
-      sessionId: normalizedHook.data.sessionId,
+      sessionId: resolvedSessionId,
       transcriptPath: normalizedHook.data.transcriptPath,
       hookPayload:
         normalizedHook.data.hookPayload ??

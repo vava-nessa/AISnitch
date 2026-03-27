@@ -441,7 +441,31 @@ function getRecord(value) {
   return typeof value === "object" && value !== null ? value : {};
 }
 
-function getSessionId(event) {
+function getPathTail(value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return undefined;
+  }
+
+  const parts = value.split(/[\\\\/]+/).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : undefined;
+}
+
+function sanitizeToken(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+
+  const normalized = value
+    .trim()
+    .replace(/[\\\\/]+/g, "-")
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-_.]+|[-_.]+$/g, "");
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function getSessionId(event, fallbackDirectory) {
   if (typeof event.sessionID === "string" && event.sessionID.length > 0) {
     return event.sessionID;
   }
@@ -451,10 +475,32 @@ function getSessionId(event) {
   }
 
   const properties = getRecord(event.properties);
+  if (typeof properties.sessionID === "string" && properties.sessionID.length > 0) {
+    return properties.sessionID;
+  }
 
-  return typeof properties.sessionID === "string" && properties.sessionID.length > 0
-    ? properties.sessionID
-    : "opencode-session";
+  const project =
+    typeof event.project === "string"
+      ? event.project
+      : typeof properties.project === "string"
+        ? properties.project
+        : undefined;
+  const cwd =
+    typeof event.cwd === "string"
+      ? event.cwd
+      : typeof properties.cwd === "string"
+        ? properties.cwd
+        : fallbackDirectory;
+  const scope =
+    sanitizeToken(project) ??
+    sanitizeToken(getPathTail(cwd)) ??
+    "workspace";
+  const pid =
+    typeof process !== "undefined" && typeof process.pid === "number"
+      ? "p" + process.pid
+      : "session";
+
+  return "opencode:" + scope + ":" + pid;
 }
 
 function getEventData(event, fallbackDirectory) {
@@ -517,7 +563,7 @@ function buildPayload(event, fallbackDirectory) {
     hookPayload: event,
     pid: typeof process !== "undefined" ? process.pid : undefined,
     seqnum: sequenceNumber,
-    sessionId: getSessionId(event),
+    sessionId: getSessionId(event, fallbackDirectory),
     source: "aisnitch://plugins/opencode",
     type: mappedType,
     data: getEventData(event, fallbackDirectory)

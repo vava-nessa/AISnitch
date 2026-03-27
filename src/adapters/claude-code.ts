@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { watch, type FSWatcher } from 'chokidar';
 
 import { logger } from '../core/engine/logger.js';
+import { resolveSessionId } from '../core/session-identity.js';
 import type {
   AISnitchEventType,
   ErrorType,
@@ -169,7 +170,19 @@ export class ClaudeCodeAdapter extends BaseAdapter {
     const normalizedPayload = this.parseNormalizedHookPayload(payload);
 
     if (normalizedPayload !== null) {
-      await this.emitNormalizedPayload(normalizedPayload);
+      await this.emitNormalizedPayload({
+        ...normalizedPayload,
+        sessionId: resolveSessionId({
+          activeFile: normalizedPayload.data?.activeFile,
+          cwd: normalizedPayload.data?.cwd ?? normalizedPayload.cwd,
+          pid: normalizedPayload.pid,
+          project: normalizedPayload.data?.project,
+          projectPath: normalizedPayload.data?.projectPath,
+          sessionId: normalizedPayload.sessionId,
+          tool: this.name,
+          transcriptPath: normalizedPayload.transcriptPath,
+        }),
+      });
       return;
     }
 
@@ -187,9 +200,21 @@ export class ClaudeCodeAdapter extends BaseAdapter {
       return;
     }
 
-    const sessionId =
-      getString(payload, 'session_id') ??
-      getString(payload, 'sessionId');
+    const sessionId = resolveSessionId({
+      activeFile: extractActiveFile(payload),
+      cwd: getString(payload, 'cwd'),
+      pid: getNumber(payload, 'pid'),
+      projectPath:
+        getString(payload, 'project_path') ??
+        getString(payload, 'projectPath'),
+      sessionId:
+        getString(payload, 'session_id') ??
+        getString(payload, 'sessionId'),
+      tool: this.name,
+      transcriptPath:
+        getString(payload, 'transcript_path') ??
+        getString(payload, 'transcriptPath'),
+    });
     const context: AdapterPublishContext = {
       cwd: getString(payload, 'cwd'),
       hookPayload: payload,
@@ -485,9 +510,13 @@ function extractClaudeTranscriptObservations(
     return [];
   }
 
-  const sessionId =
-    getString(payload, 'session_id') ??
-    basename(transcriptPath, '.jsonl');
+  const sessionId = resolveSessionId({
+    sessionId:
+      getString(payload, 'session_id') ??
+      basename(transcriptPath, '.jsonl'),
+    tool: 'claude-code',
+    transcriptPath,
+  });
   const contentParts = extractClaudeContentParts(payload);
   const model =
     getString(payload, 'model') ??

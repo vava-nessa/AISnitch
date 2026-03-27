@@ -90,19 +90,31 @@ describe('deriveGlobalActivityStatus', () => {
       deriveGlobalActivityStatus([
         {
           currentState: 'agent.coding',
+          displayLabel: 'AutoSnitch · pid 1234',
           durationMs: 1_000,
           eventCount: 2,
+          cwd: '/repo',
+          instanceIndex: 1,
+          instanceTotal: 1,
           lastEventAt: '2026-03-27T12:00:02.000Z',
+          pid: 1234,
           sessionId: 'coding-session',
+          shortSessionId: 'coding-session',
           startedAt: '2026-03-27T12:00:00.000Z',
           tool: 'claude-code',
         },
         {
           currentState: 'agent.asking_user',
+          displayLabel: 'Playground · pid 4321',
           durationMs: 500,
           eventCount: 1,
+          cwd: '/tmp/playground',
+          instanceIndex: 1,
+          instanceTotal: 1,
           lastEventAt: '2026-03-27T12:00:03.000Z',
+          pid: 4321,
           sessionId: 'blocked-session',
+          shortSessionId: 'blocke…sion',
           startedAt: '2026-03-27T12:00:02.500Z',
           tool: 'opencode',
         },
@@ -118,10 +130,16 @@ describe('rendered session UI', () => {
         sessions={[
           {
             currentState: 'agent.thinking',
+            displayLabel: 'AutoSnitch · pid 31337',
             durationMs: 65_000,
             eventCount: 4,
+            cwd: '/Users/vava/Documents/GitHub/AutoSnitch',
+            instanceIndex: 1,
+            instanceTotal: 1,
             lastEventAt: '2026-03-27T12:01:05.000Z',
+            pid: 31337,
             sessionId: 'session-abcdef1234567890',
+            shortSessionId: 'sessio…7890',
             startedAt: '2026-03-27T12:00:00.000Z',
             tool: 'claude-code',
           },
@@ -130,10 +148,11 @@ describe('rendered session UI', () => {
     );
 
     expect(output).toContain('claude-code (1)');
-    expect(output).toContain('session-…567890');
+    expect(output).toContain('AutoSnitch · pid 31337');
     expect(output).toContain('thinking');
     expect(output).toContain('4 events');
     expect(output).toContain('1m 5s');
+    expect(output).toContain('sid sessio…7890');
   });
 
   it('renders the global badge copy for each high-level state', () => {

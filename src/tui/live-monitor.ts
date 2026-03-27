@@ -8,10 +8,11 @@ import type {
   EventBus,
   WelcomeMessage,
 } from '../core/index.js';
+import { formatSessionLabelFromEvent } from '../core/index.js';
 
 /**
  * @file src/tui/live-monitor.ts
- * @description Lightweight live event monitor used by the CLI until the full Ink TUI ships.
+ * @description Lightweight plain-text live event monitor formatter retained for tests and fallback console output.
  * @functions
  *   → formatEventLine
  *   → formatWelcomeLine
@@ -36,8 +37,8 @@ export interface MonitorOutput {
 export type MonitorCloseHandler = () => Promise<void> | void;
 
 /**
- * 📖 The future Ink UI will replace this module, but a small live monitor now
- * keeps `start` and `attach` useful without inventing fake daemon behaviour.
+ * 📖 The Ink TUI is now the primary operator surface, but these formatters are
+ * still useful for tests and any future low-friction text fallbacks.
  */
 export function formatEventLine(event: AISnitchEvent): string {
   const summaryParts = [
@@ -52,7 +53,8 @@ export function formatEventLine(event: AISnitchEvent): string {
     `[${event.time}]`,
     event['aisnitch.tool'],
     event.type,
-    `session=${event['aisnitch.sessionid']}`,
+    `session=${formatSessionLabelFromEvent(event)}`,
+    `sid=${event['aisnitch.sessionid']}`,
     event.data.cwd ? `cwd=${event.data.cwd}` : undefined,
   ]
     .filter((value): value is string => typeof value === 'string')

@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - TUI event-stream tests covering icon rendering, 500-event retention, and frozen-tail behavior.
 - Session-aware TUI controls with grouped active sessions, a global activity badge, tool/type/query filters, help overlay, and shared foreground/attach Ink rendering.
 - TUI tests for filters, session derivation, session-panel rendering, and CLI pre-filter parsing.
+- Best-effort session-identity helpers that derive richer fallback session ids and more readable session labels for logs, hooks, and the TUI.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.

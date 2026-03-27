@@ -2,6 +2,7 @@ import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import { logger } from '../core/engine/logger.js';
+import { resolveSessionId } from '../core/session-identity.js';
 import type { ErrorType, EventData, ToolInput } from '../core/events/types.js';
 import {
   type AdapterPublishContext,
@@ -97,7 +98,18 @@ export class OpenCodeAdapter extends BaseAdapter {
     const normalizedPayload = this.parseNormalizedHookPayload(payload);
 
     if (normalizedPayload !== null) {
-      await this.emitNormalizedPayload(normalizedPayload);
+      await this.emitNormalizedPayload({
+        ...normalizedPayload,
+        sessionId: resolveSessionId({
+          activeFile: normalizedPayload.data?.activeFile,
+          cwd: normalizedPayload.data?.cwd ?? normalizedPayload.cwd,
+          pid: normalizedPayload.pid,
+          project: normalizedPayload.data?.project,
+          projectPath: normalizedPayload.data?.projectPath,
+          sessionId: normalizedPayload.sessionId,
+          tool: this.name,
+        }),
+      });
       return;
     }
 
@@ -113,7 +125,14 @@ export class OpenCodeAdapter extends BaseAdapter {
       return;
     }
 
-    const sessionId = extractOpenCodeSessionId(payload);
+    const sessionId = resolveSessionId({
+      activeFile: extractOpenCodeActiveFile(payload),
+      cwd: extractOpenCodeCwd(payload),
+      pid: getNumber(payload, 'pid'),
+      project: extractOpenCodeProject(payload),
+      sessionId: extractOpenCodeSessionId(payload),
+      tool: this.name,
+    });
     const context: AdapterPublishContext = {
       cwd: extractOpenCodeCwd(payload),
       hookPayload: payload,

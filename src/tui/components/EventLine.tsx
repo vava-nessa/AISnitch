@@ -1,7 +1,11 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 
-import type { AISnitchEvent, AISnitchEventType } from '../../core/index.js';
+import {
+  formatSessionLabelFromEvent,
+  type AISnitchEvent,
+  type AISnitchEventType,
+} from '../../core/index.js';
 import { EVENT_COLORS, TOOL_COLORS, TUI_THEME } from '../theme.js';
 
 /**
@@ -47,6 +51,7 @@ export interface EventLineProps {
  */
 export function EventLine({ event }: EventLineProps): React.JSX.Element {
   const detail = formatEventDetail(event);
+  const sessionLabel = formatSessionLabelFromEvent(event);
 
   return (
     <Box flexDirection="column" marginBottom={1}>
@@ -62,6 +67,12 @@ export function EventLine({ event }: EventLineProps): React.JSX.Element {
         <Text bold color={EVENT_COLORS[event.type]}>
           {event.type}
         </Text>
+        {sessionLabel !== event['aisnitch.tool'] ? (
+          <>
+            <Text color={TUI_THEME.muted}> · </Text>
+            <Text color={TUI_THEME.muted}>{sessionLabel}</Text>
+          </>
+        ) : null}
       </Box>
       {detail ? (
         <Box marginLeft={2}>

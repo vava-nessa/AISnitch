@@ -32,9 +32,12 @@ export interface TuiFilters {
 export interface SessionFilterTarget {
   readonly activeFile?: string;
   readonly currentState: AISnitchEventType;
+  readonly cwd?: string;
+  readonly displayLabel?: string;
   readonly project?: string;
   readonly projectPath?: string;
   readonly sessionId: string;
+  readonly shortSessionId?: string;
   readonly tool: ToolName;
 }
 
@@ -93,9 +96,12 @@ export function applySessionFilters<T extends SessionFilterTarget>(
           session.sessionId,
           session.tool,
           session.currentState,
+          session.displayLabel,
           session.project,
           session.projectPath,
+          session.cwd,
           session.activeFile,
+          session.shortSessionId,
         ],
         filters.query,
       )

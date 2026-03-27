@@ -11,6 +11,7 @@ The Ink TUI is now the primary live operator surface for AISnitch in both foregr
 - `src/tui/components/Header.tsx` renders the title treatment, connection label, and the global activity badge from `src/tui/components/GlobalBadge.tsx`.
 - `src/tui/components/EventStream.tsx` and `src/tui/components/EventLine.tsx` render the formatted live stream with frozen-tail messaging and compact event detail rows.
 - `src/tui/components/SessionPanel.tsx` groups active sessions by tool and applies state-specific visual treatment for coding, thinking, asking-user, idle, and error states.
+- `src/core/session-identity.ts` derives stable fallback session ids plus readable labels so the UI can distinguish concurrent sessions from the same tool without showing only opaque ids.
 - `src/tui/components/FilterBar.tsx` and `src/tui/components/HelpOverlay.tsx` expose the current filter state, inline prompts, and discoverable keybind help.
 - `src/tui/hooks/useEventStream.ts` keeps the live buffer bounded to 500 events, supports either the in-process `EventBus` or a WebSocket source, and owns freeze/clear behavior.
 - `src/tui/hooks/useSessions.ts` derives active sessions directly from normalized buffered events, including stale-session eviction after timeout.
@@ -32,6 +33,8 @@ The TUI currently supports:
 - `Tab` to cycle focus between the events and sessions panels
 
 The event stream stays privacy-first and memory-only: only the latest 500 events are kept in the local TUI buffer. When frozen, new events continue to accumulate in the background while the visible tail stays pinned.
+
+Session labels now prefer project/workspace scope, then append instance index, PID, or a short session-id fragment when needed. That makes side-by-side Claude/OpenCode runs much easier to tell apart in both the event stream and the sessions panel.
 
 ## Runtime integration
 

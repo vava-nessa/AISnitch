@@ -53,6 +53,27 @@ describe('OpenCodeAdapter', () => {
     });
   });
 
+  it('upgrades generic normalized session ids into richer scoped ids', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenCodeAdapter(publishedEvents);
+
+    await adapter.handleHook({
+      cwd: '/Users/vava/Documents/GitHub/AutoSnitch',
+      data: {
+        cwd: '/Users/vava/Documents/GitHub/AutoSnitch',
+        project: 'AutoSnitch',
+      },
+      pid: 31337,
+      sessionId: 'opencode-session',
+      source: 'aisnitch://plugins/opencode',
+      type: 'session.start',
+    });
+
+    expect(publishedEvents[0]?.['aisnitch.sessionid']).toBe(
+      'opencode:AutoSnitch:p31337',
+    );
+  });
+
   it('maps raw OpenCode tool events to agent.tool_call', async () => {
     const publishedEvents: AISnitchEvent[] = [];
     const adapter = createOpenCodeAdapter(publishedEvents);

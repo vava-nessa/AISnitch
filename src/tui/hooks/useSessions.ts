@@ -5,6 +5,7 @@ import type {
   AISnitchEventType,
   ToolName,
 } from '../../core/index.js';
+import { formatSessionLabel, formatSessionShortId } from '../../core/index.js';
 
 /**
  * @file src/tui/hooks/useSessions.ts
@@ -29,13 +30,19 @@ export const SESSION_STALE_AFTER_MS = 120_000;
  */
 export interface SessionState {
   readonly activeFile?: string;
+  readonly cwd?: string;
   readonly currentState: AISnitchEventType;
+  readonly displayLabel: string;
   readonly durationMs: number;
   readonly eventCount: number;
+  readonly instanceIndex?: number;
+  readonly instanceTotal?: number;
   readonly lastEventAt: string;
+  readonly pid?: number;
   readonly project?: string;
   readonly projectPath?: string;
   readonly sessionId: string;
+  readonly shortSessionId?: string;
   readonly startedAt: string;
   readonly tool: ToolName;
 }
@@ -97,13 +104,34 @@ export function deriveSessions(
       (event.type === 'session.start' ? event.time : event.time);
     const nextSession: SessionState = {
       activeFile: event.data.activeFile ?? existingSession?.activeFile,
+      cwd: event.data.cwd ?? existingSession?.cwd,
       currentState: event.type,
+      displayLabel: formatSessionLabel({
+        activeFile: event.data.activeFile ?? existingSession?.activeFile,
+        cwd: event.data.cwd ?? existingSession?.cwd,
+        instanceIndex: event.data.instanceIndex ?? existingSession?.instanceIndex,
+        instanceTotal: event.data.instanceTotal ?? existingSession?.instanceTotal,
+        pid: event.data.pid ?? existingSession?.pid,
+        project: event.data.project ?? existingSession?.project,
+        projectPath: event.data.projectPath ?? existingSession?.projectPath,
+        sessionId: event['aisnitch.sessionid'],
+        tool: event['aisnitch.tool'],
+      }),
       durationMs: Math.max(0, now - Date.parse(startedAt)),
       eventCount: (existingSession?.eventCount ?? 0) + 1,
+      instanceIndex:
+        event.data.instanceIndex ?? existingSession?.instanceIndex,
+      instanceTotal:
+        event.data.instanceTotal ?? existingSession?.instanceTotal,
       lastEventAt: event.time,
+      pid: event.data.pid ?? existingSession?.pid,
       project: event.data.project ?? existingSession?.project,
       projectPath: event.data.projectPath ?? existingSession?.projectPath,
       sessionId: event['aisnitch.sessionid'],
+      shortSessionId: formatSessionShortId(
+        event['aisnitch.tool'],
+        event['aisnitch.sessionid'],
+      ),
       startedAt,
       tool: event['aisnitch.tool'],
     };

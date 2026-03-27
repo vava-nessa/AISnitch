@@ -85,6 +85,8 @@ Adapters are disabled by default until a setup flow enables them in `~/.aisnitch
 
 The TUI is now the main live operator surface for both foreground and attach mode. It shows a formatted event stream on the left, active sessions on the right, a global activity badge in the header, and a filter bar above the panels.
 
+Session labels are now derived from the best available context instead of showing only a raw opaque id. AISnitch combines project/workspace hints, instance counts, PID fallback, and short session fragments so concurrent runs from the same tool stay distinguishable in both the TUI and text monitor output.
+
 - `q` / `Ctrl+C` quit cleanly
 - `f` opens the tool filter selector
 - `t` opens the event-type filter selector

@@ -137,7 +137,7 @@ describe('Pipeline', () => {
       expect(hookEvent).toMatchObject({
         type: 'session.start',
         'aisnitch.tool': 'claude-code',
-        'aisnitch.sessionid': 'hook-session',
+        'aisnitch.sessionid': 'claude-code:repo',
       });
 
       client.close();
@@ -176,6 +176,67 @@ describe('Pipeline', () => {
 
       expect(response.status).toBe(400);
       expect(pipeline.getStatus().http.invalidRequestCount).toBeGreaterThanOrEqual(1);
+    } finally {
+      await pipeline.stop();
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('derives a scoped session id for normalized hook payloads that omit one', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-pipeline-'));
+    const pipeline = new Pipeline();
+    const wsPort = await findFreePort();
+    const httpPort = await findFreePort();
+
+    try {
+      await pipeline.start({
+        homeDirectory,
+        config: {
+          ...DEFAULT_CONFIG,
+          wsPort,
+          httpPort,
+          adapters: {
+            codex: { enabled: true },
+          },
+        },
+      });
+
+      const client = new WebSocket(`ws://127.0.0.1:${pipeline.getStatus().wsPort}`);
+      const welcomePromise = waitForJsonMessage(client);
+
+      await once(client, 'open');
+      await welcomePromise;
+
+      const hookEventPromise = waitForJsonMessage(client);
+      const response = await fetch(
+        `http://127.0.0.1:${pipeline.getStatus().httpPort}/hooks/codex`,
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            cwd: '/Users/vava/Documents/GitHub/AutoSnitch',
+            pid: 4242,
+            type: 'task.start',
+            data: {
+              project: 'AutoSnitch',
+            },
+          }),
+        },
+      );
+
+      expect(response.status).toBe(202);
+
+      const hookEvent = await hookEventPromise;
+
+      expect(hookEvent).toMatchObject({
+        type: 'task.start',
+        'aisnitch.tool': 'codex',
+        'aisnitch.sessionid': 'codex:AutoSnitch:p4242',
+      });
+
+      client.close();
     } finally {
       await pipeline.stop();
       await rm(homeDirectory, { recursive: true, force: true });

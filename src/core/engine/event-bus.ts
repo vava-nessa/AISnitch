@@ -72,6 +72,8 @@ export class EventBus {
     logger.debug(
       {
         eventId: parsedEvent.data.id,
+        instanceId: parsedEvent.data.data.instanceId,
+        sessionId: parsedEvent.data['aisnitch.sessionid'],
         eventType: parsedEvent.data.type,
         tool: parsedEvent.data['aisnitch.tool'],
       },
