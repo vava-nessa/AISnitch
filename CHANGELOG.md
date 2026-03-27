@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file.
 - CLI/daemon technical documentation in `docs/cli-daemon.md`.
 - Interactive `setup <tool>` command for Claude Code and OpenCode, including diff preview, backups, and revert support.
 - Dedicated tool setup documentation in `docs/tool-setup.md`.
+- Built-in adapter subsystem with `BaseAdapter`, `AdapterRegistry`, and default adapter wiring inside the pipeline.
+- Claude Code adapter with raw hook mapping, transcript JSONL enrichment, and process fallback detection.
+- OpenCode adapter with plugin-event mapping and process fallback detection.
+- Priority adapter technical documentation in `docs/priority-adapters.md`.
 
 ### Changed
 - Migrated the project license from MIT to Apache 2.0.
@@ -28,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - Extended the README and docs index to reflect the now-implemented runtime pipeline.
 - Replaced the CLI scaffold placeholder with a real commander-driven command surface and daemon lifecycle.
 - Reworked the CLI docs to include tool setup flows and current OpenCode plugin-based integration.
+- Reworked the runtime so enabled tool hooks are handled by built-in adapters before entering the shared event pipeline.
 - Re-scoped product direction to **live-only memory pipeline** (no SQLite, no replay, no persisted stats).
 - Repositioned MVP output to **TUI live monitoring** as primary consumer.
 - Updated project positioning from macOS-only to **cross-platform**.

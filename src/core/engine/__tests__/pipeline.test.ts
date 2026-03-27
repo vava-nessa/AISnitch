@@ -121,12 +121,11 @@ describe('Pipeline', () => {
             'content-type': 'application/json',
           },
           body: JSON.stringify({
-            type: 'task.start',
-            sessionId: 'hook-session',
-            seqnum: 1,
-            data: {
-              project: 'AutoSnitch',
-            },
+            cwd: '/repo',
+            hook_event_name: 'SessionStart',
+            model: 'claude-sonnet',
+            project_path: '/repo',
+            session_id: 'hook-session',
           }),
         },
       );
@@ -136,7 +135,7 @@ describe('Pipeline', () => {
       const hookEvent = await hookEventPromise;
 
       expect(hookEvent).toMatchObject({
-        type: 'task.start',
+        type: 'session.start',
         'aisnitch.tool': 'claude-code',
         'aisnitch.sessionid': 'hook-session',
       });

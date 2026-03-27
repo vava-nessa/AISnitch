@@ -4,7 +4,7 @@
 > - Après avoir complété cette tâche ou une sous-étape, mets à jour les checkboxes ci-dessous.
 > - Mets à jour le sommaire (`task-adapters-priority.md`) et le kanban (`tasks.md`).
 > - **Quand la tâche est terminée et validée** : renomme ce fichier → `02_adapters-priority_claude-code_DONE.md`
-> - **Recherche obligatoire Exa.ai** : Vérifier le format actuel des 21 hook events Claude Code et le format JSONL des transcripts.
+> - **Recherche obligatoire Exa.ai** : Vérifier le format actuel des hook events Claude Code et le format JSONL des transcripts.
 > - **Regarder le code de PeonPing** (https://github.com/PeonPing/peon-ping) pour comprendre comment ils parsent les events Claude Code.
 > - Documente le code avec des commentaires `📖`, ajoute JSDoc.
 > - **Tester avec un vrai Claude Code** : demander à l'utilisateur de lancer une session Claude pour valider le flux end-to-end.
@@ -27,9 +27,9 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
 ## Sous-étapes
 
 ### Layer 1 : HTTP Hook Receiver (prioritaire)
-- [ ] Créer `src/adapters/claude-code.ts` — Classe `ClaudeCodeAdapter extends BaseAdapter`
-- [ ] Implémenter `handleHook(payload)` — parser le JSON reçu via POST `/hooks/claude-code`
-- [ ] Mapping des hook events vers AISnitch events :
+- [x] Créer `src/adapters/claude-code.ts` — Classe `ClaudeCodeAdapter extends BaseAdapter`
+- [x] Implémenter `handleHook(payload)` — parser le JSON reçu via POST `/hooks/claude-code`
+- [x] Mapping des hook events vers AISnitch events :
   ```
   SessionStart     → session.start (+ créer sessionId)
   Stop             → session.end
@@ -41,32 +41,32 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
   SubagentStop     → task.complete (subagent)
   PreCompact       → agent.compact
   ```
-- [ ] Extraire les données riches de chaque event :
-  - [ ] `toolName` depuis PreToolUse/PostToolUse
-  - [ ] `toolInput` (filePath, command) depuis le payload
-  - [ ] `activeFile` depuis l'event context
-  - [ ] Conserver le `raw` payload complet dans `data.raw`
+- [x] Extraire les données riches de chaque event :
+  - [x] `toolName` depuis PreToolUse/PostToolUse
+  - [x] `toolInput` (filePath, command) depuis le payload
+  - [x] `activeFile` depuis l'event context
+  - [x] Conserver le `raw` payload complet dans `data.raw`
 
 ### Layer 2 : JSONL File Watcher (backup/enrichissement)
-- [ ] Installer `chokidar` v5
-- [ ] Watcher sur `~/.claude/projects/**/*.jsonl` :
-  - [ ] Ignorer les fichiers existants au démarrage (`ignoreInitial: true`)
-  - [ ] Tracker l'offset de lecture par fichier (lire uniquement les nouvelles lignes)
-  - [ ] Parser chaque nouvelle ligne JSONL
-  - [ ] Détecter les thinking blocks → `agent.thinking`
-  - [ ] Détecter les assistant messages → `agent.streaming`
-  - [ ] Compléter les données manquantes des hooks (tokens, model)
-  - [ ] `awaitWriteFinish: { stabilityThreshold: 200 }` pour éviter les lectures partielles
+- [x] Installer `chokidar` v5
+- [x] Watcher sur `~/.claude/projects/**/*.jsonl` :
+  - [x] Ignorer les fichiers existants au démarrage (`ignoreInitial: true`)
+  - [x] Tracker l'offset de lecture par fichier (lire uniquement les nouvelles lignes)
+  - [x] Parser chaque nouvelle ligne JSONL
+  - [x] Détecter les thinking blocks → `agent.thinking`
+  - [x] Détecter les assistant messages → `agent.streaming`
+  - [x] Compléter les données manquantes des hooks (tokens, model)
+  - [x] `awaitWriteFinish: { stabilityThreshold: 200 }` pour éviter les lectures partielles
 
 ### Layer 3 : Process Detection
-- [ ] Scanner les processes pour `claude` binary :
-  - [ ] `child_process.execSync('pgrep -lf claude')` (macOS)
-  - [ ] Détecter start/stop de sessions Claude Code
-  - [ ] Polling léger toutes les 5 secondes (en attendant kqueue natif en Rust)
-  - [ ] Si un process claude apparait sans SessionStart hook → émettre session.start de fallback
+- [x] Scanner les processes pour `claude` binary :
+  - [x] `pgrep -lf claude` (implémenté en `execFile` async plutôt qu'en `execSync`)
+  - [x] Détecter start/stop de sessions Claude Code
+  - [x] Polling léger toutes les 5 secondes (configurable en test)
+  - [x] Si un process claude apparait sans SessionStart hook → émettre session.start de fallback
 
 ### State Machine
-- [ ] Implémenter la state machine interne de l'adapter :
+- [x] Implémenter la state machine interne de l'adapter :
   ```
   session.start → agent.idle
   agent.idle → task.start (on UserPromptSubmit)
@@ -80,15 +80,15 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
   agent.idle (120s) → agent.idle (persist)
   ```
 
-- [ ] Écrire tests unitaires :
-  - [ ] handleHook parse un SessionStart correctement
-  - [ ] handleHook parse un PreToolUse avec toolName
-  - [ ] Mapping vers les bons AISnitch event types
-  - [ ] JSONL parser extrait les thinking blocks
-  - [ ] State machine transitions correctes
-  - [ ] Idle detection fonctionne
+- [x] Écrire tests unitaires :
+  - [x] handleHook parse un SessionStart correctement
+  - [x] handleHook parse un PreToolUse avec toolName
+  - [x] Mapping vers les bons AISnitch event types
+  - [x] JSONL parser extrait les thinking blocks
+  - [x] State machine transitions correctes
+  - [x] Idle detection fonctionne (couvert au niveau `BaseAdapter`)
 - [ ] **Test E2E avec l'utilisateur** : 👤 lancer une vraie session Claude Code et vérifier que les events arrivent dans le WS
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -123,16 +123,21 @@ Claude Code est l'adapter **#1 prioritaire**. C'est le plus riche en données : 
 
 ## Critères de complétion
 
-- [ ] Hook receiver parse les 9+ event types Claude Code
-- [ ] JSONL watcher détecte les nouvelles lignes et enrichit les données
-- [ ] Process detection détecte les sessions Claude Code
-- [ ] State machine transitions fonctionnent
-- [ ] Events arrivent dans le WebSocket en temps réel
+- [x] Hook receiver parse les 9+ event types Claude Code
+- [x] JSONL watcher détecte les nouvelles lignes et enrichit les données
+- [x] Process detection détecte les sessions Claude Code
+- [x] State machine transitions fonctionnent
+- [x] Events arrivent dans le WebSocket en temps réel
 - [ ] **Testé avec une vraie session Claude Code** 👤
-- [ ] Tests unitaires passent (min 8 tests)
-- [ ] Code documenté
+- [x] Tests unitaires passent (min 8 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- Recherche Exa effectuée sur les docs officielles Claude Code (`hooks`) et revue ciblée de PeonPing pour confirmer le pattern de parsing hook-first + transcript fallback.
+- Les docs Claude Code actuelles exposent 25 hook events, pas seulement 21. L'adapter mappe le sous-ensemble utile au monitoring passif (`SessionStart`, `SessionEnd`, `UserPromptSubmit`, `Pre/PostToolUse`, `Notification`, `PermissionRequest`, `Task*`, `Subagent*`, `Compact`, `Stop*`, `TeammateIdle`).
+- `src/adapters/claude-code.ts` couvre hooks HTTP, JSONL watcher avec offsets/remainders, et fallback process detection. La diffusion WS brute est couverte via `src/core/engine/__tests__/pipeline.test.ts`.
+- Il reste la validation end-to-end sur une vraie session Claude Code utilisateur avant de renommer ce fichier en `_DONE`.

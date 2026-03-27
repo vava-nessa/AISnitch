@@ -16,6 +16,7 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - **Core pipeline internals**: [`docs/core-pipeline.md`](./docs/core-pipeline.md)
 - **CLI & daemon internals**: [`docs/cli-daemon.md`](./docs/cli-daemon.md)
 - **Tool setup internals**: [`docs/tool-setup.md`](./docs/tool-setup.md)
+- **Priority adapters internals**: [`docs/priority-adapters.md`](./docs/priority-adapters.md)
 
 ## Current Scope
 
@@ -27,6 +28,8 @@ AISnitch is a single-package Node.js project that will expose a live event strea
 - Typed in-memory `EventBus` powered by `eventemitter3` and structured `pino` logging
 - Localhost-only WebSocket stream with welcome payloads, per-consumer ring buffers, and heartbeat checks
 - Localhost-only HTTP hook receiver and NDJSON Unix domain socket ingress orchestrated by a central `Pipeline`
+- Built-in adapter layer with `BaseAdapter`, `AdapterRegistry`, and pipeline-managed lifecycle
+- Priority adapters for Claude Code (hooks + JSONL + process fallback) and OpenCode (plugin hooks + process fallback)
 - Best-effort context enrichment for terminal, cwd, pid, and multi-instance metadata
 - Commander-based CLI with `start`, `stop`, `status`, `adapters`, `attach`, `install`, and `uninstall`
 - Detached daemon mode with PID/state files and a temporary live monitor until the full Ink TUI ships

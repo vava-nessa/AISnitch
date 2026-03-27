@@ -1,27 +1,30 @@
 /**
  * @file src/adapters/index.ts
- * @description Placeholder entrypoint for future tool adapters.
+ * @description Barrel exports for the built-in AISnitch adapter system and factory.
  * @functions
- *   → none
- * @exports ADAPTERS_MODULE_PLACEHOLDER, AdaptersModulePlaceholder
- * @see ../../tasks/04-adapters-priority/task-adapters-priority.md
+ *   → createDefaultAdapters
+ * @exports all adapter primitives plus createDefaultAdapters
+ * @see ./base.ts
+ * @see ./registry.ts
+ * @see ./claude-code.ts
+ * @see ./opencode.ts
  */
 
+import type { AdapterRuntimeOptions } from './base.js';
+import { ClaudeCodeAdapter } from './claude-code.js';
+import { OpenCodeAdapter } from './opencode.js';
+
+export * from './base.js';
+export * from './registry.js';
+export * from './claude-code.js';
+export * from './opencode.js';
+
 /**
- * Describes the adapter module state before concrete tool integrations are added.
+ * Instantiates the built-in adapters that ship with AISnitch.
  */
-export interface AdaptersModulePlaceholder {
-  readonly area: 'adapters';
-  readonly status: 'pending';
-  readonly nextTask: 'adapters-priority-base';
+export function createDefaultAdapters(options: AdapterRuntimeOptions) {
+  return [
+    new ClaudeCodeAdapter(options),
+    new OpenCodeAdapter(options),
+  ] as const;
 }
-
-/**
- * 📖 Keeping this module exported now lets the package shape settle early,
- * which avoids pointless import churn once real adapters arrive.
- */
-export const ADAPTERS_MODULE_PLACEHOLDER: AdaptersModulePlaceholder = {
-  area: 'adapters',
-  status: 'pending',
-  nextTask: 'adapters-priority-base',
-};

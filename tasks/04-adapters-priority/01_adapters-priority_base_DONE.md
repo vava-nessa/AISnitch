@@ -18,15 +18,15 @@ Le système d'adapters est le cœur de l'extensibilité d'AISnitch. Chaque AI to
 
 ## Sous-étapes
 
-- [ ] Créer `src/adapters/base.ts` — Classe abstraite `BaseAdapter` :
-  - [ ] Props abstraites : `name: ToolName`, `displayName: string`, `strategies: InterceptionStrategy[]`
-  - [ ] Méthodes abstraites : `start()`, `stop()`, `getStatus()`
-  - [ ] Méthode `handleHook(payload: unknown)` — pour les adapters hook-based (override par les sous-classes)
-  - [ ] Méthode protégée `emit(partial)` — crée un AISnitchEvent complet (factory) et publie sur l'EventBus
-  - [ ] Méthode protégée `emitStateChange(type, data?)` — raccourci pour émettre un changement d'état
-  - [ ] Gestion du session tracking : `currentSessionId`, `sequenceNumber` (auto-incrémenté)
-  - [ ] Idle detection : timer configurable, émet `agent.idle` après X ms sans activité
-- [ ] Créer le type `InterceptionStrategy` :
+- [x] Créer `src/adapters/base.ts` — Classe abstraite `BaseAdapter` :
+  - [x] Props abstraites : `name: ToolName`, `displayName: string`, `strategies: InterceptionStrategy[]`
+  - [x] Méthodes abstraites : `start()`, `stop()`, `getStatus()`
+  - [x] Méthode `handleHook(payload: unknown)` — pour les adapters hook-based (override par les sous-classes)
+  - [x] Méthode protégée `emit(partial)` — crée un AISnitchEvent complet (factory) et publie sur le pipeline
+  - [x] Méthode protégée `emitStateChange(type, data?)` — raccourci pour émettre un changement d'état
+  - [x] Gestion du session tracking : `currentSessionId`, `sequenceNumber` (auto-incrémenté)
+  - [x] Idle detection : timer configurable, émet `agent.idle` après X ms sans activité
+- [x] Créer le type `InterceptionStrategy` :
   ```typescript
   type InterceptionStrategy =
     | 'hooks'           // Native hook API (HTTP POST receiver)
@@ -37,21 +37,21 @@ Le système d'adapters est le cœur de l'extensibilité d'AISnitch. Chaque AI to
     | 'pty-wrap'        // Wrap tool in PTY for I/O capture
     | 'api-client';     // Connect to tool's HTTP/WebSocket API
   ```
-- [ ] Créer `src/adapters/registry.ts` — Classe `AdapterRegistry` :
-  - [ ] `register(adapter: BaseAdapter)` — enregistre un adapter
-  - [ ] `get(toolName: string)` — retourne l'adapter par nom
-  - [ ] `startAll()` — démarre tous les adapters activés (selon config)
-  - [ ] `stopAll()` — arrête tous les adapters
-  - [ ] `getStatus()` — retourne l'état de chaque adapter
-  - [ ] `list()` — liste tous les adapters enregistrés
-- [ ] Créer `src/adapters/index.ts` — barrel export + fonction `createDefaultAdapters()` qui instancie tous les adapters built-in
-- [ ] Écrire tests unitaires :
-  - [ ] Adapter mock qui extend BaseAdapter → emit fonctionne
-  - [ ] Registry register/get/list
-  - [ ] startAll/stopAll lifecycle
-  - [ ] Idle detection émet agent.idle après timeout
-  - [ ] Sequence number s'incrémente
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Créer `src/adapters/registry.ts` — Classe `AdapterRegistry` :
+  - [x] `register(adapter: BaseAdapter)` — enregistre un adapter
+  - [x] `get(toolName: string)` — retourne l'adapter par nom
+  - [x] `startAll()` — démarre tous les adapters activés (selon config)
+  - [x] `stopAll()` — arrête tous les adapters
+  - [x] `getStatus()` — retourne l'état de chaque adapter
+  - [x] `list()` — liste tous les adapters enregistrés
+- [x] Créer `src/adapters/index.ts` — barrel export + fonction `createDefaultAdapters()` qui instancie tous les adapters built-in
+- [x] Écrire tests unitaires :
+  - [x] Adapter mock qui extend BaseAdapter → emit fonctionne
+  - [x] Registry register/get/list
+  - [x] startAll/stopAll lifecycle
+  - [x] Idle detection émet agent.idle après timeout
+  - [x] Sequence number s'incrémente
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -124,13 +124,17 @@ interface AdapterStatus {
 
 ## Critères de complétion
 
-- [ ] BaseAdapter fournit emit, idle detection, session tracking
-- [ ] AdapterRegistry gère le lifecycle de tous les adapters
-- [ ] Types stricts, pas de `any`
-- [ ] Tests passent (min 5 tests)
-- [ ] Code documenté
+- [x] BaseAdapter fournit emit, idle detection, session tracking
+- [x] AdapterRegistry gère le lifecycle de tous les adapters
+- [x] Types stricts, pas de `any`
+- [x] Tests passent (min 5 tests)
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- `BaseAdapter` et `AdapterRegistry` sont implémentés dans `src/adapters/base.ts` et `src/adapters/registry.ts`, avec émission d'events validés, session tracking, idle detection, lifecycle, et factory `createDefaultAdapters()`.
+- Le `Pipeline` crée désormais les adapters built-in, ne route les hooks que pour les tools activés, et conserve l'enrichissement contexte via `publishEvent()` au lieu de bypass l'étape `ContextDetector`.
+- Couverture ajoutée dans `src/adapters/__tests__/base-registry.test.ts` pour l'émission, les seqnums, l'idle timer, et le lifecycle registry.

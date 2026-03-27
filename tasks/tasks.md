@@ -26,17 +26,16 @@
 
 | # | Tâche | Progression | Priorité |
 |---|-------|-------------|----------|
-| 1 | [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) | 0/3 | P0 |
-| 2 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
-| 3 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
-| 4 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
-| 5 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
+| 1 | [🎨 TUI](./05-tui/task-tui.md) | 0/3 | P0 |
+| 2 | [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) | 0/4 | P1 |
+| 3 | [🧪 Testing & E2E](./07-testing/task-testing.md) | 0/3 | P1 |
+| 4 | [📦 Distribution & Launch](./08-distribution/task-distribution.md) | 0/2 | P2 |
 
 ---
 
 ## 🔵 In Progress
 
-- (vide)
+- [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 1/3 — BaseAdapter + registry + pipeline wiring livrés, Claude/OpenCode en attente de validation sur vraies sessions
 
 ---
 
@@ -55,6 +54,7 @@
 - [02 — Daemon Mode](./03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
 - [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
 - [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
+- [01 — BaseAdapter & Registry](./04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
 
 ---
 

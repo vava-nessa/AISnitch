@@ -2,6 +2,7 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { AdapterRegistry, createDefaultAdapters } from '../../adapters/index.js';
 import {
   DEFAULT_CONFIG,
   type ConfigPathOptions,
@@ -111,6 +112,10 @@ export class Pipeline {
 
   private readonly contextDetector = new ContextDetector();
 
+  private adapterRegistry: AdapterRegistry | null = null;
+
+  private enabledTools = new Set<ToolName>();
+
   private readonly hookHandlers = new Map<ToolName, HookHandler>();
 
   private startedAt: number | null = null;
@@ -155,6 +160,34 @@ export class Pipeline {
         );
       })
       .map(([toolName]) => toolName);
+    const adapterRegistry = new AdapterRegistry();
+
+    for (const adapter of createDefaultAdapters({
+      config,
+      env: options.env,
+      homeDirectory: options.homeDirectory,
+      publishEvent: async (event, context) => {
+        return await this.publishEvent(event, context);
+      },
+    })) {
+      adapterRegistry.register(adapter);
+    }
+
+    this.adapterRegistry = adapterRegistry;
+    this.enabledTools = new Set(activeTools);
+    this.hookHandlers.clear();
+
+    for (const toolName of activeTools) {
+      const adapter = this.adapterRegistry.get(toolName);
+
+      if (!adapter) {
+        continue;
+      }
+
+      this.registerHookHandler(toolName, async (payload) => {
+        await adapter.handleHook(payload);
+      });
+    }
 
     this.startedAt = Date.now();
 
@@ -176,6 +209,7 @@ export class Pipeline {
         await this.publishEvent(event);
       },
     });
+    await this.adapterRegistry.startAll(config);
 
     logger.info(this.getStatus(), 'Core pipeline started');
 
@@ -186,11 +220,15 @@ export class Pipeline {
    * Stops every pipeline component in reverse dependency order.
    */
   public async stop(): Promise<void> {
+    await this.adapterRegistry?.stopAll();
     await this.httpReceiver.stop();
     await this.udsServer.stop();
     await this.wsServer.stop();
 
     this.eventBus.unsubscribeAll();
+    this.adapterRegistry = null;
+    this.enabledTools.clear();
+    this.hookHandlers.clear();
 
     this.startedAt = null;
     this.wsPort = null;
@@ -256,6 +294,11 @@ export class Pipeline {
   }
 
   private async handleHook(tool: ToolName, payload: unknown): Promise<void> {
+    if (!this.enabledTools.has(tool)) {
+      logger.debug({ tool }, 'Ignoring hook for disabled tool');
+      return;
+    }
+
     const registeredHandler = this.hookHandlers.get(tool);
 
     if (registeredHandler) {

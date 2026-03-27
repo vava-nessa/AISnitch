@@ -10,6 +10,7 @@ This folder tracks the technical documentation that complements the task board a
 - [`core-pipeline.md`](./core-pipeline.md) — in-memory EventBus, WS/HTTP/UDS ingress-egress, and context enrichment flow
 - [`cli-daemon.md`](./cli-daemon.md) — commander command surface, daemon supervision files, and LaunchAgent flow
 - [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code and OpenCode forwarding into AISnitch
+- [`priority-adapters.md`](./priority-adapters.md) — BaseAdapter lifecycle, Claude Code mapping, and OpenCode plugin integration
 
 ## Related project sources
 

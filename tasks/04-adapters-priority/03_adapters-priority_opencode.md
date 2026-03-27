@@ -27,10 +27,10 @@ OpenCode est l'adapter **#2 prioritaire**. Open source (MIT), écrit en Go, il o
 ## Sous-étapes
 
 ### Recherche préalable
-- [ ] **Exa.ai** : Rechercher "OpenCode ACP protocol specification"
-- [ ] **Exa.ai** : Rechercher "OpenCode plugin development TypeScript"
-- [ ] Analyser le repo OpenCode : comprendre la structure des events, le schema SQLite, le format ACP
-- [ ] Documenter les findings dans un commentaire en haut du fichier adapter
+- [x] **Exa.ai** : Rechercher "OpenCode ACP protocol specification"
+- [x] **Exa.ai** : Rechercher "OpenCode plugin development TypeScript"
+- [x] Analyser le repo OpenCode : comprendre la structure des events, le schema SQLite, le format ACP
+- [x] Documenter les findings dans un commentaire en haut du fichier adapter
 
 ### Layer 1 : SQLite DB Watcher (le plus fiable)
 - [ ] Watcher sur `~/.local/share/opencode/opencode.db` :
@@ -48,18 +48,18 @@ OpenCode est l'adapter **#2 prioritaire**. Open source (MIT), écrit en Go, il o
   - [ ] Gérer la reconnexion si le process meurt
 
 ### Layer 3 : Plugin TypeScript (enrichissement)
-- [ ] Si le plugin system est suffisamment documenté :
-  - [ ] Créer un plugin AISnitch pour OpenCode (`aisnitch-opencode-plugin.ts`)
-  - [ ] Le plugin hook les events internes d'OpenCode
-  - [ ] Envoie les events à AISnitch via UDS ou HTTP
-  - [ ] `aisnitch setup opencode` installe ce plugin automatiquement
+- [x] Si le plugin system est suffisamment documenté :
+  - [x] Créer un plugin AISnitch pour OpenCode (`aisnitch-opencode-plugin.ts`)
+  - [x] Le plugin hook les events internes d'OpenCode
+  - [x] Envoie les events à AISnitch via UDS ou HTTP
+  - [x] `aisnitch setup opencode` installe ce plugin automatiquement
 
 ### Layer 4 : Process Detection (fallback)
-- [ ] Scanner pour `opencode` binary (comme Claude Code)
-- [ ] Détecter start/stop de sessions
+- [x] Scanner pour `opencode` binary (comme Claude Code)
+- [x] Détecter start/stop de sessions
 
 ### Mapping Events
-- [ ] Mapper les events OpenCode vers AISnitch :
+- [x] Mapper les events OpenCode vers AISnitch :
   ```
   Session start        → session.start
   Session end          → session.end
@@ -70,12 +70,12 @@ OpenCode est l'adapter **#2 prioritaire**. Open source (MIT), écrit en Go, il o
   Error                → agent.error
   ```
 
-- [ ] Écrire tests unitaires :
+- [x] Écrire tests unitaires :
   - [ ] Parse d'une entrée SQLite OpenCode
-  - [ ] Mapping correct des events
-  - [ ] Process detection
+  - [x] Mapping correct des events
+  - [x] Process detection
 - [ ] **Test E2E avec l'utilisateur** : 👤 lancer `opencode "hello"` et vérifier les events
-- [ ] Vérifier `pnpm build` + `pnpm test`
+- [x] Vérifier `pnpm build` + `pnpm test`
 
 ## Spécifications techniques
 
@@ -105,14 +105,19 @@ export default {
 
 ## Critères de complétion
 
-- [ ] Au moins 1 layer d'interception fonctionne (SQLite watcher OU ACP OU plugin)
-- [ ] Events OpenCode mappés correctement vers AISnitch
-- [ ] Process detection détecte les sessions OpenCode
+- [x] Au moins 1 layer d'interception fonctionne (SQLite watcher OU ACP OU plugin)
+- [x] Events OpenCode mappés correctement vers AISnitch
+- [x] Process detection détecte les sessions OpenCode
 - [ ] **Testé avec une vraie session OpenCode** 👤
-- [ ] Tests unitaires passent
-- [ ] Code documenté
+- [x] Tests unitaires passent
+- [x] Code documenté
 
 ---
 
 ## 📝 RAPPORT FINAL
 > ⚠️ **À remplir par l'IA quand la tâche est terminée et validée.**
+
+- Recherche Exa faite sur les docs officielles OpenCode pour les plugins et ACP. Conclusion pratique : le plugin system est la surface passive stable pour AISnitch, alors que `opencode acp` est un transport JSON-RPC editor-facing, pas un tap passif sur une session TUI existante.
+- `src/adapters/opencode.ts` consomme les events du plugin installé par `setup opencode`, les mappe vers AISnitch, et ajoute un fallback process detection.
+- Le watcher SQLite n'est pas implémenté dans ce pass MVP parce que le contrat externe passif n'est pas assez documenté pour justifier du reverse engineering opaque dans une couche supposée fiable.
+- Il reste la validation end-to-end sur une vraie session OpenCode utilisateur avant de renommer ce fichier en `_DONE`.

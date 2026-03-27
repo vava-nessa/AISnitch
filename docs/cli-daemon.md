@@ -47,6 +47,8 @@ Detached `start --daemon` re-executes the CLI in a hidden headless mode, writes 
 
 For Claude Code, AISnitch merges HTTP hooks into `~/.claude/settings.json` without deleting unrelated user hooks. For OpenCode, AISnitch installs a local plugin at `~/.config/opencode/plugins/aisnitch.ts`, which is the officially supported auto-loaded extension path according to the current OpenCode docs.
 
+These setup flows now feed concrete built-in adapters in the runtime, not placeholder endpoints. Claude Code events go through the new Claude adapter, and OpenCode plugin events go through the new OpenCode adapter before reaching the shared event pipeline.
+
 ## macOS LaunchAgent integration
 
 `install` writes `~/Library/LaunchAgents/com.aisnitch.daemon.plist` and uses `launchctl bootstrap` / `bootout`, which are the recommended modern replacements for the older `load` / `unload` workflow on current macOS systems. The plist runs the CLI through the current Node executable with `start --daemon` and reuses the same log file path as manual daemon launches.
