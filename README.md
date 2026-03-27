@@ -1,13 +1,13 @@
-# AutoSnitch
+# AISnitch
 
 Universal AI coding activity bridge (cross-platform).
 
-AutoSnitch is a background daemon that captures activity from multiple AI coding tools (Claude Code, Codex, Gemini CLI, Aider, Goose, Copilot CLI, etc.), normalizes events into a single schema, and exposes a real-time stream that consumers can subscribe to.
+AISnitch is a background daemon that captures activity from multiple AI coding tools (Claude Code, Codex, Gemini CLI, Aider, Goose, Copilot CLI, etc.), normalizes events into a single schema, and exposes a real-time stream that consumers can subscribe to.
 
 ## Current project docs
 
-- Product Requirements Document (MVP): `tasks/prd-autosnitch-mvp/index.md`
-- Research source used for PRD: `CLAUDE_DATA.md`
+- **Kanban & tâches MVP** : [`tasks/tasks.md`](./tasks/tasks.md)
+- **Research source** : [`CLAUDE_DATA.md`](./CLAUDE_DATA.md) — source technique inestimable, à consulter avant chaque tâche
 
 ## Research sources for AI contributors
 

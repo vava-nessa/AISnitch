@@ -83,17 +83,21 @@ const CESP_MAP: Record<AISnitchEventType, CESPCategory | null> = {
 
 ### Tools supportés (enum)
 ```typescript
+// 📖 Ajouter "openclaw" à l'enum — 247k stars GitHub, racheté par OpenAI (mars 2026)
 const ToolNames = [
   'claude-code', 'opencode', 'gemini-cli', 'codex',
   'goose', 'copilot-cli', 'cursor', 'aider', 'amp',
   'cline', 'continue', 'windsurf', 'qwen-code',
+  'openclaw',   // ← nouveau — voir tâche 06-adapters-secondary/04
   'openhands', 'kilo', 'unknown',
 ] as const;
 ```
 
-### Structure event complète (référence CLAUDE_DATA.md)
+### Structure event complète avec Context Enrichment
 ```typescript
 // 📖 Voir CLAUDE_DATA.md section "Universal event schema" pour le détail complet
+// 📖 Les champs terminal/cwd/pid/instanceId sont renseignés par le ContextDetector
+//    (tâche 02-core-pipeline/04_core-pipeline_context-detector.md)
 interface AISnitchEvent {
   specversion: '1.0';
   id: string;                         // UUIDv7 (time-sortable)
@@ -116,8 +120,32 @@ interface AISnitchEvent {
     errorMessage?: string;
     errorType?: 'rate_limit' | 'context_overflow' | 'tool_failure' | 'api_error';
     raw?: Record<string, unknown>;    // Original event passthrough
+
+    // 📖 Context enrichment — renseignés par ContextDetector (02-core-pipeline/04)
+    terminal?: string;                // "iTerm2" | "Ghostty" | "WezTerm" | "Terminal.app" | "kitty" | "tmux" | "unknown"
+    cwd?: string;                     // "/Users/vava/projects/myapp" — dossier projet en cours
+    pid?: number;                     // PID du process AI tool (ex: 12345)
+    instanceId?: string;              // "claude-code:abc123" — ID unique de l'instance
+    instanceIndex?: number;           // 2 — position parmi instances actives (ex: claude #2)
+    instanceTotal?: number;           // 3 — nb total d'instances du même tool actives
   };
 }
+```
+
+### Zod Schema additions (context enrichment)
+```typescript
+// 📖 Ajouter ces champs au EventDataSchema Zod existant
+const EventDataSchema = z.object({
+  // ... champs existants ...
+
+  // Context enrichment (tous optionnels)
+  terminal:      z.string().optional(),
+  cwd:           z.string().optional(),
+  pid:           z.number().int().positive().optional(),
+  instanceId:    z.string().optional(),
+  instanceIndex: z.number().int().min(1).optional(),
+  instanceTotal: z.number().int().min(1).optional(),
+});
 ```
 
 ## Critères de complétion

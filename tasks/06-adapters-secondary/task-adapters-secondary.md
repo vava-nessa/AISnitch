@@ -11,11 +11,13 @@
 - [ ] [01 — Gemini CLI & Codex](./01_adapters-secondary_gemini-codex.md) — Hooks + stream-json + file watching
 - [ ] [02 — Goose & Copilot CLI](./02_adapters-secondary_goose-copilot.md) — goosed API + hooks copilot
 - [ ] [03 — Aider & Generic PTY](./03_adapters-secondary_aider-pty.md) — File watching + PTY fallback universel
+- [ ] [04 — OpenClaw](./04_adapters-secondary_openclaw.md) — Gateway TypeScript hooks + workspace memory watcher (247k⭐ GitHub)
 
 ## Dépendances
 
 - Requiert : **04-adapters-priority** (BaseAdapter, patterns validés)
+- Requiert : **02-core-pipeline/04** (ContextDetector intégré dans BaseAdapter)
 
 ## Ordre d'exécution
 
-Parallélisable : 01, 02, 03 sont indépendants
+Parallélisable : 01, 02, 03, 04 sont indépendants entre eux
