@@ -33,7 +33,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aisnitch": "./dist/cli/index.js"
+    "aisnitch": "dist/cli/index.js"
   },
   "exports": {
     ".": {
