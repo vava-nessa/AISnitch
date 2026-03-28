@@ -156,6 +156,11 @@ describe('managed dashboard runtime', () => {
               enabled: true,
             },
           },
+          autoUpdate: {
+            enabled: true,
+            intervalMs: 0,
+            manager: 'auto',
+          },
           httpPort: 4821,
           idleTimeoutMs: 120000,
           logLevel: 'info',

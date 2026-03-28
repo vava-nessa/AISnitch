@@ -19,8 +19,11 @@ The current config contract supports:
 - `wsPort`
 - `httpPort`
 - `adapters`
+- `autoUpdate`
 - `idleTimeoutMs`
 - `logLevel`
+
+`autoUpdate` currently defaults to enabled with `manager: "auto"` and a zero interval, which means AISnitch checks for updates on every dashboard launch. The runtime then resolves the live install manager from the current binary layout (`npm`, `pnpm`, `bun`, or `brew`) before spawning a silent background upgrade worker.
 
 Adapter overrides are intentionally partial. Users should be able to override one adapter without being forced to enumerate every supported tool.
 

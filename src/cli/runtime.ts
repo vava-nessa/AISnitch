@@ -65,6 +65,10 @@ import {
   type SetupToolName,
 } from './commands/setup.js';
 import {
+  createAutoUpdateController,
+  type AutoUpdateManager,
+} from './auto-update.js';
+import {
   runMockScenario,
   type MockCommandOptions,
   type MockToolSelection,
@@ -140,6 +144,14 @@ export interface WrapCliOptions extends CommonCliOptions {
 }
 
 /**
+ * Options accepted by the internal self-update worker command.
+ */
+export interface SelfUpdateCliOptions extends CommonCliOptions {
+  readonly manager: AutoUpdateManager;
+  readonly targetVersion: string;
+}
+
+/**
  * Stable runtime command interface consumed by the commander program wiring.
  */
 export interface CliRuntime {
@@ -152,6 +164,7 @@ export interface CliRuntime {
     options: MockCliOptions,
   ) => Promise<void>;
   readonly runDaemonProcess: (options: StartCliOptions) => Promise<void>;
+  readonly selfUpdateRun: (options: SelfUpdateCliOptions) => Promise<void>;
   readonly setup: (
     toolName: SetupToolName,
     options: SetupCliOptions,
@@ -217,6 +230,10 @@ export function createCliRuntime(
   const renderManagedTuiImplementation =
     dependencies.renderManagedTui ?? renderManagedTui;
   const spawnImplementation = dependencies.spawn ?? spawnChildProcess;
+  const autoUpdateController = createAutoUpdateController({
+    fetch: fetchImplementation,
+    spawn: spawnImplementation,
+  });
   const execFileImplementation =
     dependencies.execFile ??
     (async (file, args) => {
@@ -615,6 +632,8 @@ export function createCliRuntime(
   }
 
   async function start(options: StartCliOptions): Promise<void> {
+    void autoUpdateController.scheduleForInteractiveLaunch(toPathOptions(options));
+
     if (options.daemon) {
       const snapshot = await startDetachedDaemon(options);
 
@@ -730,6 +749,8 @@ export function createCliRuntime(
   }
 
   async function attach(options: AttachCliOptions): Promise<void> {
+    void autoUpdateController.scheduleForInteractiveLaunch(toPathOptions(options));
+
     const snapshot = await getStatusSnapshot(options);
 
     await renderManagedTuiImplementation({
@@ -1058,6 +1079,15 @@ export function createCliRuntime(
     });
   }
 
+  async function selfUpdateRun(options: SelfUpdateCliOptions): Promise<void> {
+    await autoUpdateController.runDetachedUpdate({
+      configPath: options.config,
+      env: process.env,
+      latestVersion: options.targetVersion,
+      manager: options.manager,
+    });
+  }
+
   return {
     adapters,
     aiderNotify,
@@ -1065,6 +1095,7 @@ export function createCliRuntime(
     install,
     mock,
     runDaemonProcess,
+    selfUpdateRun,
     setup,
     start,
     status,

@@ -16,12 +16,22 @@ import { ToolNameSchema } from '../events/schema.js';
  * Supported log levels for the daemon runtime.
  */
 export const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+export const AUTO_UPDATE_MANAGERS = ['auto', 'npm', 'pnpm', 'bun', 'brew'] as const;
 
 /**
  * Per-adapter toggle stored inside the config file.
  */
 export const AdapterConfigSchema = z.strictObject({
   enabled: z.boolean().default(true),
+});
+
+/**
+ * Silent self-update behavior for globally installed AISnitch binaries.
+ */
+export const AutoUpdateConfigSchema = z.strictObject({
+  enabled: z.boolean().default(true),
+  intervalMs: z.number().int().min(0).default(0),
+  manager: z.enum(AUTO_UPDATE_MANAGERS).default('auto'),
 });
 
 /**
@@ -35,6 +45,11 @@ export const ConfigSchema = z.strictObject({
    * override a couple of adapters instead of all supported tools at once.
    */
   adapters: z.partialRecord(ToolNameSchema, AdapterConfigSchema).default({}),
+  autoUpdate: AutoUpdateConfigSchema.default({
+    enabled: true,
+    intervalMs: 0,
+    manager: 'auto',
+  }),
   idleTimeoutMs: z.number().int().min(10_000).default(120_000),
   logLevel: z.enum(LOG_LEVELS).default('info'),
 });
@@ -43,6 +58,7 @@ export const ConfigSchema = z.strictObject({
  * Inferred TypeScript view of a single adapter config entry.
  */
 export type AdapterConfig = ZodInfer<typeof AdapterConfigSchema>;
+export type AutoUpdateConfig = ZodInfer<typeof AutoUpdateConfigSchema>;
 
 /**
  * Inferred TypeScript view of the persisted AISnitch config.

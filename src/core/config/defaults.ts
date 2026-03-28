@@ -17,6 +17,11 @@ export const DEFAULT_CONFIG: AISnitchConfig = {
   wsPort: 4820,
   httpPort: 4821,
   adapters: {},
+  autoUpdate: {
+    enabled: true,
+    intervalMs: 0,
+    manager: 'auto',
+  },
   idleTimeoutMs: 120_000,
   logLevel: 'info',
 };

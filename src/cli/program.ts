@@ -26,9 +26,11 @@ import {
   type AttachCliOptions,
   type CommonCliOptions,
   type MockCliOptions,
+  type SelfUpdateCliOptions,
   type StartCliOptions,
   type WrapCliOptions,
 } from './runtime.js';
+import type { AutoUpdateManager } from './auto-update.js';
 
 /**
  * @file src/cli/program.ts
@@ -96,6 +98,7 @@ Examples:
   addUninstallCommand(program, runtime);
   addDaemonRunCommand(program, runtime);
   addAiderNotifyCommand(program, runtime);
+  addSelfUpdateRunCommand(program, runtime);
 
   return program;
 }
@@ -323,6 +326,40 @@ function addAiderNotifyCommand(program: Command, runtime: CliRuntime): void {
   ).action(async (options: CommonCliOptions) => {
     await runtime.aiderNotify(options);
   });
+}
+
+function addSelfUpdateRunCommand(program: Command, runtime: CliRuntime): void {
+  const command = addCommonOptions(
+    program
+      .command('self-update-run')
+      .description('Internal detached self-update worker')
+      .requiredOption(
+        '--manager <manager>',
+        'Resolved package manager used for the silent self-update',
+        wrapOptionParser(parseAutoUpdateManagerOption),
+      )
+      .requiredOption(
+        '--target-version <version>',
+        'Latest version detected on the registry',
+      ),
+  );
+
+  command.action(async (options: SelfUpdateCliOptions) => {
+    await runtime.selfUpdateRun(options);
+  });
+}
+
+function parseAutoUpdateManagerOption(rawValue: string): AutoUpdateManager {
+  if (
+    rawValue === 'npm' ||
+    rawValue === 'pnpm' ||
+    rawValue === 'bun' ||
+    rawValue === 'brew'
+  ) {
+    return rawValue;
+  }
+
+  throw new Error(`Unsupported auto-update manager: ${rawValue}`);
 }
 
 function wrapOptionParser<T>(

@@ -92,6 +92,8 @@ npm i -g aisnitch
 aisnitch --help
 ```
 
+Global installs now run a silent self-update check every time the dashboard opens. AISnitch auto-detects `npm`, `pnpm`, `bun`, or `brew` from the current install layout and upgrades itself in the background when a newer package version is available.
+
 **Homebrew:**
 
 ```bash
@@ -884,6 +886,8 @@ AISnitch state lives under `~/.aisnitch/` by default (override with `AISNITCH_HO
 | `~/.aisnitch/daemon-state.json` | Daemon connection info |
 | `~/.aisnitch/daemon.log` | Daemon output log (5MB max) |
 | `~/.aisnitch/aisnitch.sock` | Unix domain socket (daemon IPC) |
+| `~/.aisnitch/auto-update.json` | Silent self-update state |
+| `~/.aisnitch/auto-update.log` | Last silent self-update worker log |
 
 The dashboard surfaces the active WebSocket URL directly in the header so it is easy to copy into another consumer.
 

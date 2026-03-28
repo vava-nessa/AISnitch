@@ -31,12 +31,16 @@ The CLI persists a small amount of daemon state alongside the config directory:
 - `aisnitch.pid` stores the detached daemon PID
 - `daemon-state.json` stores the effective ports and socket path after startup
 - `daemon.log` receives daemon stdout/stderr
+- `auto-update.json` stores the last silent self-update check metadata
+- `auto-update.log` stores the last detached self-update worker output
 
 This is not event persistence. It is only bootstrap state for process supervision and re-attachment.
 
 ## Dashboard vs daemon mode
 
 Interactive `start` now behaves like an operator dashboard instead of a fragile foreground bootstrap. The Ink TUI always opens, even when the daemon is stopped. The header shows whether the daemon is active, the current PID when it exists, and the exact `ws://127.0.0.1:<port>` URL ready to copy into another consumer.
+
+Right before that dashboard opens, AISnitch now performs a silent background self-update check on every launch for supported global installs. The updater resolves the install source automatically and then delegates to `npm`, `pnpm`, `bun`, or `brew` in a detached worker without blocking the TUI.
 
 Inside that dashboard:
 

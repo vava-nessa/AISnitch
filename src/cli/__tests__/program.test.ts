@@ -20,6 +20,7 @@ function createNoopRuntime() {
     install: vi.fn(() => Promise.resolve()),
     mock: vi.fn(() => Promise.resolve()),
     runDaemonProcess: vi.fn(() => Promise.resolve()),
+    selfUpdateRun: vi.fn(() => Promise.resolve()),
     setup: vi.fn(() => Promise.resolve()),
     start: vi.fn(() => Promise.resolve()),
     status: vi.fn(() => Promise.resolve()),
