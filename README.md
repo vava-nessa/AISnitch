@@ -51,11 +51,16 @@ node dist/cli/index.js start
 
 # Launch with simulated events (no real AI tool needed)
 node dist/cli/index.js start --mock all
+
+# Exhaustive live logger, no TUI
+node dist/cli/index.js logger
 ```
 
 `start` now always opens the TUI dashboard. If the daemon is offline you still land in the UI, see `Daemon not active`, and can start or stop it from inside the TUI with `d`.
 
 `start --mock all` boots the dashboard, ensures the daemon is active, then streams realistic fake events from Claude Code, OpenCode, and Gemini CLI so you can see the product immediately.
+
+If you want the full live payload stream without Ink truncation, use `aisnitch logger`. It attaches to the running daemon and prints one structured field per line, including nested `data.raw.*` paths.
 
 To consume the stream from another terminal:
 

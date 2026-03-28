@@ -15,6 +15,7 @@ The current commander-based CLI exposes:
 - `adapters` to list currently configured adapter toggles
 - `setup <tool>` to configure supported external tools for AISnitch ingestion
 - `attach` to open the same dashboard and connect to the daemon stream when it is active
+- `logger` to stream exhaustive live event output without the TUI
 - `wrap <command> [args...]` to observe an arbitrary interactive tool through the generic PTY fallback
 - `install` and `uninstall` for macOS LaunchAgent management
 
@@ -53,6 +54,20 @@ Detached `start --daemon` still exists for scripts, launchd, and explicit headle
 If startup fails before the daemon becomes healthy, the CLI now reads back the last daemon log line and surfaces that precise error to the caller. This avoids the old behavior where a real boot failure such as port exhaustion was masked by a vague readiness timeout. Port probing also searches a wider fallback range now, so stale local AISnitch listeners are less likely to brick a fresh daemon start immediately.
 
 `wrap` is different: it launches a child tool inside a PTY. If a daemon is already running, wrapped events go to that daemon over UDS. If not, AISnitch starts a temporary isolated local pipeline for that wrapped process only.
+
+## Raw logger mode
+
+`logger` is the operator path when the dashboard is too compact and you want every field the pipeline emits. It attaches to the running daemon over WebSocket and prints one event block at a time with every nested field flattened onto its own line, including `data.raw.*`.
+
+Example:
+
+```bash
+aisnitch logger
+aisnitch logger --tool claude-code
+aisnitch logger --type agent.streaming
+```
+
+This mode is deliberately non-interactive and non-truncating. It is designed for tailing, `grep`, shell pipes, and debugging payload richness without touching the TUI.
 
 ## Tool setup flow
 

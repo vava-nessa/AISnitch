@@ -73,6 +73,8 @@ Examples:
   aisnitch status
   aisnitch attach
   aisnitch attach --view full-data
+  aisnitch logger
+  aisnitch logger --tool claude-code
   aisnitch setup claude-code
   aisnitch setup aider
   aisnitch setup gemini-cli
@@ -92,6 +94,7 @@ Examples:
   addAdaptersCommand(program, runtime);
   addSetupCommand(program, runtime);
   addAttachCommand(program, runtime);
+  addLoggerCommand(program, runtime);
   addMockCommand(program, runtime);
   addWrapCommand(program, runtime);
   addInstallCommand(program, runtime);
@@ -275,6 +278,26 @@ function addWrapCommand(program: Command, runtime: CliRuntime): void {
       await runtime.wrap(command, args, options);
     },
   );
+}
+
+function addLoggerCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('logger')
+      .description('Stream exhaustive live event logs without the TUI')
+      .option(
+        '--tool <tool>',
+        'Filter the live logger by tool',
+        wrapOptionParser(parseToolFilterOption),
+      )
+      .option(
+        '--type <type>',
+        'Filter the live logger by event type',
+        wrapOptionParser(parseEventTypeFilterOption),
+      ),
+  ).action(async (options: AttachCliOptions) => {
+    await runtime.logger(options);
+  });
 }
 
 function addInstallCommand(program: Command, runtime: CliRuntime): void {

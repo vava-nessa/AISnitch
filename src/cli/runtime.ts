@@ -68,6 +68,7 @@ import {
   createAutoUpdateController,
   type AutoUpdateManager,
 } from './auto-update.js';
+import { attachWebSocketLogger } from './live-logger.js';
 import {
   runMockScenario,
   type MockCommandOptions,
@@ -159,6 +160,7 @@ export interface CliRuntime {
   readonly aiderNotify: (options: CommonCliOptions) => Promise<void>;
   readonly attach: (options: AttachCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
+  readonly logger: (options: AttachCliOptions) => Promise<void>;
   readonly mock: (
     selection: MockToolSelection,
     options: MockCliOptions,
@@ -838,6 +840,50 @@ export function createCliRuntime(
     });
   }
 
+  async function logger(options: AttachCliOptions): Promise<void> {
+    const snapshot = await getStatusSnapshot(options);
+
+    if (!snapshot.running) {
+      throw new Error(
+        'AISnitch logger requires a running daemon. Start one with `aisnitch start --daemon` or use `aisnitch start` first.',
+      );
+    }
+
+    const closeLogger = await attachWebSocketLogger(
+      `ws://127.0.0.1:${snapshot.wsPort}`,
+      output,
+      {
+        tool: options.tool,
+        type: options.type,
+      },
+    );
+
+    await new Promise<void>((resolve) => {
+      let closed = false;
+
+      const shutdown = async () => {
+        if (closed) {
+          return;
+        }
+
+        closed = true;
+        process.off('SIGINT', handleSigint);
+        process.off('SIGTERM', handleSigterm);
+        await Promise.resolve(closeLogger());
+        resolve();
+      };
+      const handleSigint = () => {
+        void shutdown();
+      };
+      const handleSigterm = () => {
+        void shutdown();
+      };
+
+      process.once('SIGINT', handleSigint);
+      process.once('SIGTERM', handleSigterm);
+    });
+  }
+
   async function mock(
     selection: MockToolSelection,
     options: MockCliOptions,
@@ -1157,6 +1203,7 @@ export function createCliRuntime(
     aiderNotify,
     attach,
     install,
+    logger,
     mock,
     runDaemonProcess,
     selfUpdateRun,

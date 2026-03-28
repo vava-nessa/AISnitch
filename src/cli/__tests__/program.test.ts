@@ -18,6 +18,7 @@ function createNoopRuntime() {
     aiderNotify: vi.fn(() => Promise.resolve()),
     attach: vi.fn(() => Promise.resolve()),
     install: vi.fn(() => Promise.resolve()),
+    logger: vi.fn(() => Promise.resolve()),
     mock: vi.fn(() => Promise.resolve()),
     runDaemonProcess: vi.fn(() => Promise.resolve()),
     selfUpdateRun: vi.fn(() => Promise.resolve()),
@@ -112,6 +113,21 @@ describe('createProgram', () => {
       tool: 'opencode',
       type: 'agent.tool_call',
       view: 'full-data',
+    });
+  });
+
+  it('parses raw logger filter options', async () => {
+    const runtime = createNoopRuntime();
+    const program = createProgram({ runtime });
+
+    await program.parseAsync(
+      ['node', 'aisnitch', 'logger', '--tool', 'claude-code', '--type', 'agent.streaming'],
+      { from: 'node' },
+    );
+
+    expect(runtime.logger).toHaveBeenCalledWith({
+      tool: 'claude-code',
+      type: 'agent.streaming',
     });
   });
 

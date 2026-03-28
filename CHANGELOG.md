@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Complete README rewrite with comprehensive consumer integration guide (React hook, Vue composable, vanilla JS, Node.js examples, human-readable status builder, session tracking, sound/notification triggers, mascot/companion state mapping).
 
+### Added
+- New `aisnitch logger` command that streams exhaustive live event output without the TUI, flattening nested fields like `data.raw.*` into one readable line per path.
+
 ## [0.2.2] - 2026-03-28
 
 ### Fixed
