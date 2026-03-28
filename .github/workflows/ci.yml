@@ -46,6 +46,12 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Release workflow preflight
+        if: matrix.node-version == '20'
+        run: |
+          node ./scripts/check-release-workflow.mjs
+          npm publish --dry-run --access public
+
       - name: Coverage
         if: matrix.node-version == '20'
         run: pnpm test:coverage

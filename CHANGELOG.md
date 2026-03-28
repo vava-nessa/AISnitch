@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - GitHub release publishing now grants `id-token: write` so `npm publish --provenance` can complete instead of failing after tag push.
 - npm package metadata now uses a clean `bin.aisnitch` path without the publish-time auto-correction warning.
+- CI now blocks merges when the release workflow loses required npm publish permissions or when `npm publish --dry-run` stops packaging cleanly.
 
 ## [0.2.0] - 2026-03-28
 
