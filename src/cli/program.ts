@@ -111,7 +111,7 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
   addCommonOptions(
     program
       .command('start', { isDefault: true })
-      .description('Start AISnitch in foreground mode by default')
+      .description('Open the AISnitch dashboard and manage the daemon')
       .option('--daemon', 'Run AISnitch as a detached daemon')
       .option(
         '--mock [tool]',
@@ -237,7 +237,7 @@ function addAttachCommand(program: Command, runtime: CliRuntime): void {
   addCommonOptions(
     program
       .command('attach')
-      .description('Attach the Ink TUI to the running daemon')
+      .description('Open the AISnitch dashboard and attach to the daemon when active')
       .option(
         '--tool <tool>',
         'Pre-filter the attached TUI by tool',

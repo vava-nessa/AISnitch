@@ -46,11 +46,16 @@ No data is stored. No cloud. No logs on disk. Pure live memory-only transit.
 ```bash
 pnpm install && pnpm build
 
+# Open the PM2-style dashboard
+node dist/cli/index.js start
+
 # Launch with simulated events (no real AI tool needed)
 node dist/cli/index.js start --mock all
 ```
 
-This boots the TUI with realistic fake events from Claude Code, OpenCode, and Gemini CLI so you can see the product immediately.
+`start` now always opens the TUI dashboard. If the daemon is offline you still land in the UI, see `Daemon not active`, and can start or stop it from inside the TUI with `d`.
+
+`start --mock all` boots the dashboard, ensures the daemon is active, then streams realistic fake events from Claude Code, OpenCode, and Gemini CLI so you can see the product immediately.
 
 To consume the stream from another terminal:
 
@@ -769,7 +774,7 @@ Useful for monitoring if the bridge is alive before connecting your consumer.
 ## CLI Reference
 
 ```bash
-# Foreground mode (TUI)
+# Dashboard mode (always opens the TUI)
 aisnitch start
 aisnitch start --tool claude-code      # pre-filter by tool
 aisnitch start --type agent.coding     # pre-filter by event type
@@ -778,7 +783,7 @@ aisnitch start --view full-data        # expanded JSON inspector
 # Background daemon
 aisnitch start --daemon
 aisnitch status                        # check if daemon is running
-aisnitch attach                        # connect TUI to running daemon
+aisnitch attach                        # open the same dashboard and attach if active
 aisnitch stop                          # kill daemon
 
 # Tool setup (run once per tool)
@@ -811,6 +816,8 @@ aisnitch wrap goose session
 | Key | Action |
 | --- | --- |
 | `q` / `Ctrl+C` | Quit |
+| `d` | Start / stop the daemon from the dashboard |
+| `r` | Refresh daemon status |
 | `v` | Toggle full-data JSON inspector |
 | `f` | Tool filter picker |
 | `t` | Event type filter picker |
@@ -877,6 +884,8 @@ AISnitch state lives under `~/.aisnitch/` by default (override with `AISNITCH_HO
 | `~/.aisnitch/daemon-state.json` | Daemon connection info |
 | `~/.aisnitch/daemon.log` | Daemon output log (5MB max) |
 | `~/.aisnitch/aisnitch.sock` | Unix domain socket (daemon IPC) |
+
+The dashboard surfaces the active WebSocket URL directly in the header so it is easy to copy into another consumer.
 
 | Port | Purpose |
 | --- | --- |

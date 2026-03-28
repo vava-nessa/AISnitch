@@ -25,13 +25,14 @@ import {
 } from '../core/index.js';
 import {
   attachEventBusMonitor,
-  renderAttachedTui,
   renderForegroundTui,
+  renderManagedTui,
   type MonitorCloseHandler,
   type MonitorOutput,
 } from '../tui/index.js';
 import {
   TUI_VIEW_MODES,
+  type ManagedTuiSnapshot,
   type TuiInitialFilters,
   type TuiViewMode,
 } from '../tui/types.js';
@@ -183,6 +184,7 @@ interface CliRuntimeDependencies {
   ) => Promise<{ readonly stdout: string; readonly stderr: string }>;
   readonly fetch?: typeof globalThis.fetch;
   readonly output?: CliOutput;
+  readonly renderManagedTui?: typeof renderManagedTui;
   readonly sleep?: (ms: number) => Promise<void>;
   readonly spawn?: typeof spawnChildProcess;
 }
@@ -212,6 +214,8 @@ export function createCliRuntime(
 ): CliRuntime {
   const output = dependencies.output ?? createProcessOutput();
   const fetchImplementation = dependencies.fetch ?? globalThis.fetch;
+  const renderManagedTuiImplementation =
+    dependencies.renderManagedTui ?? renderManagedTui;
   const spawnImplementation = dependencies.spawn ?? spawnChildProcess;
   const execFileImplementation =
     dependencies.execFile ??
@@ -282,6 +286,122 @@ export function createCliRuntime(
       throw new Error(
         'AISnitch daemon is already running. Use `aisnitch attach` or `aisnitch stop` first.',
       );
+    }
+  }
+
+  async function startDetachedDaemon(
+    options: StartCliOptions,
+  ): Promise<StatusSnapshot> {
+    await ensureDaemonNotRunning(options);
+
+    const daemonPathOptions = toPathOptions(options);
+
+    await ensureConfigDir(daemonPathOptions);
+    await rotateDaemonLogIfNeeded(daemonPathOptions);
+
+    const daemonLogPath = getDaemonLogPath(daemonPathOptions);
+    const stdoutFd = openSync(daemonLogPath, 'w');
+    const stderrFd = openSync(daemonLogPath, 'a');
+    const cliEntryPath = resolveCliEntryPath();
+    const daemonArgs = [cliEntryPath, 'daemon-run', ...toDaemonArgv(options)];
+    const child = spawnImplementation(process.execPath, daemonArgs, {
+      detached: true,
+      env: {
+        ...process.env,
+        AISNITCH_DAEMON: '1',
+      },
+      stdio: ['ignore', stdoutFd, stderrFd],
+    });
+
+    child.unref();
+    closeSync(stdoutFd);
+    closeSync(stderrFd);
+
+    if (child.pid === undefined) {
+      throw new Error('Failed to obtain the AISnitch daemon PID.');
+    }
+
+    return await waitForDaemonReady(daemonPathOptions);
+  }
+
+  async function stopDetachedDaemon(options: CommonCliOptions): Promise<void> {
+    const pathOptions = toPathOptions(options);
+    const pid = await readPid(pathOptions);
+
+    if (pid === null) {
+      await cleanupStaleDaemonFiles(pathOptions);
+      return;
+    }
+
+    if (!isProcessRunning(pid)) {
+      await cleanupStaleDaemonFiles(pathOptions);
+      return;
+    }
+
+    process.kill(pid, 'SIGTERM');
+
+    if (!(await waitForProcessExit(pid))) {
+      throw new Error(`AISnitch daemon PID ${pid} did not stop in time.`);
+    }
+
+    await Promise.all([
+      removePid(pathOptions),
+      removeDaemonState(pathOptions),
+    ]);
+  }
+
+  function toManagedTuiSnapshot(snapshot: StatusSnapshot): ManagedTuiSnapshot {
+    return {
+      configuredAdapters: snapshot.configuredAdapters,
+      status: {
+        connected: snapshot.running && snapshot.health !== null,
+        connectionLabel:
+          snapshot.running && snapshot.health !== null
+            ? 'Live Daemon Stream'
+            : 'Daemon Stream Offline',
+        consumerCount: snapshot.health?.consumers ?? 0,
+        daemon: {
+          active: snapshot.running,
+          httpUrl: `http://127.0.0.1:${snapshot.httpPort}/health`,
+          pid: snapshot.daemonPid,
+          socketPath: snapshot.socketPath,
+          wsUrl: `ws://127.0.0.1:${snapshot.wsPort}`,
+        },
+        eventCount: snapshot.health?.events ?? 0,
+        uptimeMs: snapshot.health?.uptime ?? 0,
+      },
+    };
+  }
+
+  async function runMockAgainstRunningDaemon(
+    selection: MockToolSelection,
+    options: {
+      readonly config?: string;
+      readonly duration?: number;
+      readonly loop?: boolean;
+      readonly speed?: number;
+    },
+  ): Promise<void> {
+    const snapshot = await getStatusSnapshot(options);
+
+    if (!snapshot.running || snapshot.socketPath === null) {
+      throw new Error('Cannot inject mock events because the AISnitch daemon is not running.');
+    }
+
+    const socketPublisher = await createSocketEventPublisher(snapshot.socketPath);
+
+    try {
+      await runMockScenario({
+        durationSeconds: options.duration ?? 60,
+        loop: options.loop ?? false,
+        publishEvent: async (event) => {
+          return await socketPublisher.publish(event);
+        },
+        selection,
+        speed: options.speed ?? 1,
+      });
+    } finally {
+      await socketPublisher.close();
     }
   }
 
@@ -496,46 +616,58 @@ export function createCliRuntime(
 
   async function start(options: StartCliOptions): Promise<void> {
     if (options.daemon) {
-      await ensureDaemonNotRunning(options);
-
-      const daemonPathOptions = toPathOptions(options);
-
-      await ensureConfigDir(daemonPathOptions);
-      await rotateDaemonLogIfNeeded(daemonPathOptions);
-
-      const daemonLogPath = getDaemonLogPath(daemonPathOptions);
-      const stdoutFd = openSync(daemonLogPath, 'w');
-      const stderrFd = openSync(daemonLogPath, 'a');
-      const cliEntryPath = resolveCliEntryPath();
-      const daemonArgs = [cliEntryPath, 'daemon-run', ...toDaemonArgv(options)];
-      const child = spawnImplementation(process.execPath, daemonArgs, {
-        detached: true,
-        env: {
-          ...process.env,
-          AISNITCH_DAEMON: '1',
-        },
-        stdio: ['ignore', stdoutFd, stderrFd],
-      });
-
-      child.unref();
-      closeSync(stdoutFd);
-      closeSync(stderrFd);
-
-      if (child.pid === undefined) {
-        throw new Error('Failed to obtain the AISnitch daemon PID.');
-      }
-
-      const snapshot = await waitForDaemonReady(daemonPathOptions);
+      const snapshot = await startDetachedDaemon(options);
 
       output.stdout(
-        `AISnitch daemon started (PID: ${child.pid}) on ws://${'127.0.0.1'}:${snapshot.wsPort}\n`,
+        `AISnitch daemon started (PID: ${snapshot.daemonPid ?? 'unknown'}) on ws://${'127.0.0.1'}:${snapshot.wsPort}\n`,
       );
 
       return;
     }
 
-    await ensureDaemonNotRunning(options);
-    await runPipelineHeadless(options, false);
+    let initialSnapshot = await getStatusSnapshot(options);
+
+    if (options.mock) {
+      if (!initialSnapshot.running) {
+        await startDetachedDaemon(options);
+        initialSnapshot = await getStatusSnapshot(options);
+      }
+
+      output.stdout(
+        `Starting mock scenario ${options.mock} (${options.mockSpeed ?? 1}x, ${options.mockDuration ?? 60}s${options.mockLoop ? ', loop' : ''}).\n`,
+      );
+
+      void runMockAgainstRunningDaemon(options.mock, {
+        config: options.config,
+        duration: options.mockDuration,
+        loop: options.mockLoop,
+        speed: options.mockSpeed,
+      }).catch((error: unknown) => {
+        output.stderr(
+          `Mock scenario failed: ${error instanceof Error ? error.message : 'unknown error'}\n`,
+        );
+      });
+    }
+
+    await renderManagedTuiImplementation({
+      initialFilters: toInitialTuiFilters(options),
+      initialSnapshot: toManagedTuiSnapshot(initialSnapshot),
+      onQuit: () => undefined,
+      refreshSnapshot: async () => {
+        return toManagedTuiSnapshot(await getStatusSnapshot(options));
+      },
+      toggleDaemon: async () => {
+        const currentSnapshot = await getStatusSnapshot(options);
+
+        if (currentSnapshot.running) {
+          await stopDetachedDaemon(options);
+        } else {
+          await startDetachedDaemon(options);
+        }
+
+        return toManagedTuiSnapshot(await getStatusSnapshot(options));
+      },
+    });
   }
 
   async function runDaemonProcess(options: StartCliOptions): Promise<void> {
@@ -544,33 +676,16 @@ export function createCliRuntime(
   }
 
   async function stop(options: CommonCliOptions): Promise<void> {
-    const pathOptions = toPathOptions(options);
+    const snapshot = await getStatusSnapshot(options);
 
-    const pid = await readPid(pathOptions);
-
-    if (pid === null) {
+    if (!snapshot.running || snapshot.daemonPid === null) {
+      await cleanupStaleDaemonFiles(toPathOptions(options));
       output.stdout('AISnitch daemon is not running.\n');
       return;
     }
 
-    if (!isProcessRunning(pid)) {
-      await cleanupStaleDaemonFiles(pathOptions);
-      output.stdout('Removed stale AISnitch daemon state.\n');
-      return;
-    }
-
-    process.kill(pid, 'SIGTERM');
-
-    if (!(await waitForProcessExit(pid))) {
-      throw new Error(`AISnitch daemon PID ${pid} did not stop in time.`);
-    }
-
-    await Promise.all([
-      removePid(pathOptions),
-      removeDaemonState(pathOptions),
-    ]);
-
-    output.stdout(`AISnitch daemon stopped (PID: ${pid}).\n`);
+    await stopDetachedDaemon(options);
+    output.stdout(`AISnitch daemon stopped (PID: ${snapshot.daemonPid}).\n`);
   }
 
   async function status(options: CommonCliOptions): Promise<void> {
@@ -600,6 +715,7 @@ export function createCliRuntime(
 
   async function adapters(options: CommonCliOptions): Promise<void> {
     const { config } = await loadEffectiveConfig(options);
+    const snapshot = await getStatusSnapshot(options);
     const tools = ToolNameSchema.options.filter(
       (toolName): toolName is ToolName => toolName !== 'unknown',
     );
@@ -608,7 +724,7 @@ export function createCliRuntime(
       const enabled = config.adapters[toolName]?.enabled === true;
 
       output.stdout(
-        `${toolName}: ${enabled ? 'enabled' : 'disabled'} | runtime=stopped\n`,
+        `${toolName}: ${enabled ? 'enabled' : 'disabled'} | runtime=${enabled && snapshot.running ? 'running' : 'stopped'}\n`,
       );
     }
   }
@@ -616,19 +732,24 @@ export function createCliRuntime(
   async function attach(options: AttachCliOptions): Promise<void> {
     const snapshot = await getStatusSnapshot(options);
 
-    if (!snapshot.running || snapshot.daemonPid === null) {
-      throw new Error('AISnitch daemon is not running. Start it with `aisnitch start --daemon` first.');
-    }
-
-    await renderAttachedTui({
-      configuredAdapters: snapshot.configuredAdapters,
+    await renderManagedTuiImplementation({
       initialFilters: toInitialTuiFilters(options),
-      status: {
-        consumerCount: (snapshot.health?.consumers ?? 0) + 1,
-        eventCount: snapshot.health?.events ?? 0,
-        uptimeMs: snapshot.health?.uptime ?? 0,
+      initialSnapshot: toManagedTuiSnapshot(snapshot),
+      onQuit: () => undefined,
+      refreshSnapshot: async () => {
+        return toManagedTuiSnapshot(await getStatusSnapshot(options));
       },
-      wsUrl: `ws://127.0.0.1:${snapshot.wsPort}`,
+      toggleDaemon: async () => {
+        const currentSnapshot = await getStatusSnapshot(options);
+
+        if (currentSnapshot.running) {
+          await stopDetachedDaemon(options);
+        } else {
+          await startDetachedDaemon(options);
+        }
+
+        return toManagedTuiSnapshot(await getStatusSnapshot(options));
+      },
     });
   }
 
@@ -904,6 +1025,7 @@ export function createCliRuntime(
     options: CommonCliOptions,
   ): Promise<StatusSnapshot> {
     const { config, pathOptions } = await loadEffectiveConfig(options);
+    await cleanupStaleDaemonFiles(pathOptions);
     const daemonState = await readDaemonState(pathOptions);
     const daemonPid = await readPid(pathOptions);
     const running =

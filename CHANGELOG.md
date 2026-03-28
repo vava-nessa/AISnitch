@@ -84,3 +84,4 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - `aisnitch start` now scrubs orphaned Unix socket paths before boot so stale `aisnitch.sock` files no longer block foreground or daemon startup after a crash.
 - The CLI runtime now propagates `AISNITCH_HOME` path overrides consistently instead of silently falling back to `~/.aisnitch`.
+- `aisnitch start` and `aisnitch attach` now open a daemon dashboard instead of failing when the daemon is offline or already active, and the TUI exposes daemon toggle/status metadata plus the live WebSocket URL.

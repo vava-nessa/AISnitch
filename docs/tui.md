@@ -2,11 +2,12 @@
 
 ## Purpose
 
-The Ink TUI is now the primary live operator surface for AISnitch in both foreground and daemon-attach mode. Instead of dumping raw logs, AISnitch renders a structured terminal application with a strong header, active-session awareness, and global controls that stay aligned with the normalized event contract.
+The Ink TUI is now the primary live operator surface for AISnitch in both dashboard and daemon-connected mode. Instead of dumping raw logs, AISnitch renders a structured terminal application with a strong header, active-session awareness, and global controls that stay aligned with the normalized event contract.
 
 ## What shipped
 
-- `src/tui/index.tsx` now exposes both `renderForegroundTui()` and `renderAttachedTui()`, so `start` and `attach` use the same Ink app instead of divergent monitor implementations.
+- `src/tui/index.tsx` now exposes `renderManagedTui()` in addition to the lower-level foreground and attached renderers, so `start` and `attach` both land in the same PM2-style dashboard.
+- `src/tui/ManagedDaemonApp.tsx` keeps the TUI mounted while the daemon starts, stops, reconnects, or stays offline, and mirrors the daemon WebSocket stream into a local in-process `EventBus`.
 - `src/tui/App.tsx` composes the full shell: header, filter bar, help overlay, event stream panel, sessions panel, and footer status bar.
 - `src/tui/components/Header.tsx` renders the title treatment, connection label, and the global activity badge from `src/tui/components/GlobalBadge.tsx`.
 - `src/tui/components/EventStream.tsx` and `src/tui/components/EventLine.tsx` render the formatted live stream with frozen-tail messaging and compact event detail rows.
@@ -32,6 +33,8 @@ The TUI currently supports:
 - `Esc` to clear all active filters
 - `Space` to freeze or resume the live tail
 - `c` to clear the local buffered event list
+- `d` to start or stop the daemon from inside the dashboard
+- `r` to refresh daemon state immediately
 - `?` to toggle the help overlay
 - `Tab` to cycle focus between the events and sessions panels
 - `↑` / `↓` or `j` / `k` to select events or scroll the inspector in full-data mode
@@ -47,7 +50,11 @@ The new full-data inspector is the answer when the summary row is not enough. It
 
 ## Runtime integration
 
-Foreground `aisnitch start` boots the full pipeline and mounts the TUI against the in-process `EventBus`. Daemon `aisnitch attach` connects the same UI to the WebSocket stream and can start with CLI pre-filters:
+`aisnitch start` and `aisnitch attach` now both open the managed dashboard. When the daemon is active, the dashboard mirrors the WebSocket stream into the normal event panels. When the daemon is inactive, the TUI stays open and turns into an operator console instead of crashing out with a socket error.
+
+Headless `aisnitch start --daemon` still boots the full pipeline in the background. The dashboard can start or stop that process with `d` and refresh its metadata with `r`.
+
+The dashboard and daemon-connected views can both start with CLI pre-filters:
 
 - `aisnitch start --tool claude-code`
 - `aisnitch start --type agent.coding`
@@ -67,7 +74,7 @@ Coverage now includes:
 
 Manual smoke validation was also run against the built CLI:
 
-- foreground TUI render
-- daemon attach render
+- managed dashboard render with daemon offline
+- managed dashboard render with daemon online
 - CLI pre-filter propagation
-- live hook ingestion displayed in the attached TUI
+- live hook ingestion displayed in the dashboard stream

@@ -50,6 +50,10 @@ import {
 export interface AppProps {
   readonly configuredAdapters: readonly ToolName[];
   readonly initialFilters?: TuiInitialFilters;
+  readonly managerControls?: {
+    readonly onRefreshStatus: () => Promise<void> | void;
+    readonly onToggleDaemon: () => Promise<void> | void;
+  };
   readonly onQuit?: () => void;
   readonly source: EventStreamSource;
   readonly status: TuiStatusSnapshot;
@@ -64,6 +68,7 @@ export interface AppProps {
 export function App({
   configuredAdapters,
   initialFilters,
+  managerControls,
   onQuit,
   source,
   status,
@@ -167,6 +172,8 @@ export function App({
     onToggleFullDataMode: () => {
       setInspectorLineOffset(0);
     },
+    onRefreshStatus: managerControls?.onRefreshStatus,
+    onToggleDaemon: managerControls?.onToggleDaemon,
     toolOptions: configuredAdapters,
   });
   const displayedEvents = applyEventFilters(
@@ -268,6 +275,7 @@ export function App({
         columns={columns}
         connectionLabel={status.connectionLabel}
         connected={status.connected}
+        daemon={status.daemon}
         globalStatus={globalStatus}
         version={version}
       />
@@ -321,6 +329,7 @@ export function App({
           columns={columns}
           connected={status.connected}
           consumerCount={status.consumerCount}
+          daemon={status.daemon}
           eventCount={eventStream.totalEvents}
           focusPanel={keyBinds.focusPanel}
           latestEvent={displayedEvents.at(-1) ?? eventStream.latestEvent}

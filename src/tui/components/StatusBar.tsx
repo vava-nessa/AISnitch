@@ -4,7 +4,7 @@ import { Box, Text } from 'ink';
 import type { AISnitchEvent } from '../../core/index.js';
 import type { FocusedPanel } from '../hooks/useKeyBinds.js';
 import { TUI_THEME } from '../theme.js';
-import type { TuiViewMode } from '../types.js';
+import type { TuiDaemonSnapshot, TuiViewMode } from '../types.js';
 
 /**
  * @file src/tui/components/StatusBar.tsx
@@ -24,6 +24,7 @@ export interface StatusBarProps {
   readonly columns: number;
   readonly connected: boolean;
   readonly consumerCount: number;
+  readonly daemon?: TuiDaemonSnapshot;
   readonly eventCount: number;
   readonly focusPanel: FocusedPanel;
   readonly latestEvent: AISnitchEvent | null;
@@ -42,6 +43,7 @@ export function StatusBar({
   columns,
   connected,
   consumerCount,
+  daemon,
   eventCount,
   focusPanel,
   latestEvent,
@@ -59,6 +61,14 @@ export function StatusBar({
       : viewMode === 'full-data'
         ? 'inspector'
         : 'sessions';
+  const daemonLabel =
+    daemon === undefined
+      ? null
+      : daemon.busyAction
+        ? `Daemon ${daemon.busyAction}`
+        : daemon.active
+          ? `Daemon active · ${daemon.wsUrl}`
+          : `Daemon not active · ${daemon.wsUrl}`;
 
   return (
     <Box
@@ -71,10 +81,20 @@ export function StatusBar({
       <Text color={TUI_THEME.panelBody}>
         {`Events ${eventCount} | Adapters ${adapterCount} | Consumers ${consumerCount} | Filters ${activeFilterCount} | Focus ${focusLabel} | View ${viewMode} | Up ${formatUptime(
           uptimeMs,
-        )} | ${streamState} | Size ${columns}c`}
+        )} | ${streamState}${daemonLabel ? ` | ${daemonLabel}` : ''} | Size ${columns}c`}
       </Text>
       <Text color={TUI_THEME.muted}>
-        {connected
+        {daemon
+          ? connected
+            ? `${
+                daemon.active ? '[d] stop daemon' : '[d] start daemon'
+              }  [r] refresh  ${
+                streamFrozen
+                  ? '[space] resume  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'
+                  : '[space] freeze  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'
+              }`
+            : `${daemon.active ? '[d] stop daemon' : '[d] start daemon'}  [r] refresh  [v] full-data  [q] quit  [?] help`
+          : connected
           ? streamFrozen
             ? '[space] resume  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'
             : '[space] freeze  [v] full-data  [q] quit  [?] help  [f/t//] filters  [c] clear'

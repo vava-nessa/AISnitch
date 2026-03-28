@@ -5,7 +5,8 @@ import WebSocket from 'ws';
 import { AISNITCH_VERSION } from '../package-info.js';
 import type { EventBus, PipelineStatus, ToolName } from '../core/index.js';
 import { App } from './App.js';
-import type { TuiInitialFilters } from './types.js';
+import { ManagedDaemonApp } from './ManagedDaemonApp.js';
+import type { ManagedTuiSnapshot, TuiInitialFilters } from './types.js';
 
 /**
  * @file src/tui/index.tsx
@@ -42,6 +43,17 @@ export interface AttachedTuiOptions {
     readonly uptimeMs: number;
   };
   readonly wsUrl: string;
+}
+
+/**
+ * Props required by the managed daemon dashboard renderer.
+ */
+export interface ManagedTuiOptions {
+  readonly initialFilters?: TuiInitialFilters;
+  readonly initialSnapshot: ManagedTuiSnapshot;
+  readonly onQuit?: () => void;
+  readonly refreshSnapshot: () => Promise<ManagedTuiSnapshot>;
+  readonly toggleDaemon: () => Promise<ManagedTuiSnapshot>;
 }
 
 /**
@@ -112,7 +124,28 @@ export async function renderAttachedTui(
   }
 }
 
+/**
+ * Renders the PM2-style dashboard that can start/stop and attach to the daemon.
+ */
+export async function renderManagedTui(
+  options: ManagedTuiOptions,
+): Promise<void> {
+  const app = render(
+    <ManagedDaemonApp
+      initialFilters={options.initialFilters}
+      initialSnapshot={options.initialSnapshot}
+      onQuit={options.onQuit}
+      refreshSnapshot={options.refreshSnapshot}
+      toggleDaemon={options.toggleDaemon}
+      version={AISNITCH_VERSION}
+    />,
+  );
+
+  await app.waitUntilExit();
+}
+
 export * from './App.js';
+export * from './ManagedDaemonApp.js';
 export * from './types.js';
 export * from './filters.js';
 export * from './theme.js';

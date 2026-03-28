@@ -71,8 +71,10 @@ export interface UseKeyBindsOptions {
   readonly onInspectorPageScroll?: (delta: number) => void;
   readonly onInspectorScroll?: (delta: number) => void;
   readonly onQuit?: () => void;
+  readonly onRefreshStatus?: () => Promise<void> | void;
   readonly onSelectNextEvent?: () => void;
   readonly onSelectPreviousEvent?: () => void;
+  readonly onToggleDaemon?: () => Promise<void> | void;
   readonly onToggleFreeze: () => void;
   readonly onToggleFullDataMode?: () => void;
   readonly toolOptions: readonly ToolName[];
@@ -240,6 +242,16 @@ export function useKeyBinds(
 
     if (input === 'c') {
       options.onClearStream();
+      return;
+    }
+
+    if (input === 'd' && options.onToggleDaemon) {
+      void options.onToggleDaemon();
+      return;
+    }
+
+    if (input === 'r' && options.onRefreshStatus) {
+      void options.onRefreshStatus();
       return;
     }
 

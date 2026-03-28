@@ -6,6 +6,7 @@ import Spinner from 'ink-spinner';
 
 import type { GlobalActivityStatus } from '../hooks/useSessions.js';
 import { TUI_THEME } from '../theme.js';
+import type { TuiDaemonSnapshot } from '../types.js';
 import { GlobalBadge } from './GlobalBadge.js';
 
 /**
@@ -26,6 +27,7 @@ export interface HeaderProps {
   readonly columns: number;
   readonly connectionLabel: string;
   readonly connected: boolean;
+  readonly daemon?: TuiDaemonSnapshot;
   readonly globalStatus: GlobalActivityStatus;
   readonly version: string;
 }
@@ -39,10 +41,12 @@ export function Header({
   columns,
   connectionLabel,
   connected,
+  daemon,
   globalStatus,
   version,
 }: HeaderProps): React.JSX.Element {
   const showBigTitle = columns >= 88;
+  const daemonBusyAction = daemon?.busyAction ?? null;
 
   return (
     <Box
@@ -75,10 +79,30 @@ export function Header({
           alignItems="flex-end"
           flexDirection="column"
           marginLeft={2}
-          minWidth={26}
+          minWidth={38}
         >
           <Box>
-            {connected ? (
+            {daemon ? (
+              daemonBusyAction ? (
+                <>
+                  <Text bold color={TUI_THEME.warning}>
+                    <Spinner type="dots" />
+                  </Text>
+                  <Text color={TUI_THEME.warning}>
+                    {' '}
+                    daemon {daemonBusyAction}
+                  </Text>
+                </>
+              ) : daemon.active ? (
+                <Text bold color={TUI_THEME.success}>
+                  ● Daemon active · PID {daemon.pid ?? 'none'}
+                </Text>
+              ) : (
+                <Text bold color={TUI_THEME.warning}>
+                  ○ Daemon not active
+                </Text>
+              )
+            ) : connected ? (
               <Text bold color={TUI_THEME.success}>
                 ● Connected · {connectionLabel}
               </Text>
@@ -91,6 +115,14 @@ export function Header({
               </>
             )}
           </Box>
+          {daemon ? (
+            <>
+              <Text color={connected ? TUI_THEME.success : TUI_THEME.warning}>
+                {connected ? `● ${connectionLabel}` : `○ ${connectionLabel}`}
+              </Text>
+              <Text color={TUI_THEME.muted}>WS {daemon.wsUrl}</Text>
+            </>
+          ) : null}
           <GlobalBadge status={globalStatus} />
           <Text color={TUI_THEME.muted}>{adapterCount} adapters armed</Text>
         </Box>

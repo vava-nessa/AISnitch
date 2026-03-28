@@ -8,13 +8,13 @@ The CLI is now the operational entrypoint for AISnitch. It turns the in-memory c
 
 The current commander-based CLI exposes:
 
-- `start` as the default command
+- `start` as the default PM2-style dashboard command
 - `start --daemon` for detached background execution
 - `stop` to terminate the detached daemon through its PID file
 - `status` to inspect persisted daemon metadata plus live `/health` data
 - `adapters` to list currently configured adapter toggles
 - `setup <tool>` to configure supported external tools for AISnitch ingestion
-- `attach` to connect to the daemon WebSocket stream with the shared Ink TUI
+- `attach` to open the same dashboard and connect to the daemon stream when it is active
 - `wrap <command> [args...]` to observe an arbitrary interactive tool through the generic PTY fallback
 - `install` and `uninstall` for macOS LaunchAgent management
 
@@ -34,11 +34,17 @@ The CLI persists a small amount of daemon state alongside the config directory:
 
 This is not event persistence. It is only bootstrap state for process supervision and re-attachment.
 
-## Foreground vs daemon mode
+## Dashboard vs daemon mode
 
-Foreground `start` launches the core pipeline in-process and renders the Ink TUI directly against the live `EventBus`.
+Interactive `start` now behaves like an operator dashboard instead of a fragile foreground bootstrap. The Ink TUI always opens, even when the daemon is stopped. The header shows whether the daemon is active, the current PID when it exists, and the exact `ws://127.0.0.1:<port>` URL ready to copy into another consumer.
 
-Detached `start --daemon` re-executes the CLI in a hidden headless mode, writes PID/state files after the pipeline is healthy, and redirects logs to `daemon.log`. `attach` then connects through the daemon WebSocket endpoint and renders the same TUI against the remote stream.
+Inside that dashboard:
+
+- `d` toggles the daemon on or off
+- `r` refreshes daemon state immediately
+- the event stream stays mounted even while the daemon is offline
+
+Detached `start --daemon` still exists for scripts, launchd, and explicit headless startup. It re-executes the CLI in a hidden headless mode, writes PID/state files after the pipeline is healthy, and redirects logs to `daemon.log`.
 
 `wrap` is different: it launches a child tool inside a PTY. If a daemon is already running, wrapped events go to that daemon over UDS. If not, AISnitch starts a temporary isolated local pipeline for that wrapped process only.
 

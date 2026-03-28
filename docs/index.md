@@ -8,11 +8,11 @@ This folder tracks the technical documentation that complements the task board a
 - [`events-schema.md`](./events-schema.md) — normalized CloudEvents contract and CESP mapping layer
 - [`config-system.md`](./config-system.md) — persisted config shape, loader rules, and port fallback logic
 - [`core-pipeline.md`](./core-pipeline.md) — in-memory EventBus, WS/HTTP/UDS ingress-egress, and context enrichment flow
-- [`cli-daemon.md`](./cli-daemon.md) — commander command surface, daemon supervision files, and LaunchAgent flow
+- [`cli-daemon.md`](./cli-daemon.md) — commander command surface, PM2-style dashboard flow, daemon supervision files, and LaunchAgent flow
 - [`tool-setup.md`](./tool-setup.md) — interactive configuration of Claude Code, OpenCode, Gemini, Aider, Codex, Goose, and Copilot CLI forwarding into AISnitch
 - [`priority-adapters.md`](./priority-adapters.md) — BaseAdapter lifecycle, Claude Code mapping, and OpenCode plugin integration
 - [`secondary-adapters.md`](./secondary-adapters.md) — Gemini/Codex, Goose/Copilot, Aider/PTY, and OpenClaw hook-log-memory integration
-- [`tui.md`](./tui.md) — Ink layout, shared foreground/attach rendering, filters, and the full-data event inspector
+- [`tui.md`](./tui.md) — Ink dashboard rendering, daemon controls, filters, and the full-data event inspector
 - [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
