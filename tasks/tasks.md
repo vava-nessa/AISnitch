@@ -24,7 +24,7 @@
 
 ## 🟡 Todo
 
-Aucune pour l'instant. Le reste est soit livré, soit en validation externe.
+- [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 0/4 — SDK TypeScript léger pour consommer le flux WS (auto-reconnect, parsing Zod, sessions, filtres, helpers)
 
 ---
 
@@ -71,12 +71,10 @@ Aucune pour l'instant. Le reste est soit livré, soit en validation externe.
 
 - [ ] Remote streaming — option pour forward le flux WS vers un endpoint WebSocket distant
 - [ ] Rust native addon (`napi-rs`) pour PTY, process monitor, FS watch (remplacer les libs Node)
-- [ ] Dashboard web (consumer alternatif au TUI)
-- [ ] Plugin système pour adapters communautaires (`create-aisnitch-adapter`)
+- [ ] Plugin système / Adapter SDK (`create-aisnitch-adapter`) — scaffold generator + contrat adapter documenté + `~/.aisnitch/plugins/` pour adapters communautaires chargés au runtime + commande `aisnitch install-adapter <npm-package>`. Transforme AISnitch d'un outil en plateforme : la communauté gère le long tail des AI tools (Cursor Agent, Warp AI, Zed AI, Amp, Kilo, Continue...), le core reste maintenu centralement.
+- [ ] Web Dashboard (Companion PWA) — SPA Vite + React servie sur `:4822`, consomme le WS existant. Timeline chart d'activité, token usage graphs, session heatmap, multi-monitor support. Mobile-friendly pour checker ses AI agents depuis le téléphone. Forwarding possible via SSH tunnel pour visibilité équipe distante. Tout le data model est déjà là — il manque juste la face web.
 - [ ] Windows daemon support (Windows Service / Startup Task)
 - [ ] Linux daemon support (systemd user unit)
-- [ ] Analytics / statistiques d'utilisation (opt-in)
-- [ ] `@aisnitch/client` — SDK client TypeScript (auto-reconnect WS + parsing Zod)
 - [ ] CESP bridge complet pour PeonPing (160+ soundpacks)
 
 ---
