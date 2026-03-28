@@ -246,4 +246,83 @@ describe('managed dashboard runtime', () => {
       await rm(homeDirectory, { recursive: true, force: true });
     }
   });
+
+  it('ignores daemon info logs while waiting for a healthy daemon', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
+    let pollCount = 0;
+    const renderManagedTui = vi.fn(async (input: {
+      readonly toggleDaemon: () => Promise<ManagedDashboardCall['initialSnapshot']>;
+    }) => {
+      await expect(input.toggleDaemon()).resolves.toMatchObject({
+        status: {
+          daemon: {
+            active: true,
+            wsUrl: 'ws://127.0.0.1:4820',
+          },
+        },
+      });
+    });
+
+    process.env.AISNITCH_HOME = homeDirectory;
+
+    try {
+      const runtime = createCliRuntime({
+        fetch: vi.fn(() =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify({
+                consumers: 0,
+                droppedEvents: 0,
+                events: 2,
+                uptime: 250,
+              }),
+              {
+                status: 200,
+                headers: {
+                  'content-type': 'application/json',
+                },
+              },
+            ),
+          ),
+        ),
+        renderManagedTui,
+        sleep: async () => {
+          pollCount += 1;
+
+          if (pollCount === 1) {
+            await writeFile(
+              join(homeDirectory, 'daemon.log'),
+              '{"level":30,"time":"2026-03-28T01:36:14.152Z","service":"aisnitch","name":"aisnitch","socketPath":"/Users/vava/.aisnitch/aisnitch.sock","msg":"UDS server started"}\n',
+              'utf8',
+            );
+            await writePid(process.pid, { env: process.env });
+            await writeDaemonState(
+              {
+                configPath: join(homeDirectory, 'config.json'),
+                httpPort: 4821,
+                logFilePath: join(homeDirectory, 'daemon.log'),
+                pid: process.pid,
+                socketPath: join(homeDirectory, 'aisnitch.sock'),
+                startedAt: new Date().toISOString(),
+                wsPort: 4820,
+              },
+              { env: process.env },
+            );
+          }
+        },
+        spawn: vi.fn(() => {
+          return {
+            pid: 1234,
+            unref: () => undefined,
+          } as never;
+        }),
+      });
+
+      await runtime.start({});
+
+      expect(renderManagedTui).toHaveBeenCalledTimes(1);
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
 });

@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Complete README rewrite with comprehensive consumer integration guide (React hook, Vue composable, vanilla JS, Node.js examples, human-readable status builder, session tracking, sound/notification triggers, mascot/companion state mapping).
 
+## [0.2.2] - 2026-03-28
+
+### Fixed
+- Daemon readiness polling now ignores normal structured `info` log lines, so successful boot messages like `UDS server started` no longer get misclassified as fatal startup failures.
+
 ## [0.2.1] - 2026-03-28
 
 ### Fixed

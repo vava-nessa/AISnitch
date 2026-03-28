@@ -70,7 +70,7 @@ describe('WSServer', () => {
 
     expect(welcomeMessage).toEqual({
       type: 'welcome',
-      version: '0.2.1',
+      version: '0.2.2',
       tools: ['claude-code'],
     });
 

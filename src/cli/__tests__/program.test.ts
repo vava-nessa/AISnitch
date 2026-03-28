@@ -49,7 +49,7 @@ describe('createProgram', () => {
       program.parseAsync(['node', 'aisnitch', '--version'], { from: 'node' }),
     ).rejects.toBeInstanceOf(CommanderError);
 
-    expect(stdout.trim()).toBe('0.2.1');
+    expect(stdout.trim()).toBe('0.2.2');
   });
 
   it('parses foreground TUI filter options for start', async () => {

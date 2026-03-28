@@ -498,9 +498,39 @@ export function createCliRuntime(
        * already contains the precise root cause. Bubble that up immediately so
        * the TUI shows the real failure instead of a useless timeout wrapper.
        */
-      return lastLine.startsWith('AISnitch CLI failed:')
-        ? lastLine
-        : `AISnitch daemon startup failed: ${lastLine}`;
+      if (lastLine.startsWith('AISnitch CLI failed:')) {
+        return lastLine;
+      }
+
+      const structuredFailure = parseStructuredDaemonFailure(lastLine);
+
+      return structuredFailure === null
+        ? null
+        : `AISnitch daemon startup failed: ${structuredFailure}`;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 📖 Daemon stdout is structured pino JSON, so startup polling must ignore
+   * normal info lines like "UDS server started" and only surface actual error
+   * or fatal records.
+   */
+  function parseStructuredDaemonFailure(logLine: string): string | null {
+    try {
+      const parsedLog = JSON.parse(logLine) as {
+        readonly level?: unknown;
+        readonly msg?: unknown;
+      };
+
+      if (typeof parsedLog.level !== 'number' || parsedLog.level < 50) {
+        return null;
+      }
+
+      return typeof parsedLog.msg === 'string' && parsedLog.msg.length > 0
+        ? parsedLog.msg
+        : logLine;
     } catch {
       return null;
     }
