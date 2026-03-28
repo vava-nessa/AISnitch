@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - CI now blocks merges when the release workflow loses required npm publish permissions or when `npm publish --dry-run` stops packaging cleanly.
 - Trusted publishing release jobs now run on Node 22 and no longer depend on a repository `NPM_TOKEN` secret.
 - The npm release workflow now falls back to a fresh automation token because npm's trusted publisher path kept returning registry `404` errors for this package despite a valid OIDC configuration.
+- Daemon startup now probes a wider local port range and bubbles the actual daemon log failure instead of hiding startup crashes behind a generic readiness timeout.
 
 ## [0.2.0] - 2026-03-28
 

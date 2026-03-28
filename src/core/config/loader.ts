@@ -172,7 +172,13 @@ export async function resolveAvailablePort(
   options: PortResolutionOptions = {},
 ): Promise<number> {
   const host = options.host ?? '127.0.0.1';
-  const maxAttempts = options.maxAttempts ?? 10;
+  /**
+   * 📖 AISnitch can spawn foreground demos, ephemeral wrap pipelines, and a
+   * managed daemon on the same machine. Keeping the default search window too
+   * narrow makes one stale process enough to brick startup, so we probe a
+   * wider local range before giving up.
+   */
+  const maxAttempts = options.maxAttempts ?? 100;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const candidatePort = requestedPort + attempt;

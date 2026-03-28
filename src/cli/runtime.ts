@@ -1,6 +1,6 @@
 import { execFile as execFileCallback, spawn as spawnChildProcess } from 'node:child_process';
 import { closeSync, openSync } from 'node:fs';
-import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
@@ -462,6 +462,12 @@ export function createCliRuntime(
         }
       }
 
+      const loggedFailure = await readDaemonStartupFailure(pathOptions);
+
+      if (loggedFailure !== null) {
+        throw new Error(loggedFailure);
+      }
+
       await sleep(DAEMON_READY_POLL_INTERVAL_MS);
     }
 
@@ -470,6 +476,34 @@ export function createCliRuntime(
         pathOptions,
       )}.`,
     );
+  }
+
+  async function readDaemonStartupFailure(
+    pathOptions: DaemonPathOptions,
+  ): Promise<string | null> {
+    try {
+      const daemonLog = await readFile(getDaemonLogPath(pathOptions), 'utf8');
+      const logLines = daemonLog
+        .split(/\r?\n/u)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+      const lastLine = logLines.at(-1);
+
+      if (!lastLine) {
+        return null;
+      }
+
+      /**
+       * 📖 When daemon startup dies before the health endpoint appears, the log
+       * already contains the precise root cause. Bubble that up immediately so
+       * the TUI shows the real failure instead of a useless timeout wrapper.
+       */
+      return lastLine.startsWith('AISnitch CLI failed:')
+        ? lastLine
+        : `AISnitch daemon startup failed: ${lastLine}`;
+    } catch {
+      return null;
+    }
   }
 
   async function waitForProcessExit(pid: number): Promise<boolean> {

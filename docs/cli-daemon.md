@@ -50,6 +50,8 @@ Inside that dashboard:
 
 Detached `start --daemon` still exists for scripts, launchd, and explicit headless startup. It re-executes the CLI in a hidden headless mode, writes PID/state files after the pipeline is healthy, and redirects logs to `daemon.log`.
 
+If startup fails before the daemon becomes healthy, the CLI now reads back the last daemon log line and surfaces that precise error to the caller. This avoids the old behavior where a real boot failure such as port exhaustion was masked by a vague readiness timeout. Port probing also searches a wider fallback range now, so stale local AISnitch listeners are less likely to brick a fresh daemon start immediately.
+
 `wrap` is different: it launches a child tool inside a PTY. If a daemon is already running, wrapped events go to that daemon over UDS. If not, AISnitch starts a temporary isolated local pipeline for that wrapped process only.
 
 ## Tool setup flow

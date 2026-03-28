@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -199,6 +199,49 @@ describe('managed dashboard runtime', () => {
       expect(stdout).toHaveBeenCalledWith(
         'claude-code: enabled | runtime=running\n',
       );
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('surfaces the daemon log failure instead of a generic startup timeout', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
+    let pollCount = 0;
+    const renderManagedTui = vi.fn(async (input: {
+      readonly toggleDaemon: () => Promise<ManagedDashboardCall['initialSnapshot']>;
+    }) => {
+      await expect(input.toggleDaemon()).rejects.toThrow(
+        'AISnitch CLI failed: Unable to find an available port from 4820 to 4919.',
+      );
+    });
+
+    process.env.AISNITCH_HOME = homeDirectory;
+
+    try {
+      const runtime = createCliRuntime({
+        renderManagedTui,
+        sleep: async () => {
+          pollCount += 1;
+
+          if (pollCount === 1) {
+            await writeFile(
+              join(homeDirectory, 'daemon.log'),
+              'AISnitch CLI failed: Unable to find an available port from 4820 to 4919.\n',
+              'utf8',
+            );
+          }
+        },
+        spawn: vi.fn(() => {
+          return {
+            pid: 1234,
+            unref: () => undefined,
+          } as never;
+        }),
+      });
+
+      await runtime.start({});
+
+      expect(renderManagedTui).toHaveBeenCalledTimes(1);
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }
