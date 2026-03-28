@@ -11,3 +11,10 @@ When i say "work" please check the current state of what is done, pick a task, a
 When publishing work (commit/push), the commit message must explicitly reference the current task from the markdown task files (task number and/or task slug/title). This is now the standard for future commits.
 
 For this repository, stay on `main` by default. Do not create dedicated branches unless the user explicitly asks for one.
+
+When i say "bump", treat it as a real release flow, not only a local version change:
+- bump the version
+- update the changelog
+- commit and push on `main`
+- create and push the matching git tag release (`vX.Y.Z`) so npm/github release automation can run
+- verify a few minutes later that npm really exposes the new version, and report the result clearly
