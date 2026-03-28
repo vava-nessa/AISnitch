@@ -1,8 +1,8 @@
 class Aisnitch < Formula
   desc "Universal live bridge for AI coding tool activity"
   homepage "https://github.com/vava-nessa/AISnitch#readme"
-  url "https://registry.npmjs.org/aisnitch/-/aisnitch-0.2.2.tgz"
-  sha256 "2e056dfa09afa7a2ac9c62ade2481246bf01edccf48b880fde5a51d7f48db801"
+  url "https://registry.npmjs.org/aisnitch/-/aisnitch-0.2.3.tgz"
+  sha256 "1245109a561cc14bba13b5326e860b05774bd56bb3ecb0350e5899804c763213"
   license "Apache-2.0"
 
   depends_on "node"
