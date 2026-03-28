@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Complete README rewrite with comprehensive consumer integration guide (React hook, Vue composable, vanilla JS, Node.js examples, human-readable status builder, session tracking, sound/notification triggers, mascot/companion state mapping).
 
+## [0.2.1] - 2026-03-28
+
 ### Fixed
 - GitHub release publishing now grants `id-token: write` so `npm publish --provenance` can complete instead of failing after tag push.
 - npm package metadata now uses a clean `bin.aisnitch` path without the publish-time auto-correction warning.
