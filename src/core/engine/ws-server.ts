@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 
 import { WebSocket, WebSocketServer } from 'ws';
 
+import { AISNITCH_VERSION } from '../../package-info.js';
 import type { AISnitchEvent, ToolName } from '../events/types.js';
 import type { EventBus } from './event-bus.js';
 import { logger } from './logger.js';
@@ -233,7 +234,7 @@ export class WSServer {
 
     const welcomeMessage: WelcomeMessage = {
       type: 'welcome',
-      version: '0.1.0',
+      version: AISNITCH_VERSION,
       tools: options.activeTools,
     };
 

@@ -7,6 +7,17 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Complete README rewrite with comprehensive consumer integration guide (React hook, Vue composable, vanilla JS, Node.js examples, human-readable status builder, session tracking, sound/notification triggers, mascot/companion state mapping).
 
+## [0.2.0] - 2026-03-28
+
+### Added
+- Managed daemon dashboard TUI that always opens, shows daemon state live, exposes the WebSocket URL, and can start or stop the daemon from inside the UI.
+- Silent background self-updater on every dashboard launch with automatic install-manager detection for `npm`, `pnpm`, `bun`, and `brew`.
+
+### Fixed
+- `aisnitch start` now scrubs orphaned Unix socket paths before boot so stale `aisnitch.sock` files no longer block foreground or daemon startup after a crash.
+- The CLI runtime now propagates `AISNITCH_HOME` path overrides consistently instead of silently falling back to `~/.aisnitch`.
+- `aisnitch start` and `aisnitch attach` now open a daemon dashboard instead of failing when the daemon is offline or already active, and the TUI exposes daemon toggle/status metadata plus the live WebSocket URL.
+
 ## [0.1.0] - 2026-03-28
 
 ### Added

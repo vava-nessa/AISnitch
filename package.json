@@ -1,6 +1,6 @@
 {
   "name": "aisnitch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Universal bridge for AI coding tool activity — capture, normalize, and stream live tool events.",
   "keywords": [
     "ai",
