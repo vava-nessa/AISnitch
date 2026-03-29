@@ -24,18 +24,18 @@
 
 ## 🟡 Todo
 
-- [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 0/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation, sound engine, event ticker, dark theme.
+(empty)
 
 ---
 
 ## 🔵 In Progress
-- [🔌 Adapters Secondaires](./06-adapters-secondary/task-adapters-secondary.md) — 3/4 — OpenClaw livré techniquement, validation sur vrai binaire encore pending
 - [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 0/2 — packaging/docs/community prêts, publication et validation GitHub externes encore pending
 
 ---
 
 ## ✅ Done
 
+- [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 4/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation 5s, sound engine synthétisé, event ticker, dark theme, empty state 🐸
 - [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
 - [🧪 Testing & E2E](./07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
 - [01 — Unit & Integration Tests](./07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%

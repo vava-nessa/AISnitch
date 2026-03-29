@@ -28,10 +28,10 @@ Comportements spéciaux :
 
 ## Sous-tâches
 
-- [ ] [01 — Vite + React Scaffold](./01_mascot-dashboard_scaffold.md) — Bootstrap Vite React TS, config workspace, structure des fichiers
-- [ ] [02 — AISnitch Hook & State Management](./02_mascot-dashboard_hook-state.md) — Hook React `useAISnitch()`, gestion des sessions, états dérivés
-- [ ] [03 — MascotCard UI Component](./03_mascot-dashboard_mascot-card.md) — Composant carte mascotte avec cercle d'état, header, footer, animations CSS
-- [ ] [04 — Dashboard Grid & Polish](./04_mascot-dashboard_grid-polish.md) — Grille responsive, header global, connection status, empty state, styles finaux
+- [x] [01 — Vite + React Scaffold](./01_mascot-dashboard_scaffold_DONE.md) — Bootstrap Vite React TS, config workspace, structure des fichiers
+- [x] [02 — AISnitch Hook & State Management](./02_mascot-dashboard_hook-state_DONE.md) — Hook React `useAISnitch()`, gestion des sessions, états dérivés
+- [x] [03 — MascotCard UI Component](./03_mascot-dashboard_mascot-card_DONE.md) — Composant carte mascotte avec cercle d'état, header, footer, animations CSS
+- [x] [04 — Dashboard Grid & Polish](./04_mascot-dashboard_grid-polish_DONE.md) — Grille responsive, header global, connection status, empty state, styles finaux
 
 ## Dépendances
 
