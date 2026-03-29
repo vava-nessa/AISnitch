@@ -12,9 +12,14 @@ When publishing work (commit/push), the commit message must explicitly reference
 
 For this repository, stay on `main` by default. Do not create dedicated branches unless the user explicitly asks for one.
 
+## Versioning & Release
+
+`aisnitch` and `@aisnitch/client` share the **same version number** and are always released together. This guarantees the daemon and client SDK are compatible at any given release.
+
 When i say "bump", treat it as a real release flow, not only a local version change:
-- bump the version
-- update the changelog
+- bump the version in **both** `package.json` and `packages/client/package.json` to the same `X.Y.Z`
+- update the changelog with a single `[X.Y.Z] / [@aisnitch/client X.Y.Z]` entry covering both packages
 - commit and push on `main`
 - create and push the matching git tag release (`vX.Y.Z`) so npm/github release automation can run
-- verify a few minutes later that npm really exposes the new version, and report the result clearly
+- the release workflow (`.github/workflows/release.yml`) is triggered by `v*` tags and publishes **both** packages to npm automatically
+- verify a few minutes later that npm really exposes the new version for both packages, and report the result clearly

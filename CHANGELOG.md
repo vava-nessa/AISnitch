@@ -4,14 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [@aisnitch/client 0.1.2] - 2026-03-30
-
-### Fixed
-- **Auto-reconnect permanently broken after `disconnect()`** — `_autoReconnectDisabled` flag was never reset on subsequent `connect()` calls, making the client silently drop events after any intentional disconnect/reconnect cycle.
-- **Stale welcome data** — `_welcome` is now cleared on `disconnect()` to prevent serving outdated daemon metadata after a reconnect.
-- **Invalid numeric options could cause tight reconnect loops** — constructor now validates `reconnectIntervalMs` and `maxReconnectIntervalMs`, rejecting `0`, `NaN`, and negative values at construction time with a clear error message.
-
-## [0.2.4] - 2026-03-30
+## [0.2.4] / [@aisnitch/client 0.2.4] - 2026-03-30
 
 ### Fixed
 - **No `uncaughtException` / `unhandledRejection` handlers in foreground TUI mode** — a single unhandled promise rejection would silently kill the process. Both handlers are now registered identically to the existing daemon-mode handlers.
@@ -25,6 +18,13 @@ All notable changes to this project will be documented in this file.
 - **WebSocket server leaked dead consumers** — socket `error` events were logged but the consumer was never removed from the map, accumulating stale state. `consumers.delete(socket)` is now called on error.
 - **`Pipeline.publishEvent()` enrichment failure crashed the event stream** — if context enrichment failed (e.g. `ps`, `pgrep` errors), the entire event was dropped. The original un-enriched event is now published as fallback.
 - **`Pipeline.handleHook()` had no top-level error boundary** — any uncaught error in a hook handler would propagate and crash. A try/catch wrapper now logs and swallows hook handler errors.
+- **Client SDK: auto-reconnect permanently broken after `disconnect()`** — `_autoReconnectDisabled` flag was never reset on subsequent `connect()` calls, making the client silently drop events after any intentional disconnect/reconnect cycle.
+- **Client SDK: stale welcome data** — `_welcome` is now cleared on `disconnect()` to prevent serving outdated daemon metadata after a reconnect.
+- **Client SDK: invalid numeric options could cause tight reconnect loops** — constructor now validates `reconnectIntervalMs` and `maxReconnectIntervalMs`, rejecting `0`, `NaN`, and negative values at construction time with a clear error message.
+
+### Changed
+- **Version alignment**: `aisnitch` and `@aisnitch/client` now share the same version number (0.2.4). Both packages are always released together to guarantee compatibility.
+- **Release workflow** now publishes both `aisnitch` and `@aisnitch/client` from the same tag push, with `continue-on-error` on the main package to tolerate re-published versions.
 
 ## [@aisnitch/client 0.1.1] - 2026-03-29
 
