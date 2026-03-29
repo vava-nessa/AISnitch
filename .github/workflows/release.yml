@@ -37,6 +37,9 @@ jobs:
       - name: Verify repository state
         run: pnpm check
 
+      - name: Build @aisnitch/client
+        run: pnpm --filter @aisnitch/client build
+
       - name: Pack npm artifact
         run: npm pack
 
@@ -44,6 +47,10 @@ jobs:
         run: node ./scripts/update-homebrew-formula.mjs "$(ls aisnitch-*.tgz | head -n 1)" ./Formula/aisnitch.rb
 
       - name: Publish to npm
+        run: npm publish --provenance --access public
+
+      - name: Publish @aisnitch/client to npm
+        working-directory: packages/client
         run: npm publish --provenance --access public
 
       - name: Create GitHub release
