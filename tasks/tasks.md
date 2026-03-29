@@ -24,7 +24,7 @@
 
 ## 🟡 Todo
 
-(empty)
+- [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 0/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation, sound engine, event ticker, dark theme.
 
 ---
 
