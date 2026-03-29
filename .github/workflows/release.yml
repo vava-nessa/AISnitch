@@ -48,6 +48,7 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --provenance --access public
+        continue-on-error: true
 
       - name: Publish @aisnitch/client to npm
         working-directory: packages/client
