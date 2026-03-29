@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [@aisnitch/client 0.1.1] - 2026-03-29
+
+### Fixed
+- Updated README with comprehensive docs (5 use cases, React/Vue hooks, full API reference, troubleshooting) so the npm package page has proper documentation.
+
+## [@aisnitch/client 0.1.0] - 2026-03-29
+
 ### Added
 - **`@aisnitch/client` SDK** — new `packages/client/` package providing a lightweight TypeScript SDK for consuming the AISnitch WebSocket event stream. Features: `AISnitchClient` with auto-reconnect (exponential backoff), Zod-validated event parsing, `SessionTracker` for live session state, composable typed `filters`, human-readable `describeEvent()` / `formatStatusLine()`, and `eventToMascotState()` for animated companions. Dual ESM + CJS build, zero prod deps (zod as peer dep), works in both Node.js and browser.
 - pnpm workspace setup (`pnpm-workspace.yaml`) to support the new `packages/client/` package alongside the main `aisnitch` package.
