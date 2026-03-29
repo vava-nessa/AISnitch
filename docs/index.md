@@ -16,6 +16,7 @@ This folder tracks the technical documentation that complements the task board a
 - [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
+- [`../packages/client/README.md`](../packages/client/README.md) — `@aisnitch/client` SDK documentation (install, API reference, React hook, filters, mascot state)
 
 ## Related project sources
 

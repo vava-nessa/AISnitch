@@ -17,10 +17,10 @@ Créer un package npm `@aisnitch/client` — SDK TypeScript léger pour consomme
 
 ## Sous-tâches
 
-- [ ] [01 — Package Setup & Shared Types](./01_client-sdk_setup-types.md) — Scaffold du package, extraction des types partagés, build config
-- [ ] [02 — Core Client & Reconnect](./02_client-sdk_core-reconnect.md) — Classe `AISnitchClient` avec auto-reconnect, welcome handling, event parsing
-- [ ] [03 — Session Tracking, Filters & Helpers](./03_client-sdk_sessions-filters.md) — Session map, filtrage typed, helpers `describeEvent()` / `formatStatusLine()`
-- [ ] [04 — Tests, Docs & Publish](./04_client-sdk_tests-docs.md) — Tests unitaires, README consumer-facing, npm publish dry-run
+- [x] [01 — Package Setup & Shared Types](./01_client-sdk_setup-types_DONE.md) — Scaffold du package, extraction des types partagés, build config
+- [x] [02 — Core Client & Reconnect](./02_client-sdk_core-reconnect_DONE.md) — Classe `AISnitchClient` avec auto-reconnect, welcome handling, event parsing
+- [x] [03 — Session Tracking, Filters & Helpers](./03_client-sdk_sessions-filters_DONE.md) — Session map, filtrage typed, helpers `describeEvent()` / `formatStatusLine()`
+- [x] [04 — Tests, Docs & Publish](./04_client-sdk_tests-docs_DONE.md) — Tests unitaires (48 tests), README consumer-facing, npm publish dry-run validé
 
 ## Dépendances
 

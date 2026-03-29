@@ -24,7 +24,7 @@
 
 ## 🟡 Todo
 
-- [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 0/4 — SDK TypeScript léger pour consommer le flux WS (auto-reconnect, parsing Zod, sessions, filtres, helpers)
+(empty)
 
 ---
 
@@ -36,6 +36,7 @@
 
 ## ✅ Done
 
+- [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
 - [🧪 Testing & E2E](./07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
 - [01 — Unit & Integration Tests](./07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%
 - [02 — Mock Command](./07-testing/02_testing_mock-command_DONE.md) — `aisnitch mock`, scénarios réalistes, `start --mock`, tests dédiés
