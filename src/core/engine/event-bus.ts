@@ -80,8 +80,18 @@ export class EventBus {
       'Published event',
     );
 
-    this.emitter.emit('event', parsedEvent.data);
-    this.emitter.emit(`event:${parsedEvent.data.type}`, parsedEvent.data);
+    // 📖 Wrap emits in try/catch — one buggy subscriber must never crash the bus
+    try {
+      this.emitter.emit('event', parsedEvent.data);
+    } catch (error: unknown) {
+      logger.warn({ error, eventType: parsedEvent.data.type }, '📖 Error in EventBus global subscriber');
+    }
+
+    try {
+      this.emitter.emit(`event:${parsedEvent.data.type}`, parsedEvent.data);
+    } catch (error: unknown) {
+      logger.warn({ error, eventType: parsedEvent.data.type }, '📖 Error in EventBus typed subscriber');
+    }
 
     return true;
   }

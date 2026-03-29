@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import WebSocket, { type RawData } from 'ws';
 
 import { EventBus, AISnitchEventSchema } from '../core/index.js';
+import type { AISnitchEvent } from '../core/index.js';
 import { App } from './App.js';
 import type {
   ManagedTuiSnapshot,
@@ -208,19 +209,24 @@ export function ManagedDaemonApp({
   );
 }
 
-function parseSocketPayload(data: RawData) {
+function parseSocketPayload(data: RawData): AISnitchEvent | null {
   let parsedPayload: unknown;
 
-  if (typeof data === 'string') {
-    parsedPayload = JSON.parse(data) as unknown;
-  } else if (Array.isArray(data)) {
-    parsedPayload = JSON.parse(Buffer.concat(data).toString('utf8')) as unknown;
-  } else if (data instanceof ArrayBuffer) {
-    parsedPayload = JSON.parse(
-      Buffer.from(new Uint8Array(data)).toString('utf8'),
-    ) as unknown;
-  } else {
-    parsedPayload = JSON.parse(Buffer.from(data).toString('utf8')) as unknown;
+  try {
+    if (typeof data === 'string') {
+      parsedPayload = JSON.parse(data) as unknown;
+    } else if (Array.isArray(data)) {
+      parsedPayload = JSON.parse(Buffer.concat(data).toString('utf8')) as unknown;
+    } else if (data instanceof ArrayBuffer) {
+      parsedPayload = JSON.parse(
+        Buffer.from(new Uint8Array(data)).toString('utf8'),
+      ) as unknown;
+    } else {
+      parsedPayload = JSON.parse(Buffer.from(data).toString('utf8')) as unknown;
+    }
+  } catch {
+    // 📖 Malformed WebSocket frame — silently ignore instead of crashing
+    return null;
   }
 
   if (

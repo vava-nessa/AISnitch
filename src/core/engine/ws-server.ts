@@ -230,6 +230,8 @@ export class WSServer {
 
     socket.on('error', (error) => {
       logger.warn({ error }, 'WebSocket consumer error');
+      // 📖 Remove the consumer from the map so dead sockets don't accumulate
+      this.consumers.delete(socket);
     });
 
     const welcomeMessage: WelcomeMessage = {

@@ -158,10 +158,18 @@ export class HTTPReceiver {
   ): Promise<void> {
     this.requestCount += 1;
 
-    const requestUrl = new URL(
-      request.url ?? '/',
-      `http://${this.host}:${this.port ?? options.port}`,
-    );
+    let requestUrl: URL;
+
+    try {
+      requestUrl = new URL(
+        request.url ?? '/',
+        `http://${this.host}:${this.port ?? options.port}`,
+      );
+    } catch {
+      this.invalidRequestCount += 1;
+      this.sendJson(response, 400, { error: 'malformed request url' });
+      return;
+    }
 
     if (request.method === 'GET' && requestUrl.pathname === '/health') {
       this.sendJson(response, 200, options.getHealthSnapshot());

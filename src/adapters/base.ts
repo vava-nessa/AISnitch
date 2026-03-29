@@ -2,6 +2,8 @@ import { homedir } from 'node:os';
 
 import { z } from 'zod';
 
+import { logger } from '../core/engine/logger.js';
+
 import type { AISnitchConfig } from '../core/config/schema.js';
 import { createEvent } from '../core/events/factory.js';
 import { EventDataSchema, createUuidV7 } from '../core/events/schema.js';
@@ -221,15 +223,25 @@ export abstract class BaseAdapter {
       },
     });
 
-    const published = await this.publishEventImplementation(event, {
-      cwd: context.cwd,
-      env: context.env,
-      hookPayload: context.hookPayload,
-      pid: context.pid,
-      sessionId,
-      source: context.source,
-      transcriptPath: context.transcriptPath,
-    });
+    let published: boolean;
+
+    try {
+      published = await this.publishEventImplementation(event, {
+        cwd: context.cwd,
+        env: context.env,
+        hookPayload: context.hookPayload,
+        pid: context.pid,
+        sessionId,
+        source: context.source,
+        transcriptPath: context.transcriptPath,
+      });
+    } catch (error: unknown) {
+      logger.error(
+        { error, eventType: type, adapter: this.name, sessionId },
+        '📖 Failed to publish event — swallowing to prevent daemon crash',
+      );
+      published = false;
+    }
 
     if (published) {
       this.eventsEmitted += 1;

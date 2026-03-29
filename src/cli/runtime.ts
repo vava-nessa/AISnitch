@@ -683,6 +683,22 @@ export function createCliRuntime(
     process.once('SIGINT', () => {
       void shutdown('SIGINT');
     });
+    process.once('uncaughtException', (error) => {
+      output.stderr(
+        `AISnitch crashed: ${
+          error instanceof Error ? error.message : 'unknown exception'
+        }\n`,
+      );
+      void shutdown('uncaughtException', 1);
+    });
+    process.once('unhandledRejection', (reason) => {
+      output.stderr(
+        `AISnitch rejected a promise: ${
+          reason instanceof Error ? reason.message : 'unknown rejection'
+        }\n`,
+      );
+      void shutdown('unhandledRejection', 1);
+    });
 
     await renderForegroundTui({
       configuredAdapters: getEnabledAdapters(config),

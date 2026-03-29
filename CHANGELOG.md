@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [@aisnitch/client 0.1.2] - 2026-03-30
+
+### Fixed
+- **Auto-reconnect permanently broken after `disconnect()`** — `_autoReconnectDisabled` flag was never reset on subsequent `connect()` calls, making the client silently drop events after any intentional disconnect/reconnect cycle.
+- **Stale welcome data** — `_welcome` is now cleared on `disconnect()` to prevent serving outdated daemon metadata after a reconnect.
+- **Invalid numeric options could cause tight reconnect loops** — constructor now validates `reconnectIntervalMs` and `maxReconnectIntervalMs`, rejecting `0`, `NaN`, and negative values at construction time with a clear error message.
+
+## [0.2.4] - 2026-03-30
+
+### Fixed
+- **No `uncaughtException` / `unhandledRejection` handlers in foreground TUI mode** — a single unhandled promise rejection would silently kill the process. Both handlers are now registered identically to the existing daemon-mode handlers.
+- **`BaseAdapter.emit()` had no try/catch** — the single publishing path used by ALL adapters could crash the entire daemon. Publishing failures are now caught, logged, and swallowed.
+- **`Pipeline.start()` left orphaned servers on partial failure** — if any component (WS, HTTP, UDS, adapters) failed to start, previously started components were never torn down. `start()` now wraps the full startup sequence in try/catch with `rollbackPartialStart()`.
+- **`Pipeline.stop()` failed fast** — one component failure prevented all subsequent components from shutting down. Each component is now stopped independently with its own try/catch.
+- **`AdapterRegistry.startAll()` / `stopAll()` lacked per-adapter isolation** — one failing adapter blocked the rest. Each adapter now starts/stops independently with individual error logging.
+- **`EventBus.publish()` subscriber errors crashed the daemon** — `emitter.emit()` does not catch listener exceptions. Both global and typed emits are now wrapped in try/catch.
+- **Unguarded `JSON.parse` in 4 WebSocket message parsers** — a single corrupted WebSocket frame could crash the app. All four parsers (`ManagedDaemonApp.tsx`, `useEventStream.ts`, `live-monitor.ts`, `live-logger.ts`) now wrap `JSON.parse` in try/catch.
+- **`HTTPReceiver.handleRequest()` — `new URL()` could throw on malformed request URLs** — now returns 400 instead of crashing via an unhandled rejection.
+- **WebSocket server leaked dead consumers** — socket `error` events were logged but the consumer was never removed from the map, accumulating stale state. `consumers.delete(socket)` is now called on error.
+- **`Pipeline.publishEvent()` enrichment failure crashed the event stream** — if context enrichment failed (e.g. `ps`, `pgrep` errors), the entire event was dropped. The original un-enriched event is now published as fallback.
+- **`Pipeline.handleHook()` had no top-level error boundary** — any uncaught error in a hook handler would propagate and crash. A try/catch wrapper now logs and swallows hook handler errors.
+
 ## [@aisnitch/client 0.1.1] - 2026-03-29
 
 ### Fixed

@@ -152,11 +152,6 @@ export class Pipeline {
     });
 
     if (resolvedHttpPort === resolvedWsPort) {
-      /**
-       * 📖 Port probing happens before either server is actually listening, so
-       * two independent probes can "win" the same candidate port. Reserve the
-       * WebSocket choice first and bump HTTP to the next free candidate.
-       */
       resolvedHttpPort = await resolveAvailablePort(resolvedHttpPort + 1, {
         logger: (message) => logger.info(message),
       });
@@ -201,27 +196,33 @@ export class Pipeline {
       });
     }
 
-    this.startedAt = Date.now();
+    try {
+      this.wsPort = await this.wsServer.start({
+        port: resolvedWsPort,
+        eventBus: this.eventBus,
+        activeTools,
+      });
+      this.httpPort = await this.httpReceiver.start({
+        port: resolvedHttpPort,
+        onHook: async (tool, payload) => {
+          await this.handleHook(tool, payload);
+        },
+        getHealthSnapshot: () => this.getHealthSnapshot(),
+      });
+      this.socketPath = await this.udsServer.start({
+        socketPath,
+        onEvent: async (event) => {
+          await this.publishEvent(event);
+        },
+      });
+      await this.adapterRegistry.startAll(config);
+    } catch (error: unknown) {
+      logger.error({ error }, '📖 Pipeline start failed — rolling back already-started components');
+      await this.rollbackPartialStart();
+      throw error;
+    }
 
-    this.wsPort = await this.wsServer.start({
-      port: resolvedWsPort,
-      eventBus: this.eventBus,
-      activeTools,
-    });
-    this.httpPort = await this.httpReceiver.start({
-      port: resolvedHttpPort,
-      onHook: async (tool, payload) => {
-        await this.handleHook(tool, payload);
-      },
-      getHealthSnapshot: () => this.getHealthSnapshot(),
-    });
-    this.socketPath = await this.udsServer.start({
-      socketPath,
-      onEvent: async (event) => {
-        await this.publishEvent(event);
-      },
-    });
-    await this.adapterRegistry.startAll(config);
+    this.startedAt = Date.now();
 
     logger.info(this.getStatus(), 'Core pipeline started');
 
@@ -232,10 +233,26 @@ export class Pipeline {
    * Stops every pipeline component in reverse dependency order.
    */
   public async stop(): Promise<void> {
-    await this.adapterRegistry?.stopAll();
-    await this.httpReceiver.stop();
-    await this.udsServer.stop();
-    await this.wsServer.stop();
+    const stopSafely = async (label: string, fn: () => Promise<void>) => {
+      try {
+        await fn();
+      } catch (error: unknown) {
+        logger.warn({ error }, `📖 Error while stopping ${label} — continuing shutdown`);
+      }
+    };
+
+    await stopSafely('adapter registry', async () => {
+      await this.adapterRegistry?.stopAll();
+    });
+    await stopSafely('HTTP receiver', async () => {
+      await this.httpReceiver.stop();
+    });
+    await stopSafely('UDS server', async () => {
+      await this.udsServer.stop();
+    });
+    await stopSafely('WebSocket server', async () => {
+      await this.wsServer.stop();
+    });
 
     this.eventBus.unsubscribeAll();
     this.adapterRegistry = null;
@@ -258,13 +275,56 @@ export class Pipeline {
   }
 
   /**
+   * 📖 Rolls back any components that were successfully started before a
+   * failure occurred, preventing orphaned servers or leaking resources.
+   */
+  private async rollbackPartialStart(): Promise<void> {
+    const stopSafe = async (label: string, fn: () => Promise<void>) => {
+      try {
+        await fn();
+      } catch (error: unknown) {
+        logger.warn({ error }, `📖 Error rolling back ${label}`);
+      }
+    };
+
+    await stopSafe('adapter registry', async () => {
+      await this.adapterRegistry?.stopAll();
+    });
+    await stopSafe('UDS server', async () => {
+      await this.udsServer.stop();
+    });
+    await stopSafe('HTTP receiver', async () => {
+      await this.httpReceiver.stop();
+    });
+    await stopSafe('WebSocket server', async () => {
+      await this.wsServer.stop();
+    });
+
+    this.adapterRegistry = null;
+    this.enabledTools.clear();
+    this.hookHandlers.clear();
+  }
+
+  /**
    * Publishes an event after best-effort context enrichment.
+   * 📖 If enrichment fails, the original event is published un-enriched
+   * rather than being dropped entirely.
    */
   public async publishEvent(
     event: AISnitchEvent,
     context: ProcessContext = {},
   ): Promise<boolean> {
-    const enrichedEvent = await this.contextDetector.enrich(event, context);
+    let enrichedEvent: AISnitchEvent;
+
+    try {
+      enrichedEvent = await this.contextDetector.enrich(event, context);
+    } catch (error: unknown) {
+      logger.warn(
+        { error, eventId: event.id },
+        '📖 Context enrichment failed — publishing un-enriched event',
+      );
+      enrichedEvent = event;
+    }
 
     return this.eventBus.publish(enrichedEvent);
   }
@@ -306,6 +366,17 @@ export class Pipeline {
   }
 
   private async handleHook(tool: ToolName, payload: unknown): Promise<void> {
+    try {
+      await this.handleHookInner(tool, payload);
+    } catch (error: unknown) {
+      logger.error(
+        { error, tool },
+        '📖 Unhandled error in hook handler — swallowing to prevent daemon crash',
+      );
+    }
+  }
+
+  private async handleHookInner(tool: ToolName, payload: unknown): Promise<void> {
     if (!this.enabledTools.has(tool)) {
       logger.debug({ tool }, 'Ignoring hook for disabled tool');
       return;

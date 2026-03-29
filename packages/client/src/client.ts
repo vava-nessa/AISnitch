@@ -129,8 +129,24 @@ export class AISnitchClient {
   constructor(options?: AISnitchClientOptions) {
     this._url = options?.url ?? 'ws://127.0.0.1:4820';
     this._autoReconnect = options?.autoReconnect ?? true;
-    this._baseInterval = options?.reconnectIntervalMs ?? 3_000;
-    this._maxInterval = options?.maxReconnectIntervalMs ?? 30_000;
+
+    // 📖 Validate numeric options to prevent tight reconnect loops or undefined behavior
+    const baseInterval = options?.reconnectIntervalMs ?? 3_000;
+    const maxInterval = options?.maxReconnectIntervalMs ?? 30_000;
+
+    if (!Number.isFinite(baseInterval) || baseInterval <= 0) {
+      throw new Error(
+        `@aisnitch/client: reconnectIntervalMs must be a positive finite number, got ${baseInterval}`,
+      );
+    }
+    if (!Number.isFinite(maxInterval) || maxInterval <= 0) {
+      throw new Error(
+        `@aisnitch/client: maxReconnectIntervalMs must be a positive finite number, got ${maxInterval}`,
+      );
+    }
+
+    this._baseInterval = baseInterval;
+    this._maxInterval = maxInterval;
     this._currentInterval = this._baseInterval;
     this._WSClass = options?.WebSocketClass;
 
@@ -161,6 +177,9 @@ export class AISnitchClient {
   connect(): void {
     if (this._destroyed) return;
     if (this._ws) return;
+
+    // 📖 Re-enable auto-reconnect on explicit connect() after a disconnect()
+    this._autoReconnectDisabled = false;
 
     const WSClass = this._resolveWebSocketClass();
     if (!WSClass) {
@@ -205,6 +224,7 @@ export class AISnitchClient {
   disconnect(): void {
     this._clearReconnectTimer();
     this._autoReconnectDisabled = true;
+    this._welcome = null; // 📖 Clear stale welcome data to avoid confusion on reconnect
     if (this._ws) {
       this._ws.onclose = null;
       this._ws.onmessage = null;

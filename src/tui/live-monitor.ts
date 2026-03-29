@@ -132,21 +132,26 @@ export async function attachWebSocketMonitor(
 }
 
 function parseSocketMessage(data: RawData): unknown {
-  if (typeof data === 'string') {
-    return JSON.parse(data) as unknown;
-  }
+  try {
+    if (typeof data === 'string') {
+      return JSON.parse(data) as unknown;
+    }
 
-  if (Array.isArray(data)) {
-    return JSON.parse(Buffer.concat(data).toString('utf8')) as unknown;
-  }
+    if (Array.isArray(data)) {
+      return JSON.parse(Buffer.concat(data).toString('utf8')) as unknown;
+    }
 
-  if (data instanceof ArrayBuffer) {
-    return JSON.parse(
-      Buffer.from(new Uint8Array(data)).toString('utf8'),
-    ) as unknown;
-  }
+    if (data instanceof ArrayBuffer) {
+      return JSON.parse(
+        Buffer.from(new Uint8Array(data)).toString('utf8'),
+      ) as unknown;
+    }
 
-  return JSON.parse(Buffer.from(data).toString('utf8')) as unknown;
+    return JSON.parse(Buffer.from(data).toString('utf8')) as unknown;
+  } catch {
+    // 📖 Malformed WebSocket frame — return null instead of crashing
+    return null;
+  }
 }
 
 function isWelcomeMessage(payload: unknown): payload is WelcomeMessage {
