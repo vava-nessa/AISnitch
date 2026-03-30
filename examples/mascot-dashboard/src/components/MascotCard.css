@@ -131,20 +131,52 @@
   animation: shake 0.4s ease-in-out 2;
 }
 
+/* ─── Activity Box ─── */
+
+.activity-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.activity-verb {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.activity-detail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 24px;
+}
+
 /* ─── Footer ─── */
 
 .card-footer {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-
-.card-description {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .card-meta {

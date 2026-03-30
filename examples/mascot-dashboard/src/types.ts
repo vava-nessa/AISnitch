@@ -1,6 +1,12 @@
-import type { MascotState, ToolName } from '@aisnitch/client';
+import type { MascotState, ToolName, AISnitchEventType } from '@aisnitch/client';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'offline';
+
+export interface ActivityInfo {
+  readonly verb: string;
+  readonly emoji: string;
+  readonly detail?: string;
+}
 
 export interface AgentCardState {
   readonly sessionId: string;
@@ -11,8 +17,11 @@ export interface AgentCardState {
   readonly cwd?: string;
   readonly mascotState: MascotState;
   readonly lastDescription: string;
+  readonly lastEventType: AISnitchEventType;
+  readonly activity: ActivityInfo;
   readonly eventCount: number;
   readonly startedAt: string;
+  readonly lastEventAt: number;
   readonly isSleeping: boolean;
   readonly isKilled: boolean;
   readonly killedAt?: number;

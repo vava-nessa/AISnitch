@@ -7,11 +7,47 @@ import {
   type AISnitchEvent,
   type WelcomeMessage,
 } from '@aisnitch/client';
-import type { AgentCardState, ConnectionStatus, TickerEvent } from '../types';
+import type { ActivityInfo, AgentCardState, ConnectionStatus, TickerEvent } from '../types';
 import { playBoot, playKill, playSleep, playStateChange } from '../lib/soundEngine';
 
 const KILL_DISPLAY_MS = 5000;
 const TICKER_MAX = 30;
+const SLEEP_AFTER_MS = 90_000;
+
+// 📖 Maps event type → emoji + verb for the activity section
+function resolveActivity(event: AISnitchEvent): ActivityInfo {
+  const map: Record<string, { emoji: string; verb: string }> = {
+    'session.start':     { emoji: '🚀', verb: 'Starting' },
+    'session.end':       { emoji: '👋', verb: 'Ending' },
+    'task.start':        { emoji: '🎯', verb: 'New task' },
+    'task.complete':     { emoji: '✅', verb: 'Completed' },
+    'agent.thinking':    { emoji: '💭', verb: 'Thinking' },
+    'agent.streaming':   { emoji: '💬', verb: 'Streaming' },
+    'agent.coding':      { emoji: '✏️', verb: 'Editing' },
+    'agent.tool_call':   { emoji: '🔧', verb: 'Tool call' },
+    'agent.asking_user': { emoji: '🙋', verb: 'Needs input' },
+    'agent.idle':        { emoji: '⏸️', verb: 'Idle' },
+    'agent.error':       { emoji: '❌', verb: 'Error' },
+    'agent.compact':     { emoji: '🗜️', verb: 'Compacting' },
+  };
+  const base = map[event.type] ?? { emoji: '❓', verb: event.type };
+
+  let detail: string | undefined;
+  if (event.type === 'agent.tool_call' && event.data.toolName) {
+    detail = event.data.toolName;
+    if (event.data.toolInput?.filePath) detail += ` → ${event.data.toolInput.filePath}`;
+  } else if (event.type === 'agent.coding' && event.data.activeFile) {
+    detail = event.data.activeFile;
+  } else if (event.type === 'agent.error' && event.data.errorMessage) {
+    detail = event.data.errorMessage;
+  } else if (event.type === 'agent.streaming' && event.data.activeFile) {
+    detail = event.data.activeFile;
+  } else if (event.type === 'agent.thinking' && event.data.model) {
+    detail = event.data.model;
+  }
+
+  return { emoji: base.emoji, verb: base.verb, detail };
+}
 
 export interface UseAISnitchReturn {
   readonly agents: ReadonlyMap<string, AgentCardState>;
@@ -27,7 +63,9 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
   const clientRef = useRef<AISnitchClient | null>(null);
   const agentsRef = useRef<Map<string, AgentCardState>>(new Map());
   const killTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const sleepTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const killsRef = useRef<Map<string, number>>(new Map());
+  const connRef = useRef<ConnectionStatus>('offline');
 
   const [agents, setAgents] = useState<ReadonlyMap<string, AgentCardState>>(new Map());
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('offline');
@@ -36,6 +74,11 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
   const [totalKills, setTotalKills] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const soundRef = useRef(false);
+
+  const setConn = useCallback((s: ConnectionStatus) => {
+    connRef.current = s;
+    setConnectionStatus(s);
+  }, []);
 
   const flushAgents = useCallback(() => {
     setAgents(new Map(agentsRef.current));
@@ -56,29 +99,53 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
     setSoundEnabled(soundRef.current);
   }, []);
 
+  // 📖 Schedule sleep after inactivity — resets on every new event for this session
+  const scheduleSleep = useCallback((sessionId: string) => {
+    const existing = sleepTimersRef.current.get(sessionId);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      const agent = agentsRef.current.get(sessionId);
+      if (agent && !agent.isKilled) {
+        agentsRef.current.set(sessionId, { ...agent, isSleeping: true });
+        flushAgents();
+        if (soundRef.current) playSleep();
+      }
+      sleepTimersRef.current.delete(sessionId);
+    }, SLEEP_AFTER_MS);
+
+    sleepTimersRef.current.set(sessionId, timer);
+  }, [flushAgents]);
+
   useEffect(() => {
     const client = createAISnitchClient({ url: wsUrl, autoReconnect: true });
     clientRef.current = client;
 
     client.on('connected', (w: WelcomeMessage) => {
-      setConnectionStatus('connected');
+      setConn('connected');
       setWelcome(w);
       if (soundRef.current) playBoot();
     });
 
     client.on('disconnected', () => {
-      setConnectionStatus(client.connected ? 'connected' : 'reconnecting');
+      // 📖 Only downgrade if we're not already connected (edge case: brief close during reconnect)
+      if (connRef.current !== 'connected') {
+        setConn('reconnecting');
+      }
     });
 
     client.on('error', () => {
-      setConnectionStatus('reconnecting');
+      // 📖 Don't downgrade from connected to reconnecting — onerror fires transiently
+      // even when the connection is fine. Let onclose handle real disconnections.
+      if (connRef.current === 'offline') {
+        setConn('reconnecting');
+      }
     });
 
     client.on('event', (event: AISnitchEvent) => {
       const sessionId = event['aisnitch.sessionid'];
       const existing = agentsRef.current.get(sessionId);
 
-      // 📖 On session.end → trigger kill animation
       if (event.type === 'session.end') {
         if (existing) {
           agentsRef.current.set(sessionId, {
@@ -88,12 +155,14 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
             killedAt: Date.now(),
             mascotState: eventToMascotState(event),
             lastDescription: describeEvent(event),
+            lastEventType: event.type,
+            activity: resolveActivity(event),
             eventCount: existing.eventCount + 1,
+            lastEventAt: Date.now(),
           });
           flushAgents();
 
-          const tool = existing.tool;
-          killsRef.current.set(tool, (killsRef.current.get(tool) ?? 0) + 1);
+          killsRef.current.set(existing.tool, (killsRef.current.get(existing.tool) ?? 0) + 1);
           const sum = [...killsRef.current.values()].reduce((a, b) => a + b, 0);
           setTotalKills(sum);
 
@@ -111,24 +180,26 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
       }
 
       const mascotState = eventToMascotState(event);
-      const isIdle = event.type === 'agent.idle';
+      const activity = resolveActivity(event);
+      const now = Date.now();
 
       if (existing) {
-        const wasSleeping = existing.isSleeping;
         agentsRef.current.set(sessionId, {
           ...existing,
           mascotState,
           lastDescription: describeEvent(event),
+          lastEventType: event.type,
+          activity,
           eventCount: existing.eventCount + 1,
-          isSleeping: isIdle,
+          lastEventAt: now,
+          isSleeping: false,
           project: event.data.project ?? existing.project,
           projectPath: event.data.projectPath ?? existing.projectPath,
           terminal: event.data.terminal ?? existing.terminal,
           cwd: event.data.cwd ?? existing.cwd,
         });
 
-        if (soundRef.current && !wasSleeping && isIdle) playSleep();
-        else if (soundRef.current && existing.mascotState.mood !== mascotState.mood) {
+        if (soundRef.current && existing.mascotState.mood !== mascotState.mood) {
           playStateChange(mascotState.mood);
         }
       } else {
@@ -141,27 +212,33 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
           cwd: event.data.cwd,
           mascotState,
           lastDescription: describeEvent(event),
+          lastEventType: event.type,
+          activity,
           eventCount: 1,
           startedAt: event.time,
-          isSleeping: isIdle,
+          lastEventAt: now,
+          isSleeping: false,
           isKilled: false,
         });
         if (soundRef.current) playStateChange(mascotState.mood);
       }
 
+      scheduleSleep(sessionId);
       flushAgents();
       addTickerEvent(event);
     });
 
-    setConnectionStatus('reconnecting');
+    setConn('reconnecting');
 
     return () => {
       for (const timer of killTimersRef.current.values()) clearTimeout(timer);
+      for (const timer of sleepTimersRef.current.values()) clearTimeout(timer);
       killTimersRef.current.clear();
+      sleepTimersRef.current.clear();
       client.destroy();
       clientRef.current = null;
     };
-  }, [wsUrl, flushAgents, addTickerEvent]);
+  }, [wsUrl, setConn, flushAgents, addTickerEvent, scheduleSleep]);
 
   return { agents, connectionStatus, welcome, recentEvents, totalKills, soundEnabled, toggleSound };
 }

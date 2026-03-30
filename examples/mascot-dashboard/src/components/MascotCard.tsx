@@ -34,7 +34,11 @@ interface MascotCardProps {
 export function MascotCard({ agent }: MascotCardProps) {
   const toolColor = getToolColor(agent.tool);
   const { emoji, label } = getMascotEmoji(agent.mascotState, agent.isSleeping, agent.isKilled);
-  const stateColor = agent.isKilled ? '#ef4444' : agent.isSleeping ? '#6b7280' : agent.mascotState.color;
+  const stateColor = agent.isKilled
+    ? '#ef4444'
+    : agent.isSleeping
+      ? '#6b7280'
+      : agent.mascotState.color;
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -59,6 +63,8 @@ export function MascotCard({ agent }: MascotCardProps) {
     agent.isKilled ? 'shake' : '',
   ].filter(Boolean).join(' ');
 
+  const particleMood = agent.isKilled ? 'killed' : agent.isSleeping ? 'sleeping' : agent.mascotState.mood;
+
   return (
     <div className={cardClass}>
       <div className="card-header">
@@ -74,21 +80,29 @@ export function MascotCard({ agent }: MascotCardProps) {
       )}
 
       <div className={bodyClass}>
-        <Particles mood={agent.isKilled ? 'killed' : agent.isSleeping ? 'sleeping' : agent.mascotState.mood} color={stateColor} />
+        <Particles mood={particleMood} color={stateColor} />
         <div
           className="mascot-circle"
-          style={{
-            background: circleBg,
-            boxShadow: circleShadow,
-          }}
+          style={{ background: circleBg, boxShadow: circleShadow }}
         >
           <span className="mascot-emoji">{emoji}</span>
           <span className="mascot-label" style={{ color: stateColor }}>{label}</span>
         </div>
       </div>
 
+      <div className="activity-box">
+        <div className="activity-header">
+          <span className="activity-emoji">{agent.activity.emoji}</span>
+          <span className="activity-verb" style={{ color: stateColor }}>{agent.activity.verb}</span>
+        </div>
+        {agent.activity.detail && (
+          <div className="activity-detail" title={agent.activity.detail}>
+            {agent.activity.detail}
+          </div>
+        )}
+      </div>
+
       <div className="card-footer">
-        <div className="card-description" title={agent.lastDescription}>{agent.lastDescription}</div>
         <div className="card-meta">
           <span>{agent.eventCount} events</span>
           <span className="meta-separator">·</span>
