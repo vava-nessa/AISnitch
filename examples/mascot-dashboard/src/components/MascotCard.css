@@ -1,20 +1,26 @@
+/* 📖 Card border color is set via inline style (project color).
+   Glow is also inline for active state, but coding gets a pulsing animation. */
 .mascot-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   animation: slideIn 0.3s ease-out both;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.4s ease, border-color 0.4s ease;
   position: relative;
   overflow: hidden;
 }
 
 .mascot-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* 📖 Coding state → pulsing glow on the card border */
+.mascot-card.coding {
+  animation: glowPulse 2s ease-in-out infinite;
 }
 
 .mascot-card.killed {
@@ -23,6 +29,8 @@
 
 .mascot-card.sleeping {
   opacity: 0.75;
+  border-color: var(--border-color) !important;
+  box-shadow: none !important;
 }
 
 /* ─── Header ─── */
@@ -57,22 +65,52 @@
   text-overflow: ellipsis;
 }
 
-.terminal-name {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 📖 Header pills container — wraps terminal + model pills with flex-wrap
+   so they stack gracefully on narrow cards */
+.header-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.card-path {
-  font-family: var(--font-mono);
+/* 📖 Terminal app pill — bordered pill that picks up the project color border */
+.terminal-name {
   font-size: 11px;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-primary, #e0e0e0);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  max-width: 120px;
+}
+
+/* 📖 Model pill — similar to terminal pill but with a subtle accent to distinguish it */
+.model-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #a0a0a0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  max-width: 150px;
 }
 
 /* ─── Mascot Circle ─── */
@@ -191,6 +229,65 @@
   opacity: 0.4;
 }
 
+/* ─── Project Badge ─── */
+
+/* 📖 Project section — groups the fixed project badge + live cwd */
+.project-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+/* 📖 Big project name banner at the bottom of the card.
+   Background color is deterministic (seeded by project name) so multiple
+   sessions on the same project share the same color for instant grouping. */
+.project-badge {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+/* 📖 Shimmer overlay — a bright highlight sweeps left→right when the agent is coding */
+.project-badge.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 70%
+  );
+  animation: shimmerSlide 1.8s ease-in-out infinite;
+}
+
+/* 📖 Live subdirectory under the project badge — uses the same project color
+   at reduced opacity for visual cohesion without competing with the badge */
+.project-cwd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  opacity: 0.85;
+}
+
 /* ─── Keyframes ─── */
 
 @keyframes slideIn {
@@ -215,6 +312,18 @@
   40% { transform: translateX(6px) rotate(2deg); }
   60% { transform: translateX(-4px) rotate(-1deg); }
   80% { transform: translateX(4px) rotate(1deg); }
+}
+
+/* 📖 Glow pulse on the card border when the agent is actively coding */
+@keyframes glowPulse {
+  0%, 100% { filter: brightness(1); box-shadow: inherit; }
+  50% { filter: brightness(1.1); }
+}
+
+/* 📖 Shimmer sweep across the project badge */
+@keyframes shimmerSlide {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(120%); }
 }
 
 @keyframes killSequence {

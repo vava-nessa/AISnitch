@@ -27,6 +27,64 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// 📖 Deterministic color from project name — uses a simple string hash to pick
+// a saturated HSL hue so the same project always gets the same color, even across
+// multiple cards / sessions. Saturation & lightness tuned for dark backgrounds.
+function projectNameToColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    hash |= 0; // 📖 force 32-bit int
+  }
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue}, 75%, 60%)`;
+}
+
+// 📖 Extract just the last folder name from a full path or project name
+function lastSegment(path: string): string {
+  const segments = path.replace(/\/+$/, '').split('/');
+  return segments[segments.length - 1] ?? path;
+}
+
+// 📖 Get the fixed project name (from project or projectPath, set at session start)
+function extractProjectName(agent: AgentCardState): string | null {
+  const raw = agent.project ?? agent.projectPath;
+  if (!raw) return null;
+  return lastSegment(raw);
+}
+
+// 📖 Get current subdirectory relative to project root.
+// Tries projectPath first, then falls back to finding the project name segment
+// in the cwd and cropping everything before it. Shows "./" when at project root.
+function extractCwdLabel(agent: AgentCardState): string | null {
+  if (!agent.cwd) return null;
+  const cwd = agent.cwd.replace(/\/+$/, '');
+  const projectRoot = agent.projectPath?.replace(/\/+$/, '');
+
+  // 📖 Exact match with projectPath → at root
+  if (projectRoot && cwd === projectRoot) return './';
+
+  // 📖 cwd is inside projectPath → relative
+  if (projectRoot && cwd.startsWith(projectRoot + '/')) {
+    return './' + cwd.slice(projectRoot.length + 1);
+  }
+
+  // 📖 Fallback: find the project name segment in cwd and crop from there
+  const projectName = agent.project ?? (projectRoot ? lastSegment(projectRoot) : null);
+  if (projectName) {
+    const marker = '/' + projectName + '/';
+    const idx = cwd.indexOf(marker);
+    if (idx !== -1) {
+      const after = cwd.slice(idx + marker.length);
+      return after ? './' + after : './';
+    }
+    // 📖 cwd ends with project name → at root
+    if (cwd.endsWith('/' + projectName)) return './';
+  }
+
+  return cwd;
+}
+
 interface MascotCardProps {
   readonly agent: AgentCardState;
 }
@@ -49,12 +107,20 @@ export function MascotCard({ agent }: MascotCardProps) {
   const circleBg = `radial-gradient(circle at 40% 35%, ${hexToRgba(stateColor, 0.25)}, ${hexToRgba(stateColor, 0.08)})`;
   const circleShadow = `0 0 20px ${hexToRgba(stateColor, 0.3)}, 0 0 60px ${hexToRgba(stateColor, 0.1)}`;
 
-  const displayPath = agent.projectPath ?? agent.cwd ?? agent.project ?? '';
+  const projectName = extractProjectName(agent);
+  const projectColor = projectName ? projectNameToColor(projectName) : null;
+  const cwdLabel = extractCwdLabel(agent);
+
+  // 📖 Detect "active" states for glow intensity + shimmer trigger
+  const isCoding = !agent.isKilled && !agent.isSleeping
+    && (agent.lastEventType === 'agent.coding' || agent.lastEventType === 'agent.tool_call');
+  const isActive = !agent.isKilled && !agent.isSleeping;
 
   const cardClass = [
     'mascot-card',
     agent.isKilled ? 'killed' : '',
     agent.isSleeping && !agent.isKilled ? 'sleeping' : '',
+    isCoding ? 'coding' : '',
   ].filter(Boolean).join(' ');
 
   const bodyClass = [
@@ -65,19 +131,38 @@ export function MascotCard({ agent }: MascotCardProps) {
 
   const particleMood = agent.isKilled ? 'killed' : agent.isSleeping ? 'sleeping' : agent.mascotState.mood;
 
+  // 📖 Card border + glow — uses project color. Glow intensity varies by state:
+  //   coding → pulsing glow (via CSS animation), active → soft glow, sleeping/killed → none
+  const cardStyle: React.CSSProperties = projectColor
+    ? {
+        borderColor: projectColor,
+        boxShadow: isActive
+          ? `0 0 12px ${projectColor}40, 0 0 30px ${projectColor}15`
+          : undefined,
+      }
+    : {};
+
   return (
-    <div className={cardClass}>
+    <div className={cardClass} style={cardStyle}>
       <div className="card-header">
         <div className="tool-identity">
           <span className="tool-dot" style={{ background: toolColor, boxShadow: `0 0 6px ${hexToRgba(toolColor, 0.5)}` }} />
           <span className="tool-name">{agent.tool}</span>
         </div>
-        {agent.terminal && <span className="terminal-name">{agent.terminal}</span>}
+        {/* 📖 Terminal + model pills — shown in header for quick identification */}
+        <div className="header-pills">
+          {agent.terminal && (
+            <span className="terminal-name" style={projectColor ? { borderColor: `${projectColor}50` } : {}}>
+              {agent.terminal}
+            </span>
+          )}
+          {agent.model && (
+            <span className="model-name" style={projectColor ? { borderColor: `${projectColor}50` } : {}}>
+              {agent.model}
+            </span>
+          )}
+        </div>
       </div>
-
-      {displayPath && (
-        <div className="card-path" title={displayPath}>{displayPath}</div>
-      )}
 
       <div className={bodyClass}>
         <Particles mood={particleMood} color={stateColor} />
@@ -109,6 +194,32 @@ export function MascotCard({ agent }: MascotCardProps) {
           <span>{formatDuration(agent.startedAt)}</span>
         </div>
       </div>
+
+      {/* 📖 Project name badge — deterministic color from name hash for instant visual grouping */}
+      {projectName && projectColor && (
+        <div className="project-section">
+          <div
+            className={`project-badge${isCoding ? ' shimmer' : ''}`}
+            style={{
+              background: projectColor,
+              color: '#111',
+            }}
+            title={agent.projectPath ?? agent.project ?? ''}
+          >
+            {projectName}
+          </div>
+          {/* 📖 Live cwd — shows current subdirectory when agent navigates inside the project */}
+          {cwdLabel && (
+            <div
+              className="project-cwd"
+              style={{ color: projectColor }}
+              title={agent.cwd ?? ''}
+            >
+              {cwdLabel}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.5] / [@aisnitch/client 0.2.5] - 2026-03-30
+
+### Fixed
+- **Terminal never detected in mascot dashboard** — Claude Code and OpenCode adapters were not passing `process.env` in their `AdapterPublishContext`, so the context detector couldn't detect the terminal from `TERM_PROGRAM`, `ITERM_SESSION_ID`, etc. Both adapters now forward env vars.
+- **LLM model never displayed in mascot dashboard** — the `model` field from `event.data.model` was never stored in `AgentCardState`. Now stored and displayed as a purple pill in the card header.
+- **OpenCode adapter missing model extraction** — added `model` extraction from payload (`model` or `properties.model`).
+
+### Added
+- **Model pill** in mascot dashboard card header — shows the active LLM model (e.g. `claude-opus-4-6`) next to the terminal pill.
+- **Header pills layout** — terminal and model pills now wrap gracefully on narrow cards.
+
 ## [0.2.4] / [@aisnitch/client 0.2.4] - 2026-03-30
 
 ### Fixed

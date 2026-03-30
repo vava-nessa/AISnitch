@@ -14,6 +14,7 @@ export interface AgentCardState {
   readonly project?: string;
   readonly projectPath?: string;
   readonly terminal?: string;
+  readonly model?: string;
   readonly cwd?: string;
   readonly mascotState: MascotState;
   readonly lastDescription: string;

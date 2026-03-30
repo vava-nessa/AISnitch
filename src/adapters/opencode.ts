@@ -135,6 +135,8 @@ export class OpenCodeAdapter extends BaseAdapter {
     });
     const context: AdapterPublishContext = {
       cwd: extractOpenCodeCwd(payload),
+      // 📖 Pass process.env so the context detector can detect the terminal
+      env: this.env ?? process.env,
       hookPayload: payload,
       pid: getNumber(payload, 'pid'),
       sessionId,
@@ -145,6 +147,8 @@ export class OpenCodeAdapter extends BaseAdapter {
       cwd: context.cwd,
       errorMessage: extractOpenCodeErrorMessage(payload),
       errorType: extractOpenCodeErrorType(payload),
+      // 📖 Extract model from payload — OpenCode may send it as "model" or nested in properties
+      model: getString(payload, 'model') ?? getString(getRecord(payload.properties), 'model'),
       project: extractOpenCodeProject(payload),
       raw: payload,
       toolInput: extractOpenCodeToolInput(payload),

@@ -193,9 +193,11 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
           eventCount: existing.eventCount + 1,
           lastEventAt: now,
           isSleeping: false,
-          project: event.data.project ?? existing.project,
-          projectPath: event.data.projectPath ?? existing.projectPath,
+          // 📖 project/projectPath are frozen at first value — they identify the root project
+          project: existing.project ?? event.data.project,
+          projectPath: existing.projectPath ?? event.data.projectPath,
           terminal: event.data.terminal ?? existing.terminal,
+          model: event.data.model ?? existing.model,
           cwd: event.data.cwd ?? existing.cwd,
         });
 
@@ -209,6 +211,7 @@ export function useAISnitch(wsUrl = 'ws://127.0.0.1:4820'): UseAISnitchReturn {
           project: event.data.project,
           projectPath: event.data.projectPath,
           terminal: event.data.terminal,
+          model: event.data.model,
           cwd: event.data.cwd,
           mascotState,
           lastDescription: describeEvent(event),

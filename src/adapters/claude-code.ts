@@ -217,6 +217,9 @@ export class ClaudeCodeAdapter extends BaseAdapter {
     });
     const context: AdapterPublishContext = {
       cwd: getString(payload, 'cwd'),
+      // 📖 Pass process.env so the context detector can detect the terminal
+      // from TERM_PROGRAM, ITERM_SESSION_ID, etc. — hooks don't carry env vars
+      env: this.env ?? process.env,
       hookPayload: payload,
       pid: getNumber(payload, 'pid'),
       sessionId,
@@ -524,6 +527,8 @@ function extractClaudeTranscriptObservations(
   const tokensUsed = extractTokenUsage(payload);
   const rawPayload = payload;
   const sharedContext: AdapterPublishContext = {
+    // 📖 Pass process.env so terminal detection works from transcript path too
+    env: process.env,
     hookPayload: rawPayload,
     sessionId,
     source: 'aisnitch://adapters/claude-code/transcript',
