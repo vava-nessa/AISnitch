@@ -21,13 +21,17 @@ The command also updates the AISnitch config so the selected adapter is marked `
 
 ## Claude Code strategy
 
-Research against the current Claude Code hooks reference confirms that hooks live in `~/.claude/settings.json` and support HTTP handlers where the hook payload is delivered as the POST body.
+Research against the current Claude Code hooks reference confirms that hooks live in `~/.claude/settings.json` and are configured as command handlers fed with JSON on stdin.
 
-AISnitch writes one HTTP hook group per supported Claude Code event and points each one at:
+AISnitch writes one command hook group per supported Claude Code event and installs one small bridge script at:
+
+- `~/.claude/aisnitch-forward.mjs`
+
+Each hook invokes the bridge with the Claude hook event name. The bridge reads stdin JSON, adds `hook_event_name`, and forwards the payload to:
 
 `http://localhost:<httpPort>/hooks/claude-code`
 
-The implementation keeps existing user hooks in place and only appends the AISnitch HTTP handler when it is missing. It also upgrades the matching AISnitch hook to `async: true` if the URL already exists with a non-async form.
+The implementation keeps existing user hooks in place, replaces AISnitch's older broken `type: "http"` entries with the command bridge, and upgrades the matching AISnitch hook to `async: true`.
 
 ## OpenCode strategy
 

@@ -98,6 +98,7 @@ type ClaudeHookEventName = (typeof CLAUDE_CODE_HOOK_EVENTS)[number];
 
 interface ClaudeHookHandler extends Record<string, unknown> {
   readonly async?: boolean;
+  command?: string;
   readonly type: string;
   readonly url?: string;
 }
@@ -326,13 +327,16 @@ abstract class FileToolSetupBase implements ToolSetup {
 }
 
 /**
- * Claude Code setup mutates `~/.claude/settings.json` and merges one AISnitch
- * HTTP hook group per event without overwriting unrelated user hooks.
+ * Claude Code setup mutates `~/.claude/settings.json`, installs one tiny local
+ * bridge script, and merges one AISnitch command hook per event without
+ * overwriting unrelated user hooks.
  */
 export class ClaudeCodeSetup extends FileToolSetupBase {
   private readonly settingsPath: string;
 
   private readonly hookUrl: string;
+
+  private readonly scriptPath: string;
 
   public constructor(
     httpPort: number,
@@ -342,6 +346,11 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     this.settingsPath =
       dependencies.claudeSettingsPath ??
       join(dependencies.homeDirectory ?? homedir(), '.claude', 'settings.json');
+    this.scriptPath = join(
+      dependencies.homeDirectory ?? homedir(),
+      '.claude',
+      'aisnitch-forward.mjs',
+    );
     this.hookUrl = `http://localhost:${httpPort}/hooks/claude-code`;
   }
 
@@ -356,9 +365,60 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     return this.settingsPath;
   }
 
+  public async computeDiff(): Promise<string> {
+    const currentSettingsContent = await readOptionalFile(this.settingsPath);
+    const currentScriptContent = await readOptionalFile(this.scriptPath);
+    const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
+    const nextScriptContent = buildClaudeForwardScriptSource();
+
+    return [
+      renderColoredDiff(
+        this.settingsPath,
+        currentSettingsContent,
+        nextSettingsContent,
+      ),
+      '',
+      renderColoredDiff(
+        this.scriptPath,
+        currentScriptContent,
+        nextScriptContent,
+      ),
+    ].join('\n');
+  }
+
+  public async apply(): Promise<void> {
+    const currentSettingsContent = await readOptionalFile(this.settingsPath);
+    const currentScriptContent = await readOptionalFile(this.scriptPath);
+    const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
+    const nextScriptContent = buildClaudeForwardScriptSource();
+
+    await mkdir(dirname(this.settingsPath), { recursive: true });
+    await mkdir(dirname(this.scriptPath), { recursive: true });
+
+    if (currentSettingsContent !== null) {
+      await copyFile(this.settingsPath, this.getBackupPath(this.settingsPath));
+    }
+
+    if (currentScriptContent !== null) {
+      await copyFile(this.scriptPath, this.getBackupPath(this.scriptPath));
+    }
+
+    await writeFile(this.settingsPath, nextSettingsContent, 'utf8');
+    await writeFile(this.scriptPath, nextScriptContent, 'utf8');
+  }
+
+  public async revert(): Promise<void> {
+    await restoreBackupOrRemove(this.settingsPath);
+    await restoreBackupOrRemove(this.scriptPath);
+  }
+
   protected buildNextContent(
     currentContent: string | null,
   ): Promise<string> {
+    return Promise.resolve(this.buildNextSettingsContent(currentContent));
+  }
+
+  private buildNextSettingsContent(currentContent: string | null): string {
     const parsedSettings = parseClaudeSettings(currentContent);
     const currentHooks = parsedSettings.hooks ?? {};
     const nextHooks: Record<string, ClaudeHookMatcherGroup[]> = {
@@ -370,6 +430,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
         currentHooks[hookEventName] ?? [],
         hookEventName,
         this.hookUrl,
+        this.scriptPath,
       );
     }
 
@@ -378,7 +439,11 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
       hooks: nextHooks,
     };
 
-    return Promise.resolve(`${JSON.stringify(nextSettings, null, 2)}\n`);
+    return `${JSON.stringify(nextSettings, null, 2)}\n`;
+  }
+
+  private getBackupPath(path: string): string {
+    return `${path}.bak`;
   }
 }
 
@@ -1394,6 +1459,7 @@ function ensureClaudeAISnitchHook(
   groups: readonly ClaudeHookMatcherGroup[],
   hookEventName: ClaudeHookEventName,
   hookUrl: string,
+  scriptPath: string,
 ): ClaudeHookMatcherGroup[] {
   const clonedGroups = groups.map((group) => ({
     ...group,
@@ -1405,7 +1471,12 @@ function ensureClaudeAISnitchHook(
   const matchingGroup = clonedGroups.find((group) => group.matcher === matcher);
 
   if (matchingGroup) {
-    const existingHook = matchingGroup.hooks.find((handler) => isClaudeAISnitchHook(handler, hookUrl));
+    matchingGroup.hooks = matchingGroup.hooks.filter(
+      (handler) => !isLegacyClaudeAISnitchHttpHook(handler, hookUrl),
+    );
+    const existingHook = matchingGroup.hooks.find((handler) =>
+      isClaudeAISnitchHook(handler, hookEventName, hookUrl, scriptPath),
+    );
 
     if (existingHook) {
       if (existingHook.async !== true) {
@@ -1415,37 +1486,131 @@ function ensureClaudeAISnitchHook(
       return clonedGroups;
     }
 
-    matchingGroup.hooks.push(createClaudeAISnitchHook(hookUrl));
+    matchingGroup.hooks.push(
+      createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath),
+    );
     return clonedGroups;
   }
 
   const nextGroup: ClaudeHookMatcherGroup =
     matcher === undefined
       ? {
-          hooks: [createClaudeAISnitchHook(hookUrl)],
+          hooks: [createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath)],
         }
       : {
           matcher,
-          hooks: [createClaudeAISnitchHook(hookUrl)],
+          hooks: [createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath)],
         };
 
   clonedGroups.push(nextGroup);
   return clonedGroups;
 }
 
-function createClaudeAISnitchHook(hookUrl: string): ClaudeHookHandler {
+function createClaudeAISnitchHook(
+  hookEventName: ClaudeHookEventName,
+  hookUrl: string,
+  scriptPath: string,
+): ClaudeHookHandler {
   return {
     async: true,
-    type: 'http',
-    url: hookUrl,
+    command: buildClaudeForwardCommand(hookEventName, hookUrl, scriptPath),
+    type: 'command',
   };
 }
 
 function isClaudeAISnitchHook(
   handler: ClaudeHookHandler,
+  hookEventName: ClaudeHookEventName,
+  hookUrl: string,
+  scriptPath: string,
+): boolean {
+  return (
+    handler.type === 'command' &&
+    typeof handler.command === 'string' &&
+    handler.command ===
+      buildClaudeForwardCommand(hookEventName, hookUrl, scriptPath)
+  );
+}
+
+function isLegacyClaudeAISnitchHttpHook(
+  handler: ClaudeHookHandler,
   hookUrl: string,
 ): boolean {
   return handler.type === 'http' && handler.url === hookUrl;
+}
+
+function buildClaudeForwardCommand(
+  hookEventName: ClaudeHookEventName,
+  hookUrl: string,
+  scriptPath: string,
+): string {
+  return `node ${shellEscapeSingle(scriptPath)} ${hookEventName} ${shellEscapeSingle(hookUrl)}`;
+}
+
+function buildClaudeForwardScriptSource(): string {
+  return `#!/usr/bin/env node
+/**
+ * AISnitch Claude Code hook bridge
+ *
+ * 📖 Claude Code currently exposes command hooks fed through stdin JSON.
+ * This bridge keeps the Claude config valid while still forwarding every
+ * selected hook event into the local AISnitch HTTP receiver.
+ */
+
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function readInput() {
+  const chunks = [];
+
+  for await (const chunk of process.stdin) {
+    chunks.push(typeof chunk === "string" ? chunk : chunk.toString("utf8"));
+  }
+
+  return chunks.join("");
+}
+
+async function main() {
+  const hookEventName = process.argv[2] ?? "unknown";
+  const endpoint = process.argv[3] ?? "http://localhost:4821/hooks/claude-code";
+  const rawInput = await readInput();
+  let payload = {};
+
+  if (rawInput.trim().length > 0) {
+    try {
+      const parsedPayload = JSON.parse(rawInput);
+
+      if (isRecord(parsedPayload)) {
+        payload = parsedPayload;
+      }
+    } catch {
+      payload = {
+        raw: rawInput
+      };
+    }
+  }
+
+  try {
+    await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        ...payload,
+        hook_event_name: hookEventName
+      })
+    });
+  } catch {
+    // Claude hooks must stay fire-and-forget for observability only.
+  }
+}
+
+void main().catch(() => {
+  // Never bubble hook bridge failures back into Claude Code itself.
+});
+`;
 }
 
 function ensureGeminiAISnitchHook(
@@ -2113,6 +2278,12 @@ async function readOptionalFile(path: string): Promise<string | null> {
 
     throw error;
   }
+}
+
+function shellEscapeSingle(value: string): string {
+  // 📖 Claude stores hook commands as one shell string, so paths and URLs
+  // must be quoted defensively to survive spaces and apostrophes.
+  return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
 async function restoreBackupOrRemove(path: string): Promise<void> {

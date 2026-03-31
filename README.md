@@ -220,7 +220,7 @@ flowchart LR
 
 | Tool | Strategy | Setup |
 |---|---|---|
-| **Claude Code** | HTTP hooks + JSONL transcript watching + process detection | `aisnitch setup claude-code` |
+| **Claude Code** | Command hooks + JSONL transcript watching + process detection | `aisnitch setup claude-code` |
 | **OpenCode** | Local plugin + process detection | `aisnitch setup opencode` |
 | **Gemini CLI** | Command hooks + `logs.json` watching + process detection | `aisnitch setup gemini-cli` |
 | **Codex** | `codex-tui.log` parsing + process detection | `aisnitch setup codex` |

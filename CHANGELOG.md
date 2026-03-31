@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.6] / [@aisnitch/client 0.2.6] - 2026-03-31
+
+### Fixed
+- **Claude Code hook bridge could throw `PreToolUse` / `PostToolUse` errors for tools like `Read` and `Grep`** — AISnitch setup was still installing legacy Claude hooks as `type: "http"`, while current Claude Code expects command hooks fed via stdin JSON. `aisnitch setup claude-code` now installs a local `~/.claude/aisnitch-forward.mjs` bridge, forwards stdin payloads to the AISnitch HTTP receiver, and replaces stale AISnitch HTTP hook entries automatically.
 ## [0.2.5] / [@aisnitch/client 0.2.5] - 2026-03-30
 
 ### Fixed

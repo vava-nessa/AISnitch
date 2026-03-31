@@ -18,7 +18,7 @@ Adapters do not publish straight to the raw `EventBus`. They emit normalized AIS
 
 `src/adapters/claude-code.ts` currently uses three layers:
 
-- Official hook payload mapping from `/hooks/claude-code`
+- Official command-hook payload mapping from `/hooks/claude-code`
 - JSONL transcript watching under `~/.claude/projects/**/*.jsonl`
 - Lightweight `pgrep -lf claude` polling as a fallback when hooks were never installed
 

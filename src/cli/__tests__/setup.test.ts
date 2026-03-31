@@ -43,9 +43,10 @@ describe('setup command helpers', () => {
     expect(parseSetupToolName('opencode')).toBe('opencode');
   });
 
-  it('merges AISnitch HTTP hooks into Claude Code settings without dropping existing hooks', async () => {
+  it('merges AISnitch command hooks into Claude Code settings without dropping existing hooks', async () => {
     const homeDirectory = await createTempHome();
     const settingsPath = join(homeDirectory, '.claude', 'settings.json');
+    const scriptPath = join(homeDirectory, '.claude', 'aisnitch-forward.mjs');
     const originalContent = `${JSON.stringify(
       {
         theme: 'dark',
@@ -78,6 +79,7 @@ describe('setup command helpers', () => {
       const diff = await setup.computeDiff();
 
       expect(diff).toContain('http://localhost:4821/hooks/claude-code');
+      expect(diff).toContain(scriptPath);
 
       await setup.apply();
 
@@ -98,11 +100,15 @@ describe('setup command helpers', () => {
           }),
           expect.objectContaining({
             async: true,
-            type: 'http',
-            url: 'http://localhost:4821/hooks/claude-code',
+            command: `node '${scriptPath}' Stop 'http://localhost:4821/hooks/claude-code'`,
+            type: 'command',
           }),
         ]),
       );
+      const bridgeScript = await readFile(scriptPath, 'utf8');
+
+      expect(bridgeScript).toContain('AISnitch Claude Code hook bridge');
+      expect(bridgeScript).toContain('hook_event_name: hookEventName');
       expect(
         await readFile(`${settingsPath}.bak`, 'utf8'),
       ).toBe(originalContent);
@@ -110,6 +116,65 @@ describe('setup command helpers', () => {
       await setup.revert();
 
       expect(await readFile(settingsPath, 'utf8')).toBe(originalContent);
+      await expect(readFile(scriptPath, 'utf8')).rejects.toThrow();
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('replaces legacy Claude HTTP hooks with the command bridge', async () => {
+    const homeDirectory = await createTempHome();
+    const settingsPath = join(homeDirectory, '.claude', 'settings.json');
+    const scriptPath = join(homeDirectory, '.claude', 'aisnitch-forward.mjs');
+
+    try {
+      await mkdir(dirname(settingsPath), { recursive: true });
+      await writeFile(
+        settingsPath,
+        `${JSON.stringify(
+          {
+            hooks: {
+              PreToolUse: [
+                {
+                  hooks: [
+                    {
+                      async: true,
+                      type: 'http',
+                      url: 'http://localhost:4821/hooks/claude-code',
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          null,
+          2,
+        )}\n`,
+        'utf8',
+      );
+
+      const setup = new ClaudeCodeSetup(4821, {
+        binaryExists: () => Promise.resolve(true),
+        homeDirectory,
+      });
+
+      await setup.apply();
+
+      const updatedSettings = JSON.parse(
+        await readFile(settingsPath, 'utf8'),
+      ) as {
+        hooks: Record<string, Array<{ hooks: Array<Record<string, unknown>> }>>;
+      };
+      const hooks = updatedSettings.hooks.PreToolUse?.[0]?.hooks ?? [];
+
+      expect(hooks).toHaveLength(1);
+      expect(hooks[0]).toEqual(
+        expect.objectContaining({
+          async: true,
+          command: `node '${scriptPath}' PreToolUse 'http://localhost:4821/hooks/claude-code'`,
+          type: 'command',
+        }),
+      );
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }
