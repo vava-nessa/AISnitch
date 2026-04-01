@@ -6,7 +6,7 @@ declare module 'fullscreen-ink' {
     /** Resolves when the Ink app exits */
     waitUntilExit: Promise<void>;
     /** The underlying Ink instance returned by render */
-    instance: any;
+    instance: unknown;
   }
   /** Wrap a React component to render it fullscreen in the terminal */
   export function withFullScreen(

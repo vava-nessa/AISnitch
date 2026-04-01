@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.12] / [@aisnitch/client 0.2.12] - 2026-04-01
+
+### Fixed
+- Fix lint error in `fullscreen-ink.d.ts` (`any` → `unknown`) that was blocking all CI/Release workflows since 0.2.6.
+- Add `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var to CI workflow.
+
 ## [0.2.11] / [@aisnitch/client 0.2.11] - 2026-04-01
 
 ### Changed
