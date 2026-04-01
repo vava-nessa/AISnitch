@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.16] / [@aisnitch/client 0.2.16] - 2026-04-01
+
+### Changed
+- Bump to 0.2.16.
+
 ## [0.2.15] / [@aisnitch/client 0.2.15] - 2026-04-01
 
 ### Changed
