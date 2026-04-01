@@ -20,7 +20,7 @@ export const AISNITCH_PACKAGE_NAME = 'aisnitch';
  * 📖 The published version is kept in source so runtime entrypoints can expose
  * stable metadata without reading package.json at runtime.
  */
-export const AISNITCH_VERSION = '0.2.9';
+export const AISNITCH_VERSION = '0.2.10';
 
 /**
  * 📖 The shared description stays close to the package identity so commander

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.10] / [@aisnitch/client 0.2.10] - 2026-04-01
+
+### Changed
+- Fullscreen TUI integration via `fullscreen-ink`.
+- CI workflow pnpm version aligned to 10.33.0.
+- Minor documentation updates.
+
 ## [0.2.9] / [@aisnitch/client 0.2.9] - 2026-04-01
 
 ### Changed

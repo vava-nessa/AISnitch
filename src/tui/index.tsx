@@ -1,5 +1,6 @@
 import React from 'react';
 import { render } from 'ink';
+import { withFullScreen } from 'fullscreen-ink';
 import WebSocket from 'ws';
 
 import { AISNITCH_VERSION } from '../package-info.js';
@@ -62,7 +63,7 @@ export interface ManagedTuiOptions {
 export async function renderForegroundTui(
   options: ForegroundTuiOptions,
 ): Promise<void> {
-  const app = render(
+  const ink = withFullScreen(
     <App
       configuredAdapters={options.configuredAdapters}
       initialFilters={options.initialFilters}
@@ -82,7 +83,8 @@ export async function renderForegroundTui(
     />,
   );
 
-  await app.waitUntilExit();
+  await ink.start();
+  await ink.waitUntilExit;
 }
 
 /**

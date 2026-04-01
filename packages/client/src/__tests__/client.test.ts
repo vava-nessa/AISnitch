@@ -21,7 +21,7 @@ describe('AISnitchClient', () => {
     });
 
     let receivedWelcome: WelcomeMessage | null = null;
-    client.on('connected', (w) => { receivedWelcome = w; });
+    client.on('connected', (w: any) => { receivedWelcome = w; });
 
     client.connect();
     const ws = MockWebSocket.instances[0]!;
