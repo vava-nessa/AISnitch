@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.9] / [@aisnitch/client 0.2.9] - 2026-04-01
+
+### Changed
+- Bumped package version to 0.2.9 and aligned AISNITCH_VERSION constant.
+- Updated tests and documentation to reflect new version.
+- No functional changes.
+
+
+## [0.2.8] / [@aisnitch/client 0.2.8] - 2026-03-31
+
+### Fixed
+- **Release verification failed on `v0.2.7` during `pnpm check`** — `ClaudeCodeSetup` introduced override/signature mismatches that `tsc --noEmit` correctly rejected in CI. The setup overrides are now declared correctly and the extra backup helper no longer collides with the base class API.
+- **Release workflow failed before install on `v0.2.6`** — `.github/workflows/release.yml` pinned `pnpm/action-setup` to `10.24.0` while the repository now declares `packageManager: pnpm@10.33.0`. The workflow now uses `10.33.0`, so tag-based releases boot cleanly again.
+- **Claude Code hook bridge could throw `PreToolUse` / `PostToolUse` errors for tools like `Read` and `Grep`** — AISnitch setup was still installing legacy Claude hooks as `type: "http"`, while current Claude Code expects command hooks fed via stdin JSON. `aisnitch setup claude-code` now installs a local `~/.claude/aisnitch-forward.mjs` bridge, forwards stdin payloads to the AISnitch HTTP receiver, and replaces stale AISnitch HTTP hook entries automatically.
+
 ## [0.2.7] / [@aisnitch/client 0.2.7] - 2026-03-31
 
 ### Fixed

@@ -29,7 +29,7 @@ describe('AISnitchClient', () => {
     ws.simulateMessage(makeWelcome());
 
     expect(receivedWelcome).not.toBeNull();
-    expect(receivedWelcome?.version).toBe('0.2.3');
+    expect(receivedWelcome?.version).toBe('0.2.9');
     expect(client.welcome).not.toBeNull();
     client.destroy();
   });

@@ -24,7 +24,7 @@
 
 ## 🟡 Todo
 
-(empty)
+- [🔧 Version bump to 0.2.9] ./task-version-bump.md — 0/1 — update version constants, tests, docs, changelog.
 
 ---
 
