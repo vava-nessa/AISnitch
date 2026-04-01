@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.14] / [@aisnitch/client 0.2.14] - 2026-04-01
+
+### Fixed
+- Sync `AISNITCH_VERSION` constant in `src/package-info.ts` with published package version — was stuck at 0.2.12 causing the TUI, CLI, and WebSocket welcome message to display the wrong version number.
+- Add mandatory bump checklist item to `AGENTS.md` to prevent this from happening again.
+
 ## [0.2.13] / [@aisnitch/client 0.2.13] - 2026-04-01
 
 ### Fixed
