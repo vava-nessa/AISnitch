@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  check:
+  aisnitch:
     name: aisnitch (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     env:
@@ -58,3 +58,49 @@ jobs:
       - name: Coverage
         if: matrix.node-version == '20'
         run: pnpm test:coverage
+
+  client:
+    name: "@aisnitch/client (Node ${{ matrix.node-version }})"
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+          - 20
+          - 22
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm --filter @aisnitch/client lint
+
+      - name: Typecheck
+        run: pnpm --filter @aisnitch/client typecheck
+
+      - name: Test
+        run: pnpm --filter @aisnitch/client test
+
+      - name: Build
+        run: pnpm --filter @aisnitch/client build
+
+      - name: Coverage
+        if: matrix.node-version == '20'
+        run: pnpm --filter @aisnitch/client test:coverage
