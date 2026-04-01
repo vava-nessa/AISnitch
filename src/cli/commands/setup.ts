@@ -294,8 +294,8 @@ abstract class FileToolSetupBase implements ToolSetup {
     currentContent: string | null,
   ): Promise<string>;
 
-  protected getBackupPath(): string {
-    return `${this.getConfigPath()}.bak`;
+  protected getBackupPath(path?: string): string {
+    return `${path ?? this.getConfigPath()}.bak`;
   }
 
   private async buildSnapshot(): Promise<FileMutationSnapshot> {
@@ -361,11 +361,11 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     );
   }
 
-  public getConfigPath(): string {
+  public override getConfigPath(): string {
     return this.settingsPath;
   }
 
-  public async computeDiff(): Promise<string> {
+  public override async computeDiff(): Promise<string> {
     const currentSettingsContent = await readOptionalFile(this.settingsPath);
     const currentScriptContent = await readOptionalFile(this.scriptPath);
     const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
@@ -386,7 +386,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     ].join('\n');
   }
 
-  public async apply(): Promise<void> {
+  public override async apply(): Promise<void> {
     const currentSettingsContent = await readOptionalFile(this.settingsPath);
     const currentScriptContent = await readOptionalFile(this.scriptPath);
     const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
@@ -407,12 +407,12 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     await writeFile(this.scriptPath, nextScriptContent, 'utf8');
   }
 
-  public async revert(): Promise<void> {
+  public override async revert(): Promise<void> {
     await restoreBackupOrRemove(this.settingsPath);
     await restoreBackupOrRemove(this.scriptPath);
   }
 
-  protected buildNextContent(
+  protected override buildNextContent(
     currentContent: string | null,
   ): Promise<string> {
     return Promise.resolve(this.buildNextSettingsContent(currentContent));
@@ -442,7 +442,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     return `${JSON.stringify(nextSettings, null, 2)}\n`;
   }
 
-  private getBackupPath(path: string): string {
+  protected override getBackupPath(path?: string): string {
     return `${path}.bak`;
   }
 }
@@ -477,11 +477,11 @@ export class OpenCodeSetup extends FileToolSetupBase {
     );
   }
 
-  public getConfigPath(): string {
+  public override getConfigPath(): string {
     return this.pluginPath;
   }
 
-  protected buildNextContent(): Promise<string> {
+  protected override buildNextContent(): Promise<string> {
     return Promise.resolve(buildOpenCodePluginSource(this.hookUrl));
   }
 }
@@ -513,11 +513,11 @@ export class GeminiCLISetup extends FileToolSetupBase {
     );
   }
 
-  public getConfigPath(): string {
+  public override getConfigPath(): string {
     return this.settingsPath;
   }
 
-  protected buildNextContent(
+  protected override buildNextContent(
     currentContent: string | null,
   ): Promise<string> {
     const parsedSettings = parseGeminiSettings(currentContent);
@@ -569,11 +569,11 @@ export class AiderSetup extends FileToolSetupBase {
     );
   }
 
-  public getConfigPath(): string {
+  public override getConfigPath(): string {
     return this.configPath;
   }
 
-  protected buildNextContent(
+  protected override buildNextContent(
     currentContent: string | null,
   ): Promise<string> {
     let nextContent =
@@ -815,7 +815,7 @@ export class CopilotCLISetup implements ToolSetup {
     return `${JSON.stringify(nextConfig, null, 2)}\n`;
   }
 
-  private getBackupPath(path: string): string {
+  protected getBackupPath(path?: string): string {
     return `${path}.bak`;
   }
 }
@@ -977,7 +977,7 @@ export class OpenClawSetup implements ToolSetup {
     return `${JSON.stringify(nextConfig, null, 2)}\n`;
   }
 
-  private getBackupPath(path: string): string {
+  protected getBackupPath(path?: string): string {
     return `${path}.bak`;
   }
 }
