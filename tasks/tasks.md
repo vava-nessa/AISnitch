@@ -29,42 +29,42 @@
 ---
 
 ## 🔵 In Progress
-- [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 0/2 — packaging/docs/community prêts, publication et validation GitHub externes encore pending
+- [📦 Distribution & Launch](./01-distribution/task-distribution.md) — 0/2 — packaging/docs/community prêts, publication et validation GitHub externes encore pending
 
 ---
 
 ## ✅ Done
 
-- [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 4/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation 5s, sound engine synthétisé, event ticker, dark theme, empty state 🐸
-- [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
-- [🧪 Testing & E2E](./07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
-- [01 — Unit & Integration Tests](./07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%
-- [02 — Mock Command](./07-testing/02_testing_mock-command_DONE.md) — `aisnitch mock`, scénarios réalistes, `start --mock`, tests dédiés
-- [03 — E2E Smoke avec OpenCode](./07-testing/03_testing_e2e-smoke_DONE.md) — `pnpm test:e2e`, config séparée, vrai `opencode run`, et plugin renforcé pour le mode non interactif
-- [01 — Gemini CLI & Codex](./06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
-- [02 — Goose & Copilot CLI](./06-adapters-secondary/02_adapters-secondary_goose-copilot_DONE.md) — polling `goosed` + SSE + fallback SQLite, hooks Copilot + session-state + setup repo-local
-- [03 — Aider & Generic PTY](./06-adapters-secondary/03_adapters-secondary_aider-pty_DONE.md) — watcher `.aider.chat.history.md`, setup `notifications-command`, fallback `aisnitch wrap <cmd>`, et heuristiques PTY
-- [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
-- [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
-- [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
-- [03 — Config System](./01-project-setup/03_project-setup_config-system_DONE.md) — config persistée + defaults + loader + fallback ports
-- [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) — 4/4 — EventBus + WS localhost + hooks HTTP/UDS + context enrichment
-- [01 — Event Bus](./02-core-pipeline/01_core-pipeline_event-bus_DONE.md) — bus typed `eventemitter3` + logger `pino` + stats
-- [02 — WebSocket Server](./02-core-pipeline/02_core-pipeline_ws-server_DONE.md) — stream WS localhost + welcome + heartbeat + ring buffer
-- [03 — HTTP Hooks & UDS](./02-core-pipeline/03_core-pipeline_http-hooks-uds_DONE.md) — ingest HTTP/UDS + health + orchestration pipeline
-- [04 — Context Detector](./02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
-- [01 — Commander CLI](./03-cli-daemon/01_cli-daemon_commands_DONE.md) — surface `commander` + start/stop/status/adapters + `--config`
-- [02 — Daemon Mode](./03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
-- [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
-- [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
-- [01 — BaseAdapter & Registry](./04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
-- [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 3/3 — Claude Code + OpenCode validés sur vraies sessions, avec hooks/process fallback et identification de session améliorée
-- [02 — Claude Code Adapter](./04-adapters-priority/02_adapters-priority_claude-code_DONE.md) — hooks HTTP + JSONL watcher + process detection validés end-to-end
-- [03 — OpenCode Adapter](./04-adapters-priority/03_adapters-priority_opencode_DONE.md) — plugin hooks + process detection validés end-to-end
-- [🎨 TUI](./05-tui/task-tui.md) — 3/3 — renderer Ink partagé entre foreground/attach, live stream, sessions, filtres, et keybinds
-- [01 — Ink Foundation & Layout](./05-tui/01_tui_foundation-layout_DONE.md) — layout Ink responsive, thème, header/footer, et intégration CLI
-- [02 — Live Event Stream](./05-tui/02_tui_live-stream_DONE.md) — rendu formaté des events, freeze, buffer borné
-- [03 — Sessions, Filtres & Controls](./05-tui/03_tui_sessions-filters_DONE.md) — sessions groupées, badge global, overlay d'aide, et CLI pre-filters
+- [🎭 Mascot Dashboard](./completed/10-mascot-dashboard/task-mascot-dashboard.md) — 4/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation 5s, sound engine synthétisé, event ticker, dark theme, empty state 🐸
+- [📦 Client SDK (`@aisnitch/client`)](./completed/09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
+- [🧪 Testing & E2E](./completed/07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
+- [01 — Unit & Integration Tests](./completed/07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%
+- [02 — Mock Command](./completed/07-testing/02_testing_mock-command_DONE.md) — `aisnitch mock`, scénarios réalistes, `start --mock`, tests dédiés
+- [03 — E2E Smoke avec OpenCode](./completed/07-testing/03_testing_e2e-smoke_DONE.md) — `pnpm test:e2e`, config séparée, vrai `opencode run`, et plugin renforcé pour le mode non interactif
+- [01 — Gemini CLI & Codex](./completed/06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
+- [02 — Goose & Copilot CLI](./completed/06-adapters-secondary/02_adapters-secondary_goose-copilot_DONE.md) — polling `goosed` + SSE + fallback SQLite, hooks Copilot + session-state + setup repo-local
+- [03 — Aider & Generic PTY](./completed/06-adapters-secondary/03_adapters-secondary_aider-pty_DONE.md) — watcher `.aider.chat.history.md`, setup `notifications-command`, fallback `aisnitch wrap <cmd>`, et heuristiques PTY
+- [🏗️ Project Setup](./completed/01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
+- [01 — Init & Structure](./completed/01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
+- [02 — Schemas & Types](./completed/01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
+- [03 — Config System](./completed/01-project-setup/03_project-setup_config-system_DONE.md) — config persistée + defaults + loader + fallback ports
+- [⚡ Core Pipeline](./completed/02-core-pipeline/task-core-pipeline.md) — 4/4 — EventBus + WS localhost + hooks HTTP/UDS + context enrichment
+- [01 — Event Bus](./completed/02-core-pipeline/01_core-pipeline_event-bus_DONE.md) — bus typed `eventemitter3` + logger `pino` + stats
+- [02 — WebSocket Server](./completed/02-core-pipeline/02_core-pipeline_ws-server_DONE.md) — stream WS localhost + welcome + heartbeat + ring buffer
+- [03 — HTTP Hooks & UDS](./completed/02-core-pipeline/03_core-pipeline_http-hooks-uds_DONE.md) — ingest HTTP/UDS + health + orchestration pipeline
+- [04 — Context Detector](./completed/02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
+- [01 — Commander CLI](./completed/03-cli-daemon/01_cli-daemon_commands_DONE.md) — surface `commander` + start/stop/status/adapters + `--config`
+- [02 — Daemon Mode](./completed/03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
+- [🖥️ CLI & Daemon](./completed/03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
+- [03 — Setup Tools](./completed/03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
+- [01 — BaseAdapter & Registry](./completed/04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
+- [🔌 Adapters Prioritaires](./completed/04-adapters-priority/task-adapters-priority.md) — 3/3 — Claude Code + OpenCode validés sur vraies sessions, avec hooks/process fallback et identification de session améliorée
+- [02 — Claude Code Adapter](./completed/04-adapters-priority/02_adapters-priority_claude-code_DONE.md) — hooks HTTP + JSONL watcher + process detection validés end-to-end
+- [03 — OpenCode Adapter](./completed/04-adapters-priority/03_adapters-priority_opencode_DONE.md) — plugin hooks + process detection validés end-to-end
+- [🎨 TUI](./completed/05-tui/task-tui.md) — 3/3 — renderer Ink partagé entre foreground/attach, live stream, sessions, filtres, et keybinds
+- [01 — Ink Foundation & Layout](./completed/05-tui/01_tui_foundation-layout_DONE.md) — layout Ink responsive, thème, header/footer, et intégration CLI
+- [02 — Live Event Stream](./completed/05-tui/02_tui_live-stream_DONE.md) — rendu formaté des events, freeze, buffer borné
+- [03 — Sessions, Filtres & Controls](./completed/05-tui/03_tui_sessions-filters_DONE.md) — sessions groupées, badge global, overlay d'aide, et CLI pre-filters
 
 ---
 
