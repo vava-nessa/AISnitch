@@ -18,6 +18,8 @@ For this repository, stay on `main` by default. Do not create dedicated branches
 
 When i say "bump", treat it as a real release flow, not only a local version change:
 - bump the version in **both** `package.json` and `packages/client/package.json` to the same `X.Y.Z`
+- **MANDATORY**: also update `AISNITCH_VERSION` constant in `src/package-info.ts` to the same `X.Y.Z` — this is what the TUI, CLI, and WebSocket welcome message display at runtime. Forgetting this causes the displayed version to be wrong even after publish.
+- update any hardcoded version strings in tests (e.g. `src/core/engine/__tests__/ws-server.test.ts`) to match
 - update the changelog with a single `[X.Y.Z] / [@aisnitch/client X.Y.Z]` entry covering both packages
 - commit and push on `main`
 - create and push the matching git tag release (`vX.Y.Z`) so npm/github release automation can run
