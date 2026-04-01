@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+
 import { defineConfig } from 'vitest/config';
+
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string };
 
 /**
  * @file vitest.config.ts
@@ -10,6 +14,10 @@ import { defineConfig } from 'vitest/config';
  */
 
 export default defineConfig({
+  define: {
+    // 📖 Mirror of tsup define — keeps AISNITCH_VERSION correct during vitest runs
+    __AISNITCH_VERSION__: JSON.stringify(version),
+  },
   test: {
     coverage: {
       exclude: [

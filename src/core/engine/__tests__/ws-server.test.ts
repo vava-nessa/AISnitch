@@ -7,6 +7,7 @@ import { createEvent } from '../../events/index.js';
 import { EventBus } from '../event-bus.js';
 import { setLoggerLevel } from '../logger.js';
 import { WSServer } from '../ws-server.js';
+import { AISNITCH_VERSION } from '../../../package-info.js';
 
 /**
  * @file src/core/engine/__tests__/ws-server.test.ts
@@ -70,7 +71,7 @@ describe('WSServer', () => {
 
     expect(welcomeMessage).toEqual({
       type: 'welcome',
-      version: '0.2.14',
+      version: AISNITCH_VERSION,
       tools: ['claude-code'],
     });
 

@@ -10,7 +10,7 @@ export default [
     ignores: ['coverage/**', 'dist/**', 'docs/**', 'tasks/**'],
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

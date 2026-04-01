@@ -17,10 +17,12 @@
 export const AISNITCH_PACKAGE_NAME = 'aisnitch';
 
 /**
- * 📖 The published version is kept in source so runtime entrypoints can expose
- * stable metadata without reading package.json at runtime.
+ * 📖 Injected at build time by tsup (and at test time by vitest) from package.json
+ * via the __AISNITCH_VERSION__ define constant — never edit this manually.
+ * Bumping package.json is the only step required to update the displayed version.
  */
-export const AISNITCH_VERSION = '0.2.14';
+declare const __AISNITCH_VERSION__: string;
+export const AISNITCH_VERSION: string = __AISNITCH_VERSION__;
 
 /**
  * 📖 The shared description stays close to the package identity so commander

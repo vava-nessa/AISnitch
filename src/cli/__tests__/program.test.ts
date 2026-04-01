@@ -2,6 +2,7 @@ import { CommanderError } from 'commander';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createProgram } from '../program.js';
+import { AISNITCH_VERSION } from '../../package-info.js';
 
 /**
  * @file src/cli/__tests__/program.test.ts
@@ -50,7 +51,7 @@ describe('createProgram', () => {
       program.parseAsync(['node', 'aisnitch', '--version'], { from: 'node' }),
     ).rejects.toBeInstanceOf(CommanderError);
 
-    expect(stdout.trim()).toBe('0.2.14');
+    expect(stdout.trim()).toBe(AISNITCH_VERSION);
   });
 
   it('parses foreground TUI filter options for start', async () => {
