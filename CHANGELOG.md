@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.13] / [@aisnitch/client 0.2.13] - 2026-04-01
+
+### Fixed
+- Remove invalid Claude Code hook event names (`TaskCreated`, `CwdChanged`, `FileChanged`) from `aisnitch setup claude-code` — these events do not exist in the Claude Code hook schema and caused the entire `settings.json` to be skipped.
+- Clean up dead code in `ensureClaudeAISnitchHook`: removed `CLAUDE_FILE_CHANGED_MATCHER` constant and simplified the group creation logic.
+
 ## [0.2.12] / [@aisnitch/client 0.2.12] - 2026-04-01
 
 ### Fixed

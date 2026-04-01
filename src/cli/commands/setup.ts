@@ -44,7 +44,6 @@ const ANSI_RESET = '\u001B[0m';
 const ANSI_RED = '\u001B[31m';
 const ANSI_GREEN = '\u001B[32m';
 const ANSI_CYAN = '\u001B[36m';
-const CLAUDE_FILE_CHANGED_MATCHER = '.*';
 
 const CLAUDE_CODE_HOOK_EVENTS = [
   'SessionStart',
@@ -56,15 +55,12 @@ const CLAUDE_CODE_HOOK_EVENTS = [
   'Notification',
   'SubagentStart',
   'SubagentStop',
-  'TaskCreated',
   'TaskCompleted',
   'Stop',
   'StopFailure',
   'TeammateIdle',
   'InstructionsLoaded',
   'ConfigChange',
-  'CwdChanged',
-  'FileChanged',
   'WorktreeCreate',
   'WorktreeRemove',
   'PreCompact',
@@ -1465,10 +1461,7 @@ function ensureClaudeAISnitchHook(
     ...group,
     hooks: group.hooks.map((handler) => ({ ...handler })),
   }));
-  const matcher = hookEventName === 'FileChanged'
-    ? CLAUDE_FILE_CHANGED_MATCHER
-    : undefined;
-  const matchingGroup = clonedGroups.find((group) => group.matcher === matcher);
+  const matchingGroup = clonedGroups.find((group) => group.matcher === undefined);
 
   if (matchingGroup) {
     matchingGroup.hooks = matchingGroup.hooks.filter(
@@ -1492,17 +1485,9 @@ function ensureClaudeAISnitchHook(
     return clonedGroups;
   }
 
-  const nextGroup: ClaudeHookMatcherGroup =
-    matcher === undefined
-      ? {
-          hooks: [createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath)],
-        }
-      : {
-          matcher,
-          hooks: [createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath)],
-        };
-
-  clonedGroups.push(nextGroup);
+  clonedGroups.push({
+    hooks: [createClaudeAISnitchHook(hookEventName, hookUrl, scriptPath)],
+  });
   return clonedGroups;
 }
 
