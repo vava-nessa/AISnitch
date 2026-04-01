@@ -60,7 +60,7 @@ jobs:
         run: pnpm test:coverage
 
   client:
-    name: "@aisnitch/client (Node ${{ matrix.node-version }})"
+    name: client (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
