@@ -365,7 +365,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     return this.settingsPath;
   }
 
-  public async computeDiff(): Promise<string> {
+  public override async computeDiff(): Promise<string> {
     const currentSettingsContent = await readOptionalFile(this.settingsPath);
     const currentScriptContent = await readOptionalFile(this.scriptPath);
     const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
@@ -386,7 +386,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     ].join('\n');
   }
 
-  public async apply(): Promise<void> {
+  public override async apply(): Promise<void> {
     const currentSettingsContent = await readOptionalFile(this.settingsPath);
     const currentScriptContent = await readOptionalFile(this.scriptPath);
     const nextSettingsContent = this.buildNextSettingsContent(currentSettingsContent);
@@ -396,18 +396,18 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     await mkdir(dirname(this.scriptPath), { recursive: true });
 
     if (currentSettingsContent !== null) {
-      await copyFile(this.settingsPath, this.getBackupPath(this.settingsPath));
+      await copyFile(this.settingsPath, this.getFileBackupPath(this.settingsPath));
     }
 
     if (currentScriptContent !== null) {
-      await copyFile(this.scriptPath, this.getBackupPath(this.scriptPath));
+      await copyFile(this.scriptPath, this.getFileBackupPath(this.scriptPath));
     }
 
     await writeFile(this.settingsPath, nextSettingsContent, 'utf8');
     await writeFile(this.scriptPath, nextScriptContent, 'utf8');
   }
 
-  public async revert(): Promise<void> {
+  public override async revert(): Promise<void> {
     await restoreBackupOrRemove(this.settingsPath);
     await restoreBackupOrRemove(this.scriptPath);
   }
@@ -442,7 +442,7 @@ export class ClaudeCodeSetup extends FileToolSetupBase {
     return `${JSON.stringify(nextSettings, null, 2)}\n`;
   }
 
-  private getBackupPath(path: string): string {
+  private getFileBackupPath(path: string): string {
     return `${path}.bak`;
   }
 }
