@@ -16,12 +16,33 @@ For this repository, stay on `main` by default. Do not create dedicated branches
 
 `aisnitch` and `@aisnitch/client` share the **same version number** and are always released together. This guarantees the daemon and client SDK are compatible at any given release.
 
-When i say "bump", treat it as a real release flow, not only a local version change:
-- bump the version in **both** `package.json` and `packages/client/package.json` to the same `X.Y.Z`
-- **MANDATORY**: also update `AISNITCH_VERSION` constant in `src/package-info.ts` to the same `X.Y.Z` — this is what the TUI, CLI, and WebSocket welcome message display at runtime. Forgetting this causes the displayed version to be wrong even after publish.
-- update any hardcoded version strings in tests (e.g. `src/core/engine/__tests__/ws-server.test.ts`, `src/cli/__tests__/program.test.ts`) to match
-- update the changelog with a single `[X.Y.Z] / [@aisnitch/client X.Y.Z]` entry covering both packages
-- commit and push on `main`
-- create and push the matching git tag release (`vX.Y.Z`) so npm/github release automation can run
-- the release workflow (`.github/workflows/release.yml`) is triggered by `v*` tags and publishes **both** packages to npm automatically
-- verify a few minutes later that npm really exposes the new version for both packages, and report the result clearly
+### How to bump
+
+**Always use the bump script** — it handles everything atomically:
+
+```bash
+pnpm bump <X.Y.Z>
+```
+
+The script (`scripts/bump.mjs`) does the following in order:
+1. Updates `package.json` and `packages/client/package.json` to the new version
+2. Adds a CHANGELOG entry under `## [Unreleased]`
+3. Runs `pnpm build` (which injects the version at build time via tsup — see below)
+4. Runs `pnpm test` to verify nothing broke
+5. Commits the 3 changed files, tags `vX.Y.Z`, pushes main + tag
+
+**IMPORTANT**: commit all code changes BEFORE running `pnpm bump`. The bump script only stages and commits `package.json`, `packages/client/package.json`, and `CHANGELOG.md`. Any uncommitted code changes will NOT be included in the tagged release.
+
+### How the version flows
+
+The version number lives in ONE place: `package.json`. Everything else reads from it:
+
+- **`src/package-info.ts`** — exports `AISNITCH_VERSION` which is injected at build time via `__AISNITCH_VERSION__` (defined in `tsup.config.ts` and `vitest.config.ts`). **Never edit this file manually.**
+- **TUI, CLI, WebSocket welcome** — all consume `AISNITCH_VERSION` from `package-info.ts`
+- **Tests** — import `AISNITCH_VERSION` from `package-info.ts` (no hardcoded version strings)
+
+### CI & Release
+
+- **CI** (`.github/workflows/ci.yml`): 2 jobs — `aisnitch` and `client`, both on Node 22. Runs lint, typecheck, test, build, coverage. The `aisnitch` job also runs a release preflight (`npm publish --dry-run`).
+- **Release** (`.github/workflows/release.yml`): triggered by `v*` tags. Builds and publishes both packages to npm with provenance, creates a GitHub release with tarball + Homebrew formula.
+- After bumping, verify a few minutes later that npm really exposes the new version for both packages, and report the result clearly.
