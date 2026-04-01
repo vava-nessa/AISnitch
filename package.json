@@ -1,6 +1,6 @@
 {
   "name": "aisnitch",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Universal bridge for AI coding tool activity — capture, normalize, and stream live tool events.",
   "keywords": [
     "ai",
@@ -82,7 +82,6 @@
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "fullscreen-ink": "^0.1.0",
     "fullscreen-ink": "^0.1.0",
     "@lydell/node-pty": "1.2.0-beta.3",
     "chokidar": "^5.0.0",

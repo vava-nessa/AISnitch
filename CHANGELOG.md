@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.11] / [@aisnitch/client 0.2.11] - 2026-04-01
+
+### Changed
+- Bump version after fixing CI and npm token issues.
+- No functional changes.
+
 ## [0.2.10] / [@aisnitch/client 0.2.10] - 2026-04-01
 
 ### Changed

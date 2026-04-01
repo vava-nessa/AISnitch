@@ -85,7 +85,7 @@ describe('parseWelcome', () => {
     const result = parseWelcome(welcome);
     expect(result).not.toBeNull();
     expect(result?.type).toBe('welcome');
-    expect(result?.version).toBe('0.2.10');
+    expect(result?.version).toBe('0.2.11');
   });
 
   it('returns null on invalid welcome', () => {

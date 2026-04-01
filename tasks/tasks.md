@@ -25,6 +25,7 @@
 ## 🟡 Todo
 
 - [🔧 Version bump to 0.2.9] ./task-version-bump.md — 0/1 — update version constants, tests, docs, changelog.
+- [🔧 Version bump to 0.2.11] ./task-version-bump-0.2.11.md — 0/1 — bump to 0.2.11 after CI token fix.
 - [🔧 Version bump to 0.2.10] ./task-version-bump-0.2.10.md — 0/1 — bump version to 0.2.10 and align docs.
 
 ---
