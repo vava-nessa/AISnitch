@@ -250,7 +250,11 @@ export class ClaudeCodeAdapter extends BaseAdapter {
         return;
       }
       case 'SessionEnd': {
-        await this.emitStateChange('session.end', sharedData, context);
+        const finalMessage = extractFinalMessageFromPayload(payload);
+        await this.emitStateChange('session.end', {
+          ...sharedData,
+          finalMessage,
+        }, context);
         return;
       }
       case 'UserPromptSubmit':
@@ -267,14 +271,24 @@ export class ClaudeCodeAdapter extends BaseAdapter {
         return;
       }
       case 'PreToolUse': {
-        await this.emitStateChange('agent.tool_call', sharedData, context);
+        const toolCallName = extractToolNameFromPayload(payload);
+        await this.emitStateChange('agent.tool_call', {
+          ...sharedData,
+          toolCallName,
+        }, context);
         return;
       }
       case 'PostToolUse': {
+        const toolCallName = extractToolNameFromPayload(payload);
+        const toolResult = extractToolResultFromPayload(payload);
         const emittedType = isClaudeCodingTool(sharedData.toolName)
           ? 'agent.coding'
           : 'agent.tool_call';
-        await this.emitStateChange(emittedType, sharedData, context);
+        await this.emitStateChange(emittedType, {
+          ...sharedData,
+          toolCallName,
+          toolResult,
+        }, context);
         return;
       }
       case 'PostToolUseFailure':
@@ -542,9 +556,22 @@ function extractClaudeTranscriptObservations(
   const observations: ClaudeTranscriptObservation[] = [];
 
   if (contentParts.some((part) => part.type === 'thinking')) {
+    const thinkingParts = contentParts.filter((part) => part.type === 'thinking');
+    // 📖 Extract thinking content from thinking-type content parts
+    const thinkingText = thinkingParts
+      .map((part) => {
+        const text = part.text;
+        return typeof text === 'string' ? text : undefined;
+      })
+      .filter((text): text is string => text !== undefined)
+      .join('\n');
+
     observations.push({
       context: sharedContext,
-      data: sharedData,
+      data: {
+        ...sharedData,
+        thinkingContent: thinkingText.length > 0 ? thinkingText : undefined,
+      },
       type: 'agent.thinking',
     });
   }
@@ -557,11 +584,39 @@ function extractClaudeTranscriptObservations(
         part.text.trim().length > 0,
     )
   ) {
+    // 📖 Extract message content from text-type content parts
+    const messageTexts = contentParts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text as string)
+      .filter((text) => text.trim().length > 0);
+    const messageContent = messageTexts.join('\n');
+
     observations.push({
       context: sharedContext,
-      data: sharedData,
+      data: {
+        ...sharedData,
+        messageContent: messageContent.length > 0 ? messageContent : undefined,
+      },
       type: 'agent.streaming',
     });
+  }
+
+  // Check for tool_use observations (tool calls in transcript)
+  const toolUseParts = contentParts.filter(
+    (part) => part.type === 'tool_use' || part.type === 'toolUse',
+  );
+  if (toolUseParts.length > 0) {
+    const toolName = getString(toolUseParts[0], 'name') ?? getString(toolUseParts[0], 'tool');
+    if (toolName) {
+      observations.push({
+        context: sharedContext,
+        data: {
+          ...sharedData,
+          toolCallName: toolName,
+        },
+        type: 'agent.tool_call',
+      });
+    }
   }
 
   return observations;
@@ -756,4 +811,100 @@ function getString(
   const value = payload[key];
 
   return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+/**
+ * 📖 Extracts the tool name from Claude hook payload.
+ * Claude hooks use `tool_use` or `toolName` fields to identify the tool.
+ * Common tool names: Edit, Bash, Grep, Read, Write, WebSearch, etc.
+ */
+function extractToolNameFromPayload(
+  payload: Record<string, unknown>,
+): string | undefined {
+  // Direct tool name field
+  const directToolName = getString(payload, 'tool_name') ?? getString(payload, 'toolName');
+
+  if (directToolName) {
+    return directToolName;
+  }
+
+  // From tool_use object
+  const toolUse = getRecord(payload.tool_use) ?? getRecord(payload.toolUse);
+  if (toolUse) {
+    return getString(toolUse, 'name') ?? getString(toolUse, 'tool');
+  }
+
+  // From tool_input object (tool name might be in parent or type field)
+  const toolInput = getRecord(payload.tool_input) ?? getRecord(payload.toolInput);
+  if (toolInput) {
+    return getString(toolInput, 'tool_name') ?? getString(toolInput, 'type');
+  }
+
+  return undefined;
+}
+
+/**
+ * 📖 Extracts the tool execution result from Claude hook payload.
+ * Contains success messages, error outputs, or short tool results.
+ */
+function extractToolResultFromPayload(
+  payload: Record<string, unknown>,
+): string | undefined {
+  // Direct result field
+  const directResult = getString(payload, 'result') ?? getString(payload, 'output');
+
+  if (directResult) {
+    return directResult;
+  }
+
+  // From tool_result object
+  const toolResult = getRecord(payload.tool_result) ?? getRecord(payload.toolResult);
+  if (toolResult) {
+    return getString(toolResult, 'content') ?? getString(toolResult, 'output');
+  }
+
+  // From error field if PostToolUseFailure
+  const errorField = getString(payload, 'error') ?? getString(payload, 'error_message');
+  if (errorField) {
+    return errorField;
+  }
+
+  return undefined;
+}
+
+/**
+ * 📖 Extracts the final/completion message from Claude hook payload.
+ * This is the summary text shown at the end of an AI run.
+ */
+function extractFinalMessageFromPayload(
+  payload: Record<string, unknown>,
+): string | undefined {
+  // Direct final message fields
+  const directMessage =
+    getString(payload, 'final_message') ??
+    getString(payload, 'finalMessage') ??
+    getString(payload, 'summary') ??
+    getString(payload, 'completion_message');
+
+  if (directMessage) {
+    return directMessage;
+  }
+
+  // From result or output fields
+  const result =
+    getString(payload, 'result') ??
+    getString(payload, 'output') ??
+    getString(payload, 'message');
+
+  if (result) {
+    return result;
+  }
+
+  // From session data or stats
+  const stats = getRecord(payload.stats);
+  if (stats) {
+    return getString(stats, 'summary') ?? getString(stats, 'completion_summary');
+  }
+
+  return undefined;
 }

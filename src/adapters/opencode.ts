@@ -163,7 +163,11 @@ export class OpenCodeAdapter extends BaseAdapter {
         return;
       }
       case 'session.deleted': {
-        await this.emitStateChange('session.end', sharedData, context);
+        const finalMessage = extractOpenCodeFinalMessage(payload);
+        await this.emitStateChange('session.end', {
+          ...sharedData,
+          finalMessage,
+        }, context);
         return;
       }
       case 'session.error': {
@@ -188,14 +192,24 @@ export class OpenCodeAdapter extends BaseAdapter {
         return;
       }
       case 'tool.execute.before': {
-        await this.emitStateChange('agent.tool_call', sharedData, context);
+        const toolCallName = extractOpenCodeToolName(payload);
+        await this.emitStateChange('agent.tool_call', {
+          ...sharedData,
+          toolCallName,
+        }, context);
         return;
       }
       case 'tool.execute.after': {
+        const toolCallName = extractOpenCodeToolName(payload);
+        const toolResult = extractOpenCodeToolResult(payload);
         const emittedType = isOpenCodeCodingTool(sharedData.toolName)
           ? 'agent.coding'
           : 'agent.tool_call';
-        await this.emitStateChange(emittedType, sharedData, context);
+        await this.emitStateChange(emittedType, {
+          ...sharedData,
+          toolCallName,
+          toolResult,
+        }, context);
         return;
       }
       default: {
@@ -464,4 +478,70 @@ function getString(
   const value = payload[key];
 
   return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+/**
+ * 📖 Extracts the final/completion message from OpenCode payload.
+ * This is the summary text shown at the end of an AI run.
+ */
+function extractOpenCodeFinalMessage(
+  payload: Record<string, unknown>,
+): string | undefined {
+  // Direct final message fields
+  const directMessage =
+    getString(payload, 'final_message') ??
+    getString(payload, 'finalMessage') ??
+    getString(payload, 'summary') ??
+    getString(payload, 'completion_message');
+
+  if (directMessage) {
+    return directMessage;
+  }
+
+  // From result or output fields
+  const result =
+    getString(payload, 'result') ??
+    getString(payload, 'output') ??
+    getString(getRecord(payload.properties), 'result');
+
+  if (result) {
+    return result;
+  }
+
+  return undefined;
+}
+
+/**
+ * 📖 Extracts the tool execution result from OpenCode payload.
+ * Contains success messages, error outputs, or short tool results.
+ */
+function extractOpenCodeToolResult(
+  payload: Record<string, unknown>,
+): string | undefined {
+  // Direct result field
+  const directResult =
+    getString(payload, 'result') ??
+    getString(payload, 'output') ??
+    getString(payload, 'toolResult');
+
+  if (directResult) {
+    return directResult;
+  }
+
+  // From tool_result object
+  const toolResult = getRecord(payload.tool_result) ?? getRecord(payload.toolResult);
+  if (toolResult) {
+    return getString(toolResult, 'content') ?? getString(toolResult, 'output');
+  }
+
+  // From properties.toolResult
+  const props = getRecord(payload.properties);
+  if (props) {
+    const nestedResult = getRecord(props.tool_result) ?? getRecord(props.toolResult);
+    if (nestedResult) {
+      return getString(nestedResult, 'content') ?? getString(nestedResult, 'output');
+    }
+  }
+
+  return undefined;
 }
