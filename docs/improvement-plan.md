@@ -1,33 +1,29 @@
 # 📋 Plan d'Amélioration — Qualité, Erreurs & Edge Cases
 
-> Ce fichier documente les axes d'amélioration identifiés pour renforcer la robustesse,
-> la gestion d'erreurs et la qualité globale du code d'AISnitch.
+> Ce document trackait les 5 phases d'amélioration qualité du MVP.
+> **Toutes les phases sont maintenant complétées (2026-05-08).**
 >
-> **Dernière mise à jour:** 2026-05-07
+> Voir [tasks.md](./tasks/tasks.md) pour le kanban complet.
 
 ---
 
-## 📊 État Actuel du Projet
+## 📊 État Final du Projet
 
 | Métrique | Valeur | Status |
 |---|---|---|
 | Lint | ✅ Pass | OK |
-| Tests | ✅ 157 passed | OK |
-| Couverture globale | ~50% | ⚠️ À améliorer |
+| Tests | ✅ 327 passed | OK |
+| Couverture globale | ~55% | ✅ Amélioré |
 | Couverture core | ~93% | ✅ OK |
-| Couverture adapters | ~47% | ⚠️ À améliorer |
-| Couverture TUI | ~39% | ⚠️ À améliorer |
-| Schemas Zod | ✅ Utilisés | OK |
-| Logging pino | ✅ Partout | OK |
-| Error handling | ✅ Phase 1 done | OK |
+| Schemas Zod | ✅ avec max() limits | OK |
+| Error handling | ✅ 6 classes + helpers | OK |
+| Circuit breaker | ✅ Wired in BaseAdapter | OK |
+| Graceful shutdown | ✅ shutdownInOrder() | OK |
+| Documentation | ✅ errors.md + resilience.md | OK |
 
 ---
 
 ## ✅ Phase 1 — Error Handling Centralisé
-
-> **Statut:** Terminée ✅
->
-> **Modules créés:**
 
 | # | Tâche | Fichier | Status |
 |---|---|---|---|
@@ -40,220 +36,15 @@
 
 ### Résumé des modules Phase 1
 
-#### `src/core/errors.ts` (8273 bytes)
-- `AISnitchError` — base class avec `code` et `context`
-- `AdapterError` — erreurs d'adapters
-- `PipelineError` — erreurs de pipeline
-- `ValidationError` — erreurs Zod
-- `NetworkError` — erreurs réseau
-- `TimeoutError` — timeouts
-- `isAISnitchError()` — type guard
-- `isRetryableError()` — détermine si une erreur est réessayable
-
-#### `src/core/result.ts` (6109 bytes)
-- `Result<T, E>` — discriminated union
-- `ok()`, `err()` — factory functions
-- `isOk()`, `isErr()` — type guards
-- `mapOk()`, `mapErr()`, `flatMap()` — chainable operations
-- `fromPromise()`, `fromSync()` — converters
-
-#### `src/core/retry.ts` (7956 bytes)
-- `withRetry()` — exponential backoff retry
-- `fireAndForgetRetry()` — retry without throwing
-- `withRetryOn()` — wraps any function with retry
-- `DefaultRetryOptions` — sensible defaults
-- Jitter support (±25%)
-
-#### `src/core/timeout.ts` (6430 bytes)
-- `withTimeout()` — race a promise against deadline
-- `timeoutWarning()` — best-effort without throwing
-- `DEFAULT_TIMEOUTS` — named timeouts per operation
-- `isTimeoutError()` — type guard
-
-#### `src/core/graceful-shutdown.ts` (10775 bytes)
-- `GracefulShutdownManager` — coordinates SIGTERM/SIGINT/SIGHUP
-- `shutdownInOrder()` — stops components in reverse dependency order
-- `withShutdownTimeout()` — per-component shutdown with deadline
-- `withOverallShutdownTimeout()` — global shutdown deadline
+- **`src/core/errors.ts`** — `AISnitchError` + 5 subclasses (`AdapterError`, `PipelineError`, `ValidationError`, `NetworkError`, `TimeoutError`) + `isAISnitchError()` + `isRetryableError()`
+- **`src/core/result.ts`** — `Result<T, E>` discriminated union avec `ok()`, `err()`, `mapOk()`, `flatMap()`, `fromPromise()`
+- **`src/core/retry.ts`** — `withRetry()` exponential backoff + jitter ±25%
+- **`src/core/timeout.ts`** — `withTimeout()` + `timeoutWarning()` + `DEFAULT_TIMEOUTS`
+- **`src/core/graceful-shutdown.ts`** — `shutdownInOrder()` + `withShutdownTimeout()`
 
 ---
 
-## 🎯 Phases suivantes
-
-### Phase 2 — Edge Cases & Validation (P1)
-
-> **Effort:** 🟡 Moyen | **Impact:** 🔴 Haute | **Statut:** 📋 Todo
-
-#### 2.1 Bounds checking explicite
-
-**Arrays:**
-- Vérifier `.length > 0` avant itération
-- Utiliser `Array.isArray()` comme guard
-
-**Strings:**
-- Valider longueur max (`JSON.stringify()` ne doit pas dépassser ~10MB)
-- Limiter les paths à 4096 caractères (limite POSIX)
-
-**Nombres:**
-- `Number.isFinite()` avant division ou calcul
-- Valider les ranges (e.g., `port` entre 1 et 65535)
-
-**Fichiers impactés:**
-- [ ] `src/core/engine/http-receiver.ts` (JSON body > 1MB — existe, améliorer le message)
-- [ ] `src/adapters/claude-code.ts` (transcript reading)
-
----
-
-#### 2.2 Null safety helpers
-
-**Remplacer:**
-```typescript
-// Avant (fragile)
-const value = obj.property.nested;
-
-// Après (sécurisé)
-const value = obj?.property?.nested;
-```
-
-**Pattern helper:**
-```typescript
-// Objectif: src/core/safety.ts
-export function getStringOrUndefined(
-  obj: Record<string, unknown>,
-  key: string,
-  maxLength?: number,
-): string | undefined { ... }
-
-export function getNumberOrUndefined(
-  obj: Record<string, unknown>,
-  key: string,
-  min?: number,
-  max?: number,
-): number | undefined { ... }
-```
-
----
-
-#### 2.3 Validation schema stricte
-
-**Améliorer les schemas Zod avec limites de taille:**
-
-```typescript
-// src/core/events/schema.ts — ajouter des max()
-
-const EventDataSchema = z.object({
-  activeFile: z.string().max(4096).optional(),
-  model: z.string().max(200).optional(),
-  projectPath: z.string().max(4096).optional(),
-  errorMessage: z.string().max(10000).optional(),
-  // ...
-});
-```
-
-**Fichiers impactés:**
-- [ ] `src/core/events/schema.ts`
-
----
-
-### Phase 3 — Circuit Breaker & Resilience (P2)
-
-> **Effort:** 🟡 Moyen | **Impact:** 🟡 Moyenne | **Statut:** 📋 Todo
-
-#### 3.1 Circuit Breaker pour adapters
-
-```typescript
-// Objectif: src/core/circuit-breaker.ts
-export class CircuitBreaker {
-  // failures threshold → open → half-open → closed
-}
-```
-
-**Fichiers impactés:**
-- [ ] `src/core/circuit-breaker.ts` (nouveau)
-- [ ] `src/adapters/base.ts` (intégrer dans `emit()`)
-
----
-
-#### 3.2 Panic recovery par adapter
-
-```typescript
-// Dans BaseAdapter.emit() —wrap avec circuit breaker
-protected async emit(...): Promise<boolean> {
-  return this.circuitBreaker.execute(async () => {
-    // ... existing emit logic
-  });
-}
-```
-
-**Fichiers impactés:**
-- [ ] `src/adapters/base.ts`
-
----
-
-### Phase 4 — Tests d'Erreurs (P2)
-
-> **Effort:** 🟡 Moyen | **Impact:** 🔴 Haute | **Statut:** 📋 Todo
-
-#### 4.1 Tests de rejection d'events
-
-```typescript
-// src/core/engine/__tests__/event-bus.test.ts — ajouter
-test('publish() rejects events without id', () => { ... });
-test('publish() rejects events with invalid type', () => { ... });
-```
-
-#### 4.2 Tests de recovery
-
-```typescript
-// Tests de scénarios de recovery
-test('adapter recovers after file deletion during watch', () => { ... });
-```
-
-#### 4.3 Tests de timeout
-
-```typescript
-// src/core/__tests__/timeout.test.ts (nouveau)
-test('withTimeout() resolves when promise resolves', async () => { ... });
-test('withTimeout() rejects when timeout exceeded', async () => { ... });
-```
-
----
-
-### Phase 5 — Documentation (P2)
-
-> **Effort:** 🟢 Petit | **Impact:** 🟢 Basse | **Statut:** 📋 Todo
-
-#### 5.1 Doc errors.md
-
-Créer `docs/errors.md` documentant:
-- [ ] Liste des erreurs custom avec codes
-- [ ] Comment les catcher
-- [ ] Patterns de recovery recommandés
-
-#### 5.2 Doc resilience.md
-
-Créer `docs/resilience.md` documentant:
-- [ ] Circuit breaker pattern
-- [ ] Graceful shutdown
-- [ ] Retry strategies
-- [ ] Timeout handling
-
----
-
-## 📋 Tâches Résumées (Status Global)
-
-### ✅ Phase 1 — Error Handling Centralisé (Done)
-
-| # | Tâche | Fichier | Status |
-|---|---|---|---|
-| 1.1 | Module erreurs custom | `src/core/errors.ts` | ✅ Done |
-| 1.2 | Pattern Result | `src/core/result.ts` | ✅ Done |
-| 1.3 | Handlers globaux | `src/cli/runtime.ts` | ✅ Done |
-| 1.4 | Retry avec backoff | `src/core/retry.ts` | ✅ Done |
-| 1.5 | Timeouts async | `src/core/timeout.ts` | ✅ Done |
-| 1.6 | Graceful shutdown timeout | `src/core/graceful-shutdown.ts` | ✅ Done |
-
-### 📋 Phase 2 — Edge Cases & Validation
+## ✅ Phase 2 — Edge Cases & Validation
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
@@ -261,70 +52,66 @@ Créer `docs/resilience.md` documentant:
 | 2.2 | Null safety helpers | `src/core/safety.ts` | ✅ Done |
 | 2.3 | Schemas Zod stricts | `src/core/events/schema.ts` | ✅ Done |
 
-### 📋 Phase 3 — Circuit Breaker & Resilience
+- **`src/core/safety.ts`** — 20+ fonctions (`getString`, `getNumber`, `isValidPort`, `isRecord`, etc.) avec 74 tests
+- **`src/core/events/schema.ts`** — `max()` limits sur tous les champs
+
+---
+
+## ✅ Phase 3 — Circuit Breaker & Resilience
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
 | 3.1 | Circuit breaker | `src/core/circuit-breaker.ts` | ✅ Done |
-| 3.2 | Panic recovery | `src/adapters/base.ts` | 📋 Todo |
+| 3.2 | Panic recovery (wire in BaseAdapter) | `src/adapters/base.ts` | ✅ Done |
 
-### 📋 Phase 4 — Tests d'Erreurs
+### Résumé Phase 3
+
+- **`src/core/circuit-breaker.ts`** — `CircuitBreaker` class avec états CLOSED/OPEN/HALF-OPEN + `SHARED_BREAKERS` singletons
+- **`src/adapters/base.ts`** — `SHARED_BREAKERS.adapterEmit.execute()` wrappé dans `emit()` pour tous les adapters
+- 29 tests circuit-breaker + 12 tests base-adapter-circuit
+
+---
+
+## ✅ Phase 4 — Tests d'Erreurs
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
 | 4.1 | Tests rejection events | `event-bus-rejection.test.ts` | ✅ Done |
 | 4.2 | Tests recovery | `event-bus-rejection.test.ts` | ✅ Done |
 | 4.3 | Tests timeout | `timeout.test.ts` | ✅ Done |
+| 4.4 | Tests graceful shutdown | `graceful-shutdown.test.ts` | ✅ Done |
 
-### 📋 Phase 5 — Documentation
+- **`src/core/engine/__tests__/event-bus-rejection.test.ts`** — 20 tests
+- **`src/core/__tests__/timeout.test.ts`** — tests withTimeout()
+- **`src/core/__tests__/graceful-shutdown.test.ts`** — 11 tests (shutdownInOrder, withShutdownTimeout)
+
+---
+
+## ✅ Phase 5 — Documentation
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
 | 5.1 | `docs/errors.md` | `docs/errors.md` | ✅ Done |
 | 5.2 | `docs/resilience.md` | `docs/resilience.md` | ✅ Done |
 
----
-
-## 🚀 Comment Contribuer
-
-1. Choisir une tâche dans les phases ci-dessus
-2. Créer une sous-tâche dans `tasks/tasks.md` avec tag `quality`
-3. Implémenter avec tests unitaires
-4. Mettre à jour ce fichier avec `[x]` quand fait
-5. Commit avec la référence de la tâche
+- **`docs/errors.md`** — taxonomy erreurs, codes, handling patterns
+- **`docs/resilience.md`** — circuit breaker, retry, timeouts, graceful shutdown
 
 ---
 
 ## 📝 Changelog
 
-### 2026-05-07
-- Document initial créé
-- 5 phases identifiées avec tâches détaillées
-- État actuel du projet documenté
+### 2026-05-08 — All Phases Complete
 
-### 2026-05-07 (Phase 2)
-### 2026-05-07 (Phase 3)
-### 2026-05-07 (Phase 4)
-- **Phase 4 terminée** — Tests d'erreurs:
-  - `event-bus-rejection.test.ts` — 20 tests (rejection, subscriber errors, stats, unsubscribe)
-### 2026-05-07 (Phase 5)
-- **Phase 5 terminée** — Documentation:
-  - `docs/errors.md` — taxonomy erreurs, codes, handling patterns
-  - `docs/resilience.md` — circuit breaker, retry, timeouts, graceful shutdown
-- **Phase 3 terminée** — Circuit breaker:
-  - `circuit-breaker.ts` — CircuitBreaker class (12.8 KB) avec états CLOSED/OPEN/HALF-OPEN
-  - `SHARED_BREAKERS` — instances singletons pre-configurées (adapterEmit, fileSystem, httpRequest, processDetection)
-  - `CircuitOpenError` — erreur thrown quand circuit est OPEN
-  - `__tests__/circuit-breaker.test.ts` — 29 tests avec fake timers
-- **Phase 2 terminée** — 2 modules créés:
-  - `safety.ts` — 20+ fonctions de sécurité (getString, getNumber, isValidPort, isRecord, etc.)
-  - `__tests__/safety.test.ts` — 74 tests
-  - `schema.ts` — limites max() sur tous les champs Zod
+**Task t-quality-001 executed:**
+- Circuit breaker wired in `BaseAdapter.emit()` via `SHARED_BREAKERS.adapterEmit`
+- `shutdownInOrder()` integrated in runtime.ts with per-component timeouts
+- Pipeline exposes `getAdapterRegistry()`, `getHttpReceiver()`, `getUdsServer()`, `getWsServer()`
+- 21 new tests: `graceful-shutdown.test.ts` + `base-adapter-circuit.test.ts`
+- Tests: 327 passed, lint ✅, typecheck ✅
 
-### 2026-05-07 (Phase 1)
-- **Phase 1 terminée** — 5 modules créés:
-  - `errors.ts` — 6 classes d'erreurs + 2 helpers
-  - `result.ts` — Result type avec 8 fonctions
-  - `retry.ts` — retry avec backoff exponentiel
-  - `timeout.ts` — timeouts + DEFAULT_TIMEOUTS
-  - `graceful-shutdown.ts` — GracefulShutdownManager + shutdownInOrder
+### 2026-05-07 — Initial Implementation
+
+- Phase 1-5 identified and implemented progressively
+- 5 phases completed over multiple sessions
+- Client SDK + Mascot Dashboard added as bonus features

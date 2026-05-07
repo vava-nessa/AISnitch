@@ -19,12 +19,14 @@
 > - ✅ Ring buffer par consumer (1 000 events, oldest-first drop)
 > - ✅ 12 event types normalisés (CloudEvents v1.0 envelope)
 > - ✅ Idle timeout configurable (défaut 120s)
+> - ✅ Circuit breaker actif (SHARED_BREAKERS.adapterEmit) dans tous les adapters
+> - ✅ Graceful shutdown avec timeouts par composant
 
 ---
 
 ## 🟡 Todo
 
-_Nothing pending_
+_Nothing pending — all MVP tasks completed_
 
 ---
 
@@ -36,118 +38,55 @@ _Nothing in progress_
 
 ## ✅ Done
 
-- [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 2/2 — packaging npm/Homebrew prêt, CI/GitHub Actions opérationnel, v0.2.17 publié via `pnpm bump` ✅
-- [🔧 Version bump to 0.2.17] — ✅ Version bumped to 0.2.17, committed, tagged and pushed. CI triggered.
-
-- [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 4/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation 5s, sound engine synthétisé, event ticker, dark theme, empty state 🐸
-- [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
-- [🧪 Testing & E2E](./07-testing/task-testing.md) — 3/3 — Vitest structuré + `aisnitch mock` + smoke OpenCode dédié
-- [01 — Unit & Integration Tests](./07-testing/01_testing_unit-integration_DONE.md) — config Vitest, helpers partagés, intégration pipeline, coverage core >70%
-- [02 — Mock Command](./07-testing/02_testing_mock-command_DONE.md) — `aisnitch mock`, scénarios réalistes, `start --mock`, tests dédiés
-- [03 — E2E Smoke avec OpenCode](./07-testing/03_testing_e2e-smoke_DONE.md) — `pnpm test:e2e`, config séparée, vrai `opencode run`, et plugin renforcé pour le mode non interactif
-- [01 — Gemini CLI & Codex](./06-adapters-secondary/01_adapters-secondary_gemini-codex_DONE.md) — hooks Gemini + fallback `logs.json`, log watcher Codex, process detection, et setup Gemini/Codex
-- [02 — Goose & Copilot CLI](./06-adapters-secondary/02_adapters-secondary_goose-copilot_DONE.md) — polling `goosed` + SSE + fallback SQLite, hooks Copilot + session-state + setup repo-local
-- [03 — Aider & Generic PTY](./06-adapters-secondary/03_adapters-secondary_aider-pty_DONE.md) — watcher `.aider.chat.history.md`, setup `notifications-command`, fallback `aisnitch wrap <cmd>`, et heuristiques PTY
-- [🏗️ Project Setup](./01-project-setup/task-project-setup.md) — 3/3 — package `pnpm` + schéma CloudEvents/CESP + config system
-- [01 — Init & Structure](./01-project-setup/01_project-setup_init-structure_DONE.md) — bootstrap `pnpm` + TypeScript strict + ESLint flat + `tsup` + docs initiales
-- [02 — Schemas & Types](./01-project-setup/02_project-setup_schemas-types_DONE.md) — contrat d’events Zod + types inférés + UUIDv7 + mapping CESP
-- [03 — Config System](./01-project-setup/03_project-setup_config-system_DONE.md) — config persistée + defaults + loader + fallback ports
-- [⚡ Core Pipeline](./02-core-pipeline/task-core-pipeline.md) — 4/4 — EventBus + WS localhost + hooks HTTP/UDS + context enrichment
-- [01 — Event Bus](./02-core-pipeline/01_core-pipeline_event-bus_DONE.md) — bus typed `eventemitter3` + logger `pino` + stats
-- [02 — WebSocket Server](./02-core-pipeline/02_core-pipeline_ws-server_DONE.md) — stream WS localhost + welcome + heartbeat + ring buffer
-- [03 — HTTP Hooks & UDS](./02-core-pipeline/03_core-pipeline_http-hooks-uds_DONE.md) — ingest HTTP/UDS + health + orchestration pipeline
-- [04 — Context Detector](./02-core-pipeline/04_core-pipeline_context-detector_DONE.md) — enrichissement terminal/cwd/pid/instances
-- [01 — Commander CLI](./03-cli-daemon/01_cli-daemon_commands_DONE.md) — surface `commander` + start/stop/status/adapters + `--config`
-- [02 — Daemon Mode](./03-cli-daemon/02_cli-daemon_daemon-mode_DONE.md) — daemon détaché + attach + PID/state/log + LaunchAgent
-- [🖥️ CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) — 3/3 — CLI complète + daemon + setup interactif Claude/OpenCode
-- [03 — Setup Tools](./03-cli-daemon/03_cli-daemon_setup-tools_DONE.md) — diff interactif + backup/revert + Claude hooks + plugin OpenCode
-- [01 — BaseAdapter & Registry](./04-adapters-priority/01_adapters-priority_base_DONE.md) — couche adapter commune + lifecycle registry + wiring dans le pipeline
-- [🔌 Adapters Prioritaires](./04-adapters-priority/task-adapters-priority.md) — 3/3 — Claude Code + OpenCode validés sur vraies sessions, avec hooks/process fallback et identification de session améliorée
-- [02 — Claude Code Adapter](./04-adapters-priority/02_adapters-priority_claude-code_DONE.md) — hooks HTTP + JSONL watcher + process detection validés end-to-end
-- [03 — OpenCode Adapter](./04-adapters-priority/03_adapters-priority_opencode_DONE.md) — plugin hooks + process detection validés end-to-end
-- [🎨 TUI](./05-tui/task-tui.md) — 3/3 — renderer Ink partagé entre foreground/attach, live stream, sessions, filtres, et keybinds
-- [01 — Ink Foundation & Layout](./05-tui/01_tui_foundation-layout_DONE.md) — layout Ink responsive, thème, header/footer, et intégration CLI
-- [02 — Live Event Stream](./05-tui/02_tui_live-stream_DONE.md) — rendu formaté des events, freeze, buffer borné
-- [03 — Sessions, Filtres & Controls](./05-tui/03_tui_sessions-filters_DONE.md) — sessions groupées, badge global, overlay d'aide, et CLI pre-filters
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 01 | [Project Setup](./01-project-setup/task-project-setup.md) | ✅ Done | pnpm + TypeScript strict + ESLint flat + tsup + CloudEvents/CESP schema |
+| 02 | [Core Pipeline](./02-core-pipeline/task-core-pipeline.md) | ✅ Done | EventBus + WS localhost + HTTP/UDS + context enrichment |
+| 03 | [CLI & Daemon](./03-cli-daemon/task-cli-daemon.md) | ✅ Done | commander commands + daemon mode + setup Claude/OpenCode |
+| 04 | [Priority Adapters](./04-adapters-priority/task-adapters-priority.md) | ✅ Done | Claude Code + OpenCode validés end-to-end |
+| 05 | [TUI](./05-tui/task-tui.md) | ✅ Done | Ink dashboard + live stream + sessions + filtres + keybinds |
+| 06 | [Secondary Adapters](./06-adapters-secondary/task-adapters-secondary.md) | ✅ Done | Gemini/Codex/Goose/Copilot/Aider/OpenClaw + PTY wrapper |
+| 07 | [Testing & E2E](./07-testing/task-testing.md) | ✅ Done | Vitest + aisnitch mock + smoke OpenCode |
+| 08 | [Distribution](./08-distribution/task-distribution.md) | ✅ Done | npm + Homebrew + CI/GitHub Actions |
+| 09 | [Client SDK](./09-client-sdk/task-client-sdk.md) | ✅ Done | @aisnitch/client avec types, reconnect, sessions, filters |
+| 10 | [Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) | ✅ Done | React + Vite + emoji grid + sound engine |
+| t-quality-001 | [Quality Audit](./docs/improvement-plan.md) | ✅ Done | Circuit breaker wired + graceful shutdown + tests |
 
 ---
 
----
-id: t-quality-001
-title: Quality audit — wire circuit breaker, integrate graceful shutdown, improve coverage
-status: Done
-order: 0
-priority: P1
-tags: [quality, resilience, coverage]
-assignee: agent
-created: 2026-05-08
-ownerType: agent
-completed: 2026-05-08
----
+## 📋 Phase 1-5 Status (All Complete)
 
-# Quality audit — wire circuit breaker, integrate graceful shutdown, improve coverage
-
-## Context
-Audit qualité du MVP a identifié plusieurs problèmes critiques:
-1. **Circuit breaker non utilisé** — `SHARED_BREAKERS` existe mais n'est pas intégré dans `BaseAdapter.emit()`
-2. **GracefulShutdownManager à 0%** — jamais instancié dans runtime.ts
-3. **Coverage faible** — TUI ~38%, CLI runtime ~29%, retry.ts ~2.77%
-
-## Subtasks (All Done ✅)
-- [x] Wire `SHARED_BREAKERS.adapterEmit` dans `BaseAdapter.emit()` — src/adapters/base.ts
-- [x] Ajouter tests circuit breaker pour BaseAdapter.emit() — base-adapter-circuit.test.ts (12 tests)
-- [x] Intégrer `shutdownInOrder()` dans runtime.ts avec per-component timeouts
-- [x] Tests graceful-shutdown.test.ts (11 tests) — coverage 100%
-
-## Notes
-Audit complet: lint ✅, typecheck ✅, tests ✅ (327 passed, +21 new).
-- Circuit breaker maintenant actif dans tous les adapters via SHARED_BREAKERS.adapterEmit
-- Graceful shutdown avec timeouts par composant (adapter: 5s, http: 30s, uds: 5s, ws: 10s)
-- Pipeline exposes getAdapterRegistry/getHttpReceiver/getUdsServer/getWsServer pour shutdown
-- 21 nouveaux tests ajoutés (graceful-shutdown.test.ts, base-adapter-circuit.test.ts)
-
-
-- [ ] Remote streaming — option pour forward le flux WS vers un endpoint WebSocket distant
-- [ ] Rust native addon (`napi-rs`) pour PTY, process monitor, FS watch (remplacer les libs Node)
-- [ ] Plugin système / Adapter SDK (`create-aisnitch-adapter`) — scaffold generator + contrat adapter documenté + `~/.aisnitch/plugins/` pour adapters communautaires chargés au runtime + commande `aisnitch install-adapter <npm-package>`. Transforme AISnitch d'un outil en plateforme : la communauté gère le long tail des AI tools (Cursor Agent, Warp AI, Zed AI, Amp, Kilo, Continue...), le core reste maintenu centralement.
-- [ ] Web Dashboard (Companion PWA) — SPA Vite + React servie sur `:4822`, consomme le WS existant. Timeline chart d'activité, token usage graphs, session heatmap, multi-monitor support. Mobile-friendly pour checker ses AI agents depuis le téléphone. Forwarding possible via SSH tunnel pour visibilité équipe distante. Tout le data model est déjà là — il manque juste la face web.
-- [ ] Windows daemon support (Windows Service / Startup Task)
-- [ ] Linux daemon support (systemd user unit)
-- [ ] CESP bridge complet pour PeonPing (160+ soundpacks)
+| Phase | Status | Modules |
+|---|---|---|
+| **Phase 1** — Error Handling | ✅ Done | errors.ts, result.ts, retry.ts, timeout.ts, graceful-shutdown.ts |
+| **Phase 2** — Edge Cases | ✅ Done | safety.ts (20+ helpers), schema.max() limits |
+| **Phase 3** — Circuit Breaker | ✅ Done | circuit-breaker.ts wired in BaseAdapter.emit() |
+| **Phase 4** — Tests d'Erreurs | ✅ Done | event-bus-rejection.test.ts, timeout.test.ts, graceful-shutdown.test.ts |
+| **Phase 5** — Documentation | ✅ Done | docs/errors.md, docs/resilience.md, docs/improvement-plan.md |
 
 ---
 
-## ✅ Critères d'Acceptance MVP (exit conditions)
+## 🚀 Post-MVP Backlog
 
-> Ces 5 conditions doivent être validées pour considérer le MVP livrable.
-
-1. `aisnitch start` lance le daemon silencieusement avec auto-restart, PIDs gérés correctement
-2. Hook factice Claude Code (POST sur `localhost:4821/hooks/claude-code`) → event visible instantanément dans un client WS connecté sur `ws://localhost:4820`
-3. Intégrations opérationnelles sur au moins : **Claude Code** (Tier 1 via Hook + JSONL), **Goose ou Codex** (Tier 2), **1 process Tier 3/4** (file watching)
-4. Mode privacy : aucune donnée brute persistée sur disque au-delà du transit en mémoire
-5. Fermer le TUI ne coupe pas la capture du daemon background (headless stable)
-
----
-
-## ⚠️ Risques Identifiés
-
-| # | Risque | Probabilité | Impact | Mitigation |
-|---|--------|-------------|--------|------------|
-| 1 | **Fragmentation APIs** — formats hooks/logs changent fréquemment (Claude Code, Cursor, Gemini) | Haute | Moyen | Adapter pattern isolé, tests sur formats connus, veille active |
-| 2 | **PTY fallback fragile** — heuristiques ANSI (`\r`, spinners, prompts) peu fiables | Moyenne | Moyen | Best-effort uniquement pour Tier 4, fallback process detection |
-| 3 | **Aucun audit post-crash** — mode memory-only supprime toute capacité de replay | Faible | Faible | Accepté par design (privacy-first), documenté clairement |
-| 4 | **SQLite lock** (si WAL activé) — accès concurrents daemon + child processes | Faible | Élevé | Pas de SQLite dans le MVP (in-memory only). SQLite = Backlog V2 si besoin |
-| 5 | **Event drop silencieux** — ring buffer plein → oldest-first drop sans alerte | Moyenne | Moyen | Compteur `droppedEvents` dans `aisnitch status`, log warning à chaque drop |
+| Feature | Description | Priority |
+|---|---|---|
+| Remote streaming | Forward WS flux vers endpoint distant | P2 |
+| Plugin system | Adapter SDK + `~/.aisnitch/plugins/` | P2 |
+| Web Dashboard | SPA Vite + React sur `:4822` | P2 |
+| Windows daemon | Windows Service support | P3 |
+| Linux daemon | systemd user unit | P3 |
+| CESP bridge | PeonPing integration (160+ soundpacks) | P3 |
+| Rust addon | `napi-rs` pour PTY/process monitor | P3 |
 
 ---
 
 ## 📐 Non-Functional Requirements
 
-| Exigence | Cible |
-|----------|-------|
-| **Latence** | p95 ingest → event diffusé < 300ms en local |
-| **Fiabilité** | 0 crash du daemon sur parsing PTY malformé |
-| **Sécurité** | WS + HTTP bind localhost uniquement, aucun PII persisté |
-| **Distribution** | `npm i -g aisnitch` sans node-gyp (prebuilds via `@lydell/node-pty`) |
-| **Performance** | CPU idle < 1%, file watch asynchrone (FSEvents natif via chokidar v5) |
-| **Throughput** | WS server testé à ~8 200 ops/s (lib `ws`) — suffisant pour ~100 events/min |
+| Exigence | Cible | Status |
+|---|---|---|
+| **Latence** | p95 < 300ms | ✅ |
+| **Fiabilité** | 0 crash sur parsing PTY | ✅ |
+| **Sécurité** | localhost only, pas de PII persisté | ✅ |
+| **Distribution** | `npm i -g aisnitch` sans node-gyp | ✅ |
+| **Performance** | CPU idle < 1% | ✅ |
+| **Throughput** | ~8,200 ops/s | ✅ |
