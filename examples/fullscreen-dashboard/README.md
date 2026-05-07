@@ -18,11 +18,18 @@ Fullscreen web dashboard showing live AI agent activity with large, centered dis
 ## Running
 
 ```bash
+# 1. Start the AISnitch daemon (REQUIRED - daemon must be running first!)
+aisnitch start
+
+# 2. In another terminal, run the dashboard
 cd examples/fullscreen-dashboard
+pnpm install  # only first time
 pnpm dev
 ```
 
 Opens on `http://localhost:5174`
+
+⚠️ **Without the daemon running (`aisnitch start`), the dashboard will show "No Active Agents"**
 
 ## Prerequisites
 
