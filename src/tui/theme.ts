@@ -39,9 +39,11 @@ export const TOOL_COLORS: Record<ToolName, TuiThemeColor> = {
   'openhands': '#facc15',
   'openclaw': '#ef4444',
   'opencode': '#10b981',
+  'pi': '#1db954',
   'qwen-code': '#22c55e',
   'unknown': '#94a3b8',
   'windsurf': '#a855f7',
+  'zed': '#e85d04',
 };
 
 /**

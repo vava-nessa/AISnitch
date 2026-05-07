@@ -39,6 +39,8 @@ export type ToolName =
   | 'kiro'
   | 'augment-code'
   | 'mistral'
+  | 'zed'
+  | 'pi'
   | 'unknown';
 
 export interface EventData {
@@ -128,6 +130,8 @@ export const TOOL_COLORS: Record<ToolName, string> = {
   'kiro': '#06b6d4',
   'augment-code': '#f472b6',
   'mistral': '#0ea5e9',
+  'zed': '#e85d04',
+  'pi': '#1db954',
   'unknown': '#6b7280',
 };
 
@@ -185,5 +189,7 @@ export const TOOL_ICONS: Record<ToolName, string> = {
   'kiro': '🔷',
   'augment-code': '🔴',
   'mistral': '🌫️',
+  'zed': '🟠',
+  'pi': '🎵',
   'unknown': '❓',
 };

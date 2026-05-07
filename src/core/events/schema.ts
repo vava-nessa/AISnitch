@@ -55,6 +55,8 @@ export const TOOL_NAMES = [
   'kiro',
   'augment-code',
   'mistral',
+  'zed',
+  'pi',
   'unknown',
 ] as const;
 

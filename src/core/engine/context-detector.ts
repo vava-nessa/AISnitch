@@ -117,9 +117,11 @@ const TOOL_BINARY_MAP: Record<ToolName, string> = {
   'openhands': 'openhands',
   'openclaw': 'openclaw',
   'opencode': 'opencode',
+  'pi': 'pi',
   'qwen-code': 'qwen',
   'unknown': 'unknown',
   'windsurf': 'windsurf',
+  'zed': 'zed',
 };
 
 /**

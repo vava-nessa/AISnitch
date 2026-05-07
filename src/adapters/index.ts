@@ -18,6 +18,8 @@
  * @see ./codex.ts
  * @see ./openclaw.ts
  * @see ./opencode.ts
+ * @see ./pi.ts
+ * @see ./zed.ts
  */
 
 import type { AdapterRuntimeOptions } from './base.js';
@@ -32,6 +34,8 @@ import { GooseAdapter } from './goose.js';
 import { KiloAdapter } from './kilo.js';
 import { OpenClawAdapter } from './openclaw.js';
 import { OpenCodeAdapter } from './opencode.js';
+import { PiAdapter } from './pi.js';
+import { ZedAdapter } from './zed.js';
 
 export * from './base.js';
 export * from './registry.js';
@@ -47,6 +51,8 @@ export * from './goose.js';
 export * from './kilo.js';
 export * from './openclaw.js';
 export * from './opencode.js';
+export * from './pi.js';
+export * from './zed.js';
 
 /**
  * Instantiates the built-in adapters that ship with AISnitch.
@@ -64,5 +70,7 @@ export function createDefaultAdapters(options: AdapterRuntimeOptions) {
     new CodexAdapter(options),
     new OpenClawAdapter(options),
     new OpenCodeAdapter(options),
+    new PiAdapter(options),
+    new ZedAdapter(options),
   ] as const;
 }
