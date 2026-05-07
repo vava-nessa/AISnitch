@@ -182,9 +182,21 @@ export class OpenCodeAdapter extends BaseAdapter {
         await this.emitStateChange('agent.compact', sharedData, context);
         return;
       }
+      case 'thinking': {
+        const thinkingContent = extractOpenCodeThinkingContent(payload);
+        await this.emitStateChange('agent.thinking', {
+          ...sharedData,
+          thinkingContent,
+        }, context);
+        return;
+      }
       case 'message.updated':
       case 'message.part.updated': {
-        await this.emitStateChange('agent.streaming', sharedData, context);
+        const messageContent = extractOpenCodeMessageContent(payload);
+        await this.emitStateChange('agent.streaming', {
+          ...sharedData,
+          messageContent,
+        }, context);
         return;
       }
       case 'permission.asked': {
@@ -543,5 +555,55 @@ function extractOpenCodeToolResult(
     }
   }
 
+  return undefined;
+}
+
+/**
+ * 📖 Extracts message/chat content from OpenCode payload.
+ */
+function extractOpenCodeMessageContent(
+  payload: Record<string, unknown>,
+): string | undefined {
+  const directMessage =
+    getString(payload, 'text') ??
+    getString(payload, 'message') ??
+    getString(payload, 'content') ??
+    getString(payload, 'output');
+  if (directMessage) {
+    return directMessage;
+  }
+  const part = getRecord(payload.part) ?? getRecord(getRecord(payload.properties)?.part);
+  if (part) {
+    return getString(part, 'text') ?? getString(part, 'content');
+  }
+  const props = getRecord(payload.properties);
+  if (props) {
+    const message = getRecord(props.message) ?? getRecord(props.info);
+    if (message) {
+      return getString(message, 'text') ?? getString(message, 'content');
+    }
+    return getString(props, 'text') ?? getString(props, 'message');
+  }
+  return undefined;
+}
+
+/**
+ * 📖 Extracts thinking/reasoning content from OpenCode payload.
+ */
+function extractOpenCodeThinkingContent(
+  payload: Record<string, unknown>,
+): string | undefined {
+  const directThinking =
+    getString(payload, 'thinking') ??
+    getString(payload, 'thinkingContent') ??
+    getString(payload, 'reasoning') ??
+    getString(payload, 'thought');
+  if (directThinking) {
+    return directThinking;
+  }
+  const props = getRecord(payload.properties);
+  if (props) {
+    return getString(props, 'thinking') ?? getString(props, 'reasoning') ?? getString(props, 'thought');
+  }
   return undefined;
 }
