@@ -10,6 +10,7 @@
  * @see ./session-identity.ts
  */
 
+export * from './circuit-breaker.js';
 export * from './config/index.js';
 export * from './engine/index.js';
 export * from './errors.js';

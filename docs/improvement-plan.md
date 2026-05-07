@@ -265,7 +265,7 @@ Créer `docs/resilience.md` documentant:
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
-| 3.1 | Circuit breaker | `src/core/circuit-breaker.ts` | 📋 Todo |
+| 3.1 | Circuit breaker | `src/core/circuit-breaker.ts` | ✅ Done |
 | 3.2 | Panic recovery | `src/adapters/base.ts` | 📋 Todo |
 
 ### 📋 Phase 4 — Tests d'Erreurs
@@ -303,6 +303,12 @@ Créer `docs/resilience.md` documentant:
 - État actuel du projet documenté
 
 ### 2026-05-07 (Phase 2)
+### 2026-05-07 (Phase 3)
+- **Phase 3 terminée** — Circuit breaker:
+  - `circuit-breaker.ts` — CircuitBreaker class (12.8 KB) avec états CLOSED/OPEN/HALF-OPEN
+  - `SHARED_BREAKERS` — instances singletons pre-configurées (adapterEmit, fileSystem, httpRequest, processDetection)
+  - `CircuitOpenError` — erreur thrown quand circuit est OPEN
+  - `__tests__/circuit-breaker.test.ts` — 29 tests avec fake timers
 - **Phase 2 terminée** — 2 modules créés:
   - `safety.ts` — 20+ fonctions de sécurité (getString, getNumber, isValidPort, isRecord, etc.)
   - `__tests__/safety.test.ts` — 74 tests
