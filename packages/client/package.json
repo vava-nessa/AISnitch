@@ -1,6 +1,6 @@
 {
   "name": "@aisnitch/client",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "description": "Lightweight TypeScript SDK to consume the AISnitch WebSocket event stream — auto-reconnect, Zod parsing, session tracking, filters, and human-readable helpers.",
   "keywords": [
     "aisnitch",
