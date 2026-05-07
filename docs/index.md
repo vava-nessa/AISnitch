@@ -20,6 +20,7 @@ This folder tracks the technical documentation that complements the task board a
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
 - [`../packages/client/README.md`](../packages/client/README.md) — `@aisnitch/client` SDK documentation (install, API reference, React hook, filters, mascot state)
+- [`../examples/fullscreen-dashboard/README.md`](../examples/fullscreen-dashboard/README.md) — fullscreen web dashboard with live agent activity display
 
 ## Related project sources
 
