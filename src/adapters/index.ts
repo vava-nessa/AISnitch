@@ -9,9 +9,12 @@
  * @see ./aider.ts
  * @see ./claude-code.ts
  * @see ./copilot-cli.ts
+ * @see ./cursor.ts
+ * @see ./devin.ts
  * @see ./gemini-cli.ts
  * @see ./generic-pty.ts
  * @see ./goose.ts
+ * @see ./kilo.ts
  * @see ./codex.ts
  * @see ./openclaw.ts
  * @see ./opencode.ts
@@ -22,8 +25,11 @@ import { AiderAdapter } from './aider.js';
 import { ClaudeCodeAdapter } from './claude-code.js';
 import { CopilotCLIAdapter } from './copilot-cli.js';
 import { CodexAdapter } from './codex.js';
+import { CursorAdapter } from './cursor.js';
+import { DevinAdapter } from './devin.js';
 import { GeminiCLIAdapter } from './gemini-cli.js';
 import { GooseAdapter } from './goose.js';
+import { KiloAdapter } from './kilo.js';
 import { OpenClawAdapter } from './openclaw.js';
 import { OpenCodeAdapter } from './opencode.js';
 
@@ -33,9 +39,12 @@ export * from './aider.js';
 export * from './claude-code.js';
 export * from './copilot-cli.js';
 export * from './codex.js';
+export * from './cursor.js';
+export * from './devin.js';
 export * from './gemini-cli.js';
 export * from './generic-pty.js';
 export * from './goose.js';
+export * from './kilo.js';
 export * from './openclaw.js';
 export * from './opencode.js';
 
@@ -47,8 +56,11 @@ export function createDefaultAdapters(options: AdapterRuntimeOptions) {
     new AiderAdapter(options),
     new ClaudeCodeAdapter(options),
     new CopilotCLIAdapter(options),
+    new CursorAdapter(options),
+    new DevinAdapter(options),
     new GeminiCLIAdapter(options),
     new GooseAdapter(options),
+    new KiloAdapter(options),
     new CodexAdapter(options),
     new OpenClawAdapter(options),
     new OpenCodeAdapter(options),

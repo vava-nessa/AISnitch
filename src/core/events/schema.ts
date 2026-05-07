@@ -51,6 +51,10 @@ export const TOOL_NAMES = [
   'openclaw',
   'openhands',
   'kilo',
+  'devin',
+  'kiro',
+  'augment-code',
+  'mistral',
   'unknown',
 ] as const;
 
