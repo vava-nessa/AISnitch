@@ -74,6 +74,10 @@ _Nothing in progress_
 
 ## 📋 Backlog V2 (post-MVP)
 
+### Qualité & Robustesse
+
+- [ ] **[Q] Error Handling Centralisé** — module erreurs custom `src/core/errors.ts`, pattern `Result<T, E>`, handlers globaux `uncaughtException`, retry avec backoff, timeouts async, graceful shutdown avec timeout. Voir [`docs/improvement-plan.md`](./docs/improvement-plan.md) Phase 1-3. Tags: `quality`, `resilience`
+
 - [ ] Remote streaming — option pour forward le flux WS vers un endpoint WebSocket distant
 - [ ] Rust native addon (`napi-rs`) pour PTY, process monitor, FS watch (remplacer les libs Node)
 - [ ] Plugin système / Adapter SDK (`create-aisnitch-adapter`) — scaffold generator + contrat adapter documenté + `~/.aisnitch/plugins/` pour adapters communautaires chargés au runtime + commande `aisnitch install-adapter <npm-package>`. Transforme AISnitch d'un outil en plateforme : la communauté gère le long tail des AI tools (Cursor Agent, Warp AI, Zed AI, Amp, Kilo, Continue...), le core reste maintenu centralement.

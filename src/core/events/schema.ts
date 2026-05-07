@@ -117,8 +117,8 @@ export function createUuidV7(): string {
  */
 export const ToolInputSchema = z
   .strictObject({
-    filePath: z.string().min(1).optional(),
-    command: z.string().min(1).optional(),
+    filePath: z.string().min(1).max(4_096).optional(),
+    command: z.string().min(1).max(10_000).optional(),
   })
   .refine(
     (value) => value.filePath !== undefined || value.command !== undefined,
@@ -152,21 +152,21 @@ export const CESPCategorySchema = z.enum(CESP_CATEGORIES);
  */
 export const EventDataSchema = z.strictObject({
   state: AISnitchEventTypeSchema,
-  project: z.string().min(1).optional(),
-  projectPath: z.string().min(1).optional(),
+  project: z.string().min(1).max(255).optional(),
+  projectPath: z.string().min(1).max(4_096).optional(),
   duration: z.number().int().min(0).optional(),
-  toolName: z.string().min(1).optional(),
+  toolName: z.string().min(1).max(100).optional(),
   toolInput: ToolInputSchema.optional(),
-  activeFile: z.string().min(1).optional(),
-  model: z.string().min(1).optional(),
+  activeFile: z.string().min(1).max(4_096).optional(),
+  model: z.string().min(1).max(200).optional(),
   tokensUsed: z.number().int().min(0).optional(),
-  errorMessage: z.string().min(1).optional(),
+  errorMessage: z.string().min(1).max(10_000).optional(),
   errorType: ErrorTypeSchema.optional(),
   raw: z.record(z.string(), z.unknown()).optional(),
-  terminal: z.string().min(1).optional(),
-  cwd: z.string().min(1).optional(),
+  terminal: z.string().min(1).max(100).optional(),
+  cwd: z.string().min(1).max(4_096).optional(),
   pid: z.number().int().positive().optional(),
-  instanceId: z.string().min(1).optional(),
+  instanceId: z.string().min(1).max(255).optional(),
   instanceIndex: z.number().int().min(1).optional(),
   instanceTotal: z.number().int().min(1).optional(),
 });
@@ -179,6 +179,7 @@ export const AISnitchEventSchema = z.strictObject({
   id: z.string().refine(isUuidV7, 'id must be a valid UUIDv7 string'),
   source: z
     .string()
+    .max(2_000)
     .refine(
       isValidUriReference,
       'source must be a valid non-empty CloudEvents URI-reference',
@@ -186,7 +187,7 @@ export const AISnitchEventSchema = z.strictObject({
   type: AISnitchEventTypeSchema,
   time: ISO_TIMESTAMP_SCHEMA,
   'aisnitch.tool': ToolNameSchema,
-  'aisnitch.sessionid': z.string().min(1),
+  'aisnitch.sessionid': z.string().min(1).max(500),
   'aisnitch.seqnum': z.number().int().min(1),
   data: EventDataSchema,
 });

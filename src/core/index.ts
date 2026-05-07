@@ -12,5 +12,11 @@
 
 export * from './config/index.js';
 export * from './engine/index.js';
+export * from './errors.js';
 export * from './events/index.js';
+export * from './graceful-shutdown.js';
+export * from './result.js';
+export * from './retry.js';
+export * from './safety.js';
 export * from './session-identity.js';
+export * from './timeout.js';

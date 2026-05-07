@@ -14,6 +14,7 @@ This folder tracks the technical documentation that complements the task board a
 - [`secondary-adapters.md`](./secondary-adapters.md) — Gemini/Codex, Goose/Copilot, Aider/PTY, and OpenClaw hook-log-memory integration
 - [`tui.md`](./tui.md) — Ink dashboard rendering, daemon controls, filters, and the full-data event inspector
 - [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
+- [`improvement-plan.md`](./improvement-plan.md) — plan d'amélioration pour qualité, gestion d'erreurs, et edge cases (5 phases)
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
 - [`../packages/client/README.md`](../packages/client/README.md) — `@aisnitch/client` SDK documentation (install, API reference, React hook, filters, mascot state)
