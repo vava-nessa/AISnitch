@@ -72,11 +72,40 @@ _Nothing in progress_
 
 ---
 
-## 📋 Backlog V2 (post-MVP)
+---
+id: t-quality-001
+title: Quality audit — wire circuit breaker, integrate graceful shutdown, improve coverage
+status: Done
+order: 0
+priority: P1
+tags: [quality, resilience, coverage]
+assignee: agent
+created: 2026-05-08
+ownerType: agent
+completed: 2026-05-08
+---
 
-### Qualité & Robustesse
+# Quality audit — wire circuit breaker, integrate graceful shutdown, improve coverage
 
-- [ ] **[Q] Error Handling Centralisé** — module erreurs custom `src/core/errors.ts`, pattern `Result<T, E>`, handlers globaux `uncaughtException`, retry avec backoff, timeouts async, graceful shutdown avec timeout. Voir [`docs/improvement-plan.md`](./docs/improvement-plan.md) Phase 1-3. Tags: `quality`, `resilience`
+## Context
+Audit qualité du MVP a identifié plusieurs problèmes critiques:
+1. **Circuit breaker non utilisé** — `SHARED_BREAKERS` existe mais n'est pas intégré dans `BaseAdapter.emit()`
+2. **GracefulShutdownManager à 0%** — jamais instancié dans runtime.ts
+3. **Coverage faible** — TUI ~38%, CLI runtime ~29%, retry.ts ~2.77%
+
+## Subtasks (All Done ✅)
+- [x] Wire `SHARED_BREAKERS.adapterEmit` dans `BaseAdapter.emit()` — src/adapters/base.ts
+- [x] Ajouter tests circuit breaker pour BaseAdapter.emit() — base-adapter-circuit.test.ts (12 tests)
+- [x] Intégrer `shutdownInOrder()` dans runtime.ts avec per-component timeouts
+- [x] Tests graceful-shutdown.test.ts (11 tests) — coverage 100%
+
+## Notes
+Audit complet: lint ✅, typecheck ✅, tests ✅ (327 passed, +21 new).
+- Circuit breaker maintenant actif dans tous les adapters via SHARED_BREAKERS.adapterEmit
+- Graceful shutdown avec timeouts par composant (adapter: 5s, http: 30s, uds: 5s, ws: 10s)
+- Pipeline exposes getAdapterRegistry/getHttpReceiver/getUdsServer/getWsServer pour shutdown
+- 21 nouveaux tests ajoutés (graceful-shutdown.test.ts, base-adapter-circuit.test.ts)
+
 
 - [ ] Remote streaming — option pour forward le flux WS vers un endpoint WebSocket distant
 - [ ] Rust native addon (`napi-rs`) pour PTY, process monitor, FS watch (remplacer les libs Node)

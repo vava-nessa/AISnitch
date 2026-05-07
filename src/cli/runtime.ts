@@ -20,6 +20,8 @@ import {
   LOG_LEVELS,
   Pipeline,
   setLoggerLevel,
+  shutdownInOrder,
+  DEFAULT_TIMEOUTS,
   type ConfigPathOptions,
   type HealthSnapshot,
 } from '../core/index.js';
@@ -623,6 +625,10 @@ export function createCliRuntime(
 
     let shuttingDown = false;
 
+    /**
+     * Graceful shutdown with per-component timeout using withShutdownTimeout.
+     * Prevents any single component from blocking daemon exit indefinitely.
+     */
     const shutdown = async (signal: string, exitCode = 0): Promise<void> => {
       if (shuttingDown) {
         return;
@@ -630,24 +636,38 @@ export function createCliRuntime(
 
       shuttingDown = true;
 
-      try {
-        await pipeline.stop();
-      } finally {
-        if (daemonMode) {
-          const daemonPathOptions = toPathOptions(options);
+      // Use per-component timeouts to prevent any single component from blocking shutdown
+      const shutdownTimeouts = {
+        adapterRegistry: DEFAULT_TIMEOUTS.adapterShutdown,
+        httpReceiver: DEFAULT_TIMEOUTS.httpRequest,
+        udsServer: DEFAULT_TIMEOUTS.fileOperation,
+        wsServer: DEFAULT_TIMEOUTS.wsConnection,
+        cleanupFns: 1_000,
+      };
 
+      const components = {
+        adapterRegistry: pipeline.getAdapterRegistry(),
+        httpReceiver: pipeline.getHttpReceiver(),
+        udsServer: pipeline.getUdsServer(),
+        wsServer: pipeline.getWsServer(),
+        eventBus: pipeline.getEventBus(),
+        cleanupFns: daemonMode ? [async () => {
           await Promise.all([
-            removePid(daemonPathOptions),
-            removeDaemonState(daemonPathOptions),
+            removePid(toPathOptions(options)),
+            removeDaemonState(toPathOptions(options)),
           ]);
+        }] : [],
+      };
+
+      try {
+        await shutdownInOrder(components, shutdownTimeouts, 'pipeline');
+      } finally {
+        if (!daemonMode) {
+          output.stdout(`AISnitch stopped after ${signal}.\n`);
         }
-      }
 
-      if (!daemonMode) {
-        output.stdout(`AISnitch stopped after ${signal}.\n`);
+        process.exit(exitCode);
       }
-
-      process.exit(exitCode);
     };
 
     if (daemonMode) {

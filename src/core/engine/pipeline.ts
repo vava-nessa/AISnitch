@@ -353,6 +353,34 @@ export class Pipeline {
     return this.eventBus;
   }
 
+  /**
+   * Returns the adapter registry for graceful shutdown coordination.
+   */
+  public getAdapterRegistry(): AdapterRegistry | undefined {
+    return this.adapterRegistry ?? undefined;
+  }
+
+  /**
+   * Returns the HTTP receiver for graceful shutdown coordination.
+   */
+  public getHttpReceiver(): HTTPReceiver {
+    return this.httpReceiver;
+  }
+
+  /**
+   * Returns the UDS server for graceful shutdown coordination.
+   */
+  public getUdsServer(): UDSServer {
+    return this.udsServer;
+  }
+
+  /**
+   * Returns the WebSocket server for graceful shutdown coordination.
+   */
+  public getWsServer(): WSServer {
+    return this.wsServer;
+  }
+
   private getHealthSnapshot(): HealthSnapshot {
     const status = this.getStatus();
 
