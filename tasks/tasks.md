@@ -1,8 +1,16 @@
 # Tasks — AISnitch
 
-## 🔵 In Progress
+## ✅ Done
 
-**t-enhance-content**: Enhance event schema to capture AI thinking, tool names, and final messages — ✅ Done
+- **t-enhance-content**: Enhanced EventDataSchema + Claude Code + OpenCode adapters with thinking content, tool names, final messages
+- **t-fullscreen-dashboard**: Fullscreen web dashboard (`examples/fullscreen-dashboard/`) showing live agent activity with:
+  - Header with tool name + model + connection status
+  - Agent selector sidebar
+  - Fullscreen event display (thinking, tool calls, messages, final messages)
+  - Event ticker at bottom
+  - Auto-switching on new events
+  - Color-coded backgrounds by event type
+  - Color-coded headers by tool name
 
 ---
 
