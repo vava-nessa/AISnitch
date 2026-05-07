@@ -24,18 +24,20 @@
 
 ## 🟡 Todo
 
-- [🔧 Version bump to 0.2.9] ./task-version-bump.md — 0/1 — update version constants, tests, docs, changelog.
-- [🔧 Version bump to 0.2.11] ./task-version-bump-0.2.11.md — 0/1 — bump to 0.2.11 after CI token fix.
-- [🔧 Version bump to 0.2.10] ./task-version-bump-0.2.10.md — 0/1 — bump version to 0.2.10 and align docs.
+_Nothing pending_
 
 ---
 
 ## 🔵 In Progress
-- [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 0/2 — packaging/docs/community prêts, publication et validation GitHub externes encore pending
+
+_Nothing in progress_
 
 ---
 
 ## ✅ Done
+
+- [📦 Distribution & Launch](./08-distribution/task-distribution.md) — 2/2 — packaging npm/Homebrew prêt, CI/GitHub Actions opérationnel, v0.2.17 publié via `pnpm bump` ✅
+- [🔧 Version bump to 0.2.17] — ✅ Version bumped to 0.2.17, committed, tagged and pushed. CI triggered.
 
 - [🎭 Mascot Dashboard](./10-mascot-dashboard/task-mascot-dashboard.md) — 4/4 — App React + Vite avec grille de mascottes emoji connectée au daemon AISnitch via `@aisnitch/client`. Cartes animées avec glow, particules, death animation 5s, sound engine synthétisé, event ticker, dark theme, empty state 🐸
 - [📦 Client SDK (`@aisnitch/client`)](./09-client-sdk/task-client-sdk.md) — 4/4 — SDK TypeScript complet : types, client WS auto-reconnect, session tracking, filtres, helpers, 48 tests, README, npm publish dry-run validé
