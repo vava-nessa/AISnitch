@@ -272,16 +272,16 @@ Créer `docs/resilience.md` documentant:
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
-| 4.1 | Tests rejection events | `event-bus.test.ts` | 📋 Todo |
-| 4.2 | Tests recovery | à déterminer | 📋 Todo |
-| 4.3 | Tests timeout | `timeout.test.ts` | 📋 Todo |
+| 4.1 | Tests rejection events | `event-bus-rejection.test.ts` | ✅ Done |
+| 4.2 | Tests recovery | `event-bus-rejection.test.ts` | ✅ Done |
+| 4.3 | Tests timeout | `timeout.test.ts` | ✅ Done |
 
 ### 📋 Phase 5 — Documentation
 
 | # | Tâche | Fichier(s) | Status |
 |---|---|---|---|
-| 5.1 | `docs/errors.md` | `docs/errors.md` | 📋 Todo |
-| 5.2 | `docs/resilience.md` | `docs/resilience.md` | 📋 Todo |
+| 5.1 | `docs/errors.md` | `docs/errors.md` | ✅ Done |
+| 5.2 | `docs/resilience.md` | `docs/resilience.md` | ✅ Done |
 
 ---
 
@@ -304,6 +304,13 @@ Créer `docs/resilience.md` documentant:
 
 ### 2026-05-07 (Phase 2)
 ### 2026-05-07 (Phase 3)
+### 2026-05-07 (Phase 4)
+- **Phase 4 terminée** — Tests d'erreurs:
+  - `event-bus-rejection.test.ts` — 20 tests (rejection, subscriber errors, stats, unsubscribe)
+### 2026-05-07 (Phase 5)
+- **Phase 5 terminée** — Documentation:
+  - `docs/errors.md` — taxonomy erreurs, codes, handling patterns
+  - `docs/resilience.md` — circuit breaker, retry, timeouts, graceful shutdown
 - **Phase 3 terminée** — Circuit breaker:
   - `circuit-breaker.ts` — CircuitBreaker class (12.8 KB) avec états CLOSED/OPEN/HALF-OPEN
   - `SHARED_BREAKERS` — instances singletons pre-configurées (adapterEmit, fileSystem, httpRequest, processDetection)

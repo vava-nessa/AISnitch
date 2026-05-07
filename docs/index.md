@@ -15,6 +15,8 @@ This folder tracks the technical documentation that complements the task board a
 - [`tui.md`](./tui.md) — Ink dashboard rendering, daemon controls, filters, and the full-data event inspector
 - [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
 - [`improvement-plan.md`](./improvement-plan.md) — plan d'amélioration pour qualité, gestion d'erreurs, et edge cases (5 phases)
+- [`errors.md`](./errors.md) — taxonomy des erreurs AISnitch, codes, patterns de handling
+- [`resilience.md`](./resilience.md) — circuit breaker, retry, timeouts, graceful shutdown
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts
 - [`../packages/client/README.md`](../packages/client/README.md) — `@aisnitch/client` SDK documentation (install, API reference, React hook, filters, mascot state)
