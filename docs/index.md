@@ -16,6 +16,8 @@ This folder tracks the technical documentation that complements the task board a
 - [`testing.md`](./testing.md) — Vitest layout, mock scenarios, and the OpenCode smoke test split
 - [`improvement-plan.md`](./improvement-plan.md) — plan d'amélioration pour qualité, gestion d'erreurs, et edge cases (5 phases)
 - [`errors.md`](./errors.md) — taxonomy des erreurs AISnitch, codes, patterns de handling
+- [`dashboard-content.md`](./dashboard-content.md) — How dashboard displays content with priority system, content blocks, and empty content handling
+- [`adapter-analysis.md`](./adapter-analysis.md) — Research on each adapter's event format and content extraction capabilities
 - [`resilience.md`](./resilience.md) — circuit breaker, retry, timeouts, graceful shutdown
 - [`distribution.md`](./distribution.md) — npm packaging, Homebrew formula automation, workflows, and community scaffolding
 - [`launch-plan.md`](./launch-plan.md) — release messaging and launch-copy drafts

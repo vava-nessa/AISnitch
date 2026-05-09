@@ -78,16 +78,17 @@
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
+    "open": "^11.0.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2"
   },
   "dependencies": {
-    "fullscreen-ink": "^0.1.0",
     "@lydell/node-pty": "1.2.0-beta.3",
     "chokidar": "^5.0.0",
     "commander": "^14.0.3",
     "eventemitter3": "^5.0.4",
+    "fullscreen-ink": "^0.1.0",
     "ink": "^6.8.0",
     "ink-big-text": "^2.0.0",
     "ink-gradient": "^4.0.0",

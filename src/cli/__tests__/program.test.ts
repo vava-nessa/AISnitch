@@ -18,6 +18,7 @@ function createNoopRuntime() {
     adapters: vi.fn(() => Promise.resolve()),
     aiderNotify: vi.fn(() => Promise.resolve()),
     attach: vi.fn(() => Promise.resolve()),
+    fullscreen: vi.fn(() => Promise.resolve()),
     install: vi.fn(() => Promise.resolve()),
     logger: vi.fn(() => Promise.resolve()),
     mock: vi.fn(() => Promise.resolve()),

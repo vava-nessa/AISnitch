@@ -53,6 +53,9 @@ export interface EventData {
   activeFile?: string;
   model?: string;
   tokensUsed?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedTokens?: number;
   errorMessage?: string;
   errorType?: string;
   raw?: Record<string, unknown>;
@@ -90,6 +93,10 @@ export interface AgentDisplay {
   currentEvent: AISnitchEvent | null;
   lastEvents: AISnitchEvent[];
   connectedAt: number;
+  totalTokens: number;  // Cumulative total tokens
+  inputTokens: number;    // Cumulative input tokens
+  outputTokens: number;    // Cumulative output tokens
+  cachedTokens: number;    // Cumulative cached tokens
 }
 
 // Color schemes for each event type

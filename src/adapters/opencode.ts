@@ -153,6 +153,16 @@ export class OpenCodeAdapter extends BaseAdapter {
       raw: payload,
       toolInput: extractOpenCodeToolInput(payload),
       toolName: extractOpenCodeToolName(payload),
+      // 📖 Extract token usage from payload (with input/output/cached breakdown)
+      ...(() => {
+        const tokens = extractOpenCodeTokens(payload);
+        return {
+          tokensUsed: tokens.total,
+          inputTokens: tokens.inputTokens,
+          outputTokens: tokens.outputTokens,
+          cachedTokens: tokens.cachedTokens,
+        };
+      })(),
     } satisfies Omit<EventData, 'state'>;
 
     switch (eventType) {
@@ -606,4 +616,56 @@ function extractOpenCodeThinkingContent(
     return getString(props, 'thinking') ?? getString(props, 'reasoning') ?? getString(props, 'thought');
   }
   return undefined;
+}
+
+/**
+ * 📖 Extracts token usage from OpenCode payload.
+ * OpenCode sends token info in properties.info.tokens:
+ * { input: number, output: number, reasoning: number }
+ */
+interface OpenCodeTokens {
+  total?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedTokens?: number;
+}
+
+function extractOpenCodeTokens(
+  payload: Record<string, unknown>,
+): OpenCodeTokens {
+  // Direct tokens field
+  const directTokens = getNumber(payload, 'tokensUsed') ?? getNumber(payload, 'tokens');
+  if (directTokens !== undefined) {
+    return { total: directTokens };
+  }
+
+  // Nested in properties.info.tokens
+  const props = getRecord(payload.properties);
+  if (props) {
+    const info = getRecord(props.info);
+    if (info) {
+      const tokens = getRecord(info.tokens);
+      if (tokens) {
+        const inputTokens = getNumber(tokens, 'input') ?? 0;
+        const outputTokens = getNumber(tokens, 'output') ?? 0;
+        const reasoningTokens = getNumber(tokens, 'reasoning') ?? 0;
+        const total = inputTokens + outputTokens + reasoningTokens;
+        return total > 0 ? {
+          total,
+          inputTokens,
+          outputTokens,
+          // reasoning tokens are often billed as cached on some providers
+          cachedTokens: reasoningTokens,
+        } : {};
+      }
+    }
+
+    // Fallback: direct in properties
+    const fallbackTokens = getNumber(props, 'tokensUsed') ?? getNumber(props, 'tokens');
+    if (fallbackTokens !== undefined) {
+      return { total: fallbackTokens };
+    }
+  }
+
+  return {};
 }

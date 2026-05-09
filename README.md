@@ -452,6 +452,12 @@ aisnitch start --tool claude-code      # pre-filter by tool
 aisnitch start --type agent.coding     # pre-filter by event type
 aisnitch start --view full-data        # expanded JSON inspector
 
+# Fullscreen web dashboard (from another computer)
+aisnitch fs                             # open dashboard in browser
+aisnitch fs --daemon                  # start daemon automatically if not running
+aisnitch fs --dashboard-port 8080     # use different port
+aisnitch fs --no-browser              # just start the server
+
 # Background daemon
 aisnitch start --daemon
 aisnitch status                        # check if daemon is running

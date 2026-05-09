@@ -538,7 +538,7 @@ function extractClaudeTranscriptObservations(
   const model =
     getString(payload, 'model') ??
     getString(getRecord(payload.message), 'model');
-  const tokensUsed = extractTokenUsage(payload);
+  const tokens = extractTokenUsageDetailed(payload);
   const rawPayload = payload;
   const sharedContext: AdapterPublishContext = {
     // 📖 Pass process.env so terminal detection works from transcript path too
@@ -551,7 +551,10 @@ function extractClaudeTranscriptObservations(
   const sharedData = {
     model,
     raw: rawPayload,
-    tokensUsed,
+    tokensUsed: tokens.total,
+    inputTokens: tokens.input,
+    outputTokens: tokens.output,
+    cachedTokens: tokens.cached,
   } satisfies Omit<EventData, 'state'>;
   const observations: ClaudeTranscriptObservation[] = [];
 
@@ -635,30 +638,34 @@ function extractClaudeContentParts(
   return content.filter(isRecord);
 }
 
-function extractTokenUsage(payload: Record<string, unknown>): number | undefined {
+
+function extractTokenUsageDetailed(payload: Record<string, unknown>): {
+  total?: number;
+  input?: number;
+  output?: number;
+  cached?: number;
+} {
   const tokens = getNumber(payload, 'tokens');
-
   if (tokens !== undefined) {
-    return tokens;
+    return { total: tokens };
   }
-
   const usage = getRecord(payload.usage);
-
   if (!usage) {
-    return undefined;
+    return {};
   }
-
   const totalTokens = getNumber(usage, 'total_tokens');
-
   if (totalTokens !== undefined) {
-    return totalTokens;
+    return {
+      total: totalTokens,
+      input: getNumber(usage, 'input_tokens'),
+      output: getNumber(usage, 'output_tokens'),
+      cached: getNumber(usage, 'cached_tokens'),
+    };
   }
-
   const inputTokens = getNumber(usage, 'input_tokens') ?? 0;
   const outputTokens = getNumber(usage, 'output_tokens') ?? 0;
   const usageSum = inputTokens + outputTokens;
-
-  return usageSum > 0 ? usageSum : undefined;
+  return usageSum > 0 ? { total: usageSum, input: inputTokens, output: outputTokens } : {};
 }
 
 function extractClaudeToolInput(

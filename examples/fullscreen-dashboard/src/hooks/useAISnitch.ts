@@ -127,12 +127,36 @@ export function useAISnitch(): UseAISnitchReturn {
           currentEvent: null,
           lastEvents: [],
           connectedAt: Date.now(),
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          cachedTokens: 0,
         };
         next.set(sessionId, agent);
       }
 
       // Update agent
       agent.model = evt.data.model ?? agent.model;
+
+      // Accumulate tokens from this event (differentiated)
+      const tokensDelta = evt.data.tokensUsed ?? 0;
+      const inputDelta = evt.data.inputTokens ?? 0;
+      const outputDelta = evt.data.outputTokens ?? 0;
+      const cachedDelta = evt.data.cachedTokens ?? 0;
+
+      // Also derive from total if individual fields not provided
+      const effectiveInputDelta = inputDelta || (tokensDelta > 0 ? Math.floor(tokensDelta * 0.3) : 0);
+      const effectiveOutputDelta = outputDelta || (tokensDelta > 0 ? Math.floor(tokensDelta * 0.7) : 0);
+
+      const previousTokens = agent.totalTokens;
+      const previousInput = agent.inputTokens;
+      const previousOutput = agent.outputTokens;
+      const previousCached = agent.cachedTokens;
+
+      const newTotalTokens = previousTokens + tokensDelta;
+      const newInputTokens = previousInput + (inputDelta || effectiveInputDelta);
+      const newOutputTokens = previousOutput + effectiveOutputDelta;
+      const newCachedTokens = previousCached + cachedDelta;
 
       // Update last events (keep last 20)
       const newLastEvents = [evt, ...agent.lastEvents].slice(0, MAX_AGENT_EVENTS);
@@ -141,6 +165,10 @@ export function useAISnitch(): UseAISnitchReturn {
         ...agent,
         currentEvent: evt,
         lastEvents: newLastEvents,
+        totalTokens: newTotalTokens,
+        inputTokens: newInputTokens,
+        outputTokens: newOutputTokens,
+        cachedTokens: newCachedTokens,
       });
 
       // Auto-switch to new active agent if none selected or previous became inactive

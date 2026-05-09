@@ -5,6 +5,9 @@ import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { promisify } from 'node:util';
+ 
+ 
+const openPromise = import('open');
 
 import { GenericPTYSession } from '../adapters/generic-pty.js';
 import {
@@ -121,6 +124,15 @@ export interface AttachCliOptions extends CommonCliOptions {
 }
 
 /**
+ * Options accepted by `aisnitch fullscreen`.
+ */
+export interface FullscreenCliOptions extends CommonCliOptions {
+  readonly dashboardPort?: number;
+  readonly daemonMode?: boolean;
+  readonly noBrowser?: boolean;
+}
+
+/**
  * Options accepted by `aisnitch start`.
  */
 export interface StartCliOptions extends AttachCliOptions {
@@ -161,6 +173,7 @@ export interface CliRuntime {
   readonly adapters: (options: CommonCliOptions) => Promise<void>;
   readonly aiderNotify: (options: CommonCliOptions) => Promise<void>;
   readonly attach: (options: AttachCliOptions) => Promise<void>;
+  readonly fullscreen: (options: FullscreenCliOptions) => Promise<void>;
   readonly install: (options: CommonCliOptions) => Promise<void>;
   readonly logger: (options: AttachCliOptions) => Promise<void>;
   readonly mock: (
@@ -876,6 +889,150 @@ export function createCliRuntime(
     });
   }
 
+  /**
+   * 📖 Opens the fullscreen dashboard (web UI) in a browser.
+   *
+   * Flow:
+   * 1. Check if daemon is running (start if not in daemonMode)
+   * 2. Start the dashboard server (vite preview or serve)
+   * 3. Open browser with the dashboard URL
+   * 4. Wait for user to close browser or Ctrl+C
+   */
+  async function fullscreen(options: FullscreenCliOptions): Promise<void> {
+    const snapshot = await getStatusSnapshot(options);
+
+    // If daemon not running and we want daemon mode, start it
+    if (!snapshot.running && options.daemonMode) {
+      output.stdout('Starting daemon...\n');
+      await startDetachedDaemon(options);
+    }
+
+    // If daemon not running and not daemon mode, show error
+    if (!snapshot.running && !options.daemonMode) {
+      throw new Error(
+        'AISnitch daemon is not running. Start one with `aisnitch start --daemon` or use `aisnitch fs --daemon` to start and open the dashboard.',
+      );
+    }
+
+    // Wait for daemon to be fully ready
+    for (let i = 0; i < 20; i++) {
+      const health = await fetchHealth(snapshot.httpPort);
+      if (health) break;
+      await new Promise<void>((resolve) => setTimeout(resolve, 200).unref());
+    }
+
+    // Start the dashboard server
+    const dashboardPort = options.dashboardPort ?? 5174;
+    const dashboardUrl = `http://127.0.0.1:${dashboardPort}`;
+    const distPath = join(process.cwd(), 'examples', 'fullscreen-dashboard', 'dist');
+
+    output.stdout(`Starting dashboard server on port ${dashboardPort}...\n`);
+
+    // Use vite preview to serve static files
+    const viteProcess = spawnImplementation(process.execPath, [
+      '-e',
+      `
+import { createServer } from 'vite';
+import path from 'path';
+
+const distPath = '${distPath}';
+const port = ${dashboardPort};
+
+const server = await createServer({
+  root: distPath,
+  server: {
+    port,
+    strictPort: true,
+    allowedHosts: true,
+  },
+  preview: {
+    port,
+    strictPort: true,
+  },
+});
+
+await server.listen();
+console.log('READY');
+
+process.stdin.resume();
+`,
+    ], {
+      cwd: distPath,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    // Capture output
+    let serverOutput = '';
+     
+    viteProcess.stdout?.on('data', (data: { toString: () => string }) => {
+      serverOutput += data.toString();
+    });
+     
+    viteProcess.stderr?.on('data', (data: { toString: () => string }) => {
+      serverOutput += data.toString();
+    });
+
+    // Wait for server to be ready
+    let serverReady = false;
+    for (let i = 0; i < 100; i++) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 100).unref());
+      try {
+        const response = await fetchImplementation(dashboardUrl);
+        if (response.ok) {
+          serverReady = true;
+          break;
+        }
+      } catch {
+        // Server not ready yet
+      }
+      if (!viteProcess.pid) break; // Process died
+    }
+
+    if (!serverReady) {
+      output.stdout(`Server output: ${serverOutput}\n`);
+      throw new Error('Failed to start dashboard server');
+    }
+
+    output.stdout(`Dashboard ready at ${dashboardUrl}\n`);
+
+    // Open browser (unless noBrowser option)
+    if (!options.noBrowser) {
+      output.stdout('Opening browser...\n');
+      const openModule = await openPromise;
+      await (openModule as { default: (url: string) => Promise<unknown> }).default(dashboardUrl);
+    }
+
+    output.stdout('Press Ctrl+C to stop\n');
+
+    // Wait for user to stop
+    await new Promise<void>((resolve) => {
+      const shutdown = () => {
+        process.off('SIGINT', handleSigint);
+        process.off('SIGTERM', handleSigterm);
+
+        if (viteProcess.pid !== undefined) {
+          try {
+            process.kill(viteProcess.pid, 'SIGTERM');
+          } catch {
+            // Process may already be dead
+          }
+        }
+
+        resolve();
+      };
+
+      const handleSigint = () => {
+        shutdown();
+      };
+      const handleSigterm = () => {
+        shutdown();
+      };
+
+      process.once('SIGINT', handleSigint);
+      process.once('SIGTERM', handleSigterm);
+    });
+  }
+
   async function logger(options: AttachCliOptions): Promise<void> {
     const snapshot = await getStatusSnapshot(options);
 
@@ -1238,6 +1395,7 @@ export function createCliRuntime(
     adapters,
     aiderNotify,
     attach,
+    fullscreen,
     install,
     logger,
     mock,

@@ -7,7 +7,7 @@ const typescriptFiles = ['src/**/*.ts', 'src/**/*.tsx', 'tsup.config.ts'];
 
 export default [
   {
-    ignores: ['coverage/**', 'dist/**', 'docs/**', 'tasks/**'],
+    ignores: ['coverage/**', 'dist/**', 'docs/**', 'tasks/**', '**/dist/**', 'examples/**/dist/**'],
   },
   {
     files: ['**/*.js', '**/*.mjs'],

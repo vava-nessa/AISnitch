@@ -25,6 +25,7 @@ import {
   type CliRuntime,
   type AttachCliOptions,
   type CommonCliOptions,
+  type FullscreenCliOptions,
   type MockCliOptions,
   type SelfUpdateCliOptions,
   type StartCliOptions,
@@ -70,6 +71,9 @@ Examples:
   aisnitch start --daemon
   aisnitch start --view full-data
   aisnitch start --mock
+  aisnitch fs
+  aisnitch fs --daemon
+  aisnitch fs --dashboard-port 8080
   aisnitch status
   aisnitch attach
   aisnitch attach --view full-data
@@ -94,6 +98,7 @@ Examples:
   addAdaptersCommand(program, runtime);
   addSetupCommand(program, runtime);
   addAttachCommand(program, runtime);
+  addFullscreenCommand(program, runtime);
   addLoggerCommand(program, runtime);
   addMockCommand(program, runtime);
   addWrapCommand(program, runtime);
@@ -261,6 +266,30 @@ function addAttachCommand(program: Command, runtime: CliRuntime): void {
       ),
   ).action(async (options: AttachCliOptions) => {
     await runtime.attach(options);
+  });
+}
+
+function addFullscreenCommand(program: Command, runtime: CliRuntime): void {
+  addCommonOptions(
+    program
+      .command('fs')
+      .description('Open the fullscreen web dashboard in browser (starts daemon if needed with --daemon)')
+      .alias('fullscreen')
+      .option(
+        '--daemon',
+        'Start the daemon automatically if not running',
+      )
+      .option(
+        '--dashboard-port <port>',
+        'Port for the dashboard server (default: 5174)',
+        wrapOptionParser(parsePortOption),
+      )
+      .option(
+        '--no-browser',
+        'Start server without opening browser',
+      ),
+  ).action(async (options: FullscreenCliOptions) => {
+    await runtime.fullscreen(options);
   });
 }
 

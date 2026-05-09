@@ -105,6 +105,16 @@ export function AgentSelector({ agents, activeAgentId, onSelectAgent }: AgentSel
               </div>
             </div>
 
+            {/* Token counter with breakdown */}
+            {agent.totalTokens > 0 && (
+              <TokenDisplay
+                total={agent.totalTokens}
+                input={agent.inputTokens}
+                output={agent.outputTokens}
+                cached={agent.cachedTokens}
+              />
+            )}
+
             {/* Latest event preview */}
             {latestEvent && (latestEvent.data.thinkingContent || latestEvent.data.toolCallName || latestEvent.data.messageContent) && (
               <div
@@ -120,7 +130,7 @@ export function AgentSelector({ agents, activeAgentId, onSelectAgent }: AgentSel
                   whiteSpace: 'nowrap',
                 }}
               >
-                {latestEvent.data.toolCallName ? `🔧 ${latestEvent.data.toolCallName}` :
+                {latestEvent.data.toolCallName ? `⚡ ${latestEvent.data.toolCallName}` :
                  latestEvent.data.thinkingContent ? `💭 ${latestEvent.data.thinkingContent.slice(0, 60)}...` :
                  latestEvent.data.messageContent ? `💬 ${latestEvent.data.messageContent.slice(0, 60)}...` : ''}
               </div>
@@ -158,4 +168,98 @@ function getEventLabel(type: string): string {
     case 'session.end': return 'end';
     default: return type.split('.')[1] ?? type;
   }
+}
+
+/**
+ * TokenDisplay shows cumulative token usage with a beautiful breakdown.
+ * Format: 🪙 12.4k | 📥 3.7k | 📤 8.7k | 🧊 0
+ */
+function TokenDisplay({ total, input, output, cached }: {
+  total: number;
+  input: number;
+  output: number;
+  cached: number;
+}) {
+  const format = (n: number) => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: '8px',
+        padding: '8px 10px',
+        background: 'rgba(16, 185, 129, 0.08)',
+        borderRadius: '10px',
+        border: '1px solid rgba(16, 185, 129, 0.2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+      }}
+    >
+      {/* Main total line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '12px' }}>🪙</span>
+        <span style={{
+          fontSize: '12px',
+          fontWeight: 600,
+          color: '#10b981',
+          fontFamily: 'monospace',
+        }}>
+          {format(total)}
+        </span>
+        <span style={{ fontSize: '10px', color: '#6b7280' }}>tokens</span>
+      </div>
+
+      {/* Breakdown row */}
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        fontSize: '9px',
+        fontFamily: 'monospace',
+      }}>
+        {/* Input tokens */}
+        {input > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            color: '#60a5fa',
+          }}>
+            <span>📥</span>
+            <span>{format(input)}</span>
+          </div>
+        )}
+
+
+        {/* Output tokens */}
+        {output > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            color: '#f472b6',
+          }}>
+            <span>📤</span>
+            <span>{format(output)}</span>
+          </div>
+        )}
+
+        {/* Cached tokens */}
+        {cached > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            color: '#a78bfa',
+          }}>
+            <span>🧊</span>
+            <span>{format(cached)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
