@@ -1,96 +1,179 @@
-# AISnitch
+# 🤖 AISnitch
 
-**See what your AI agents are doing. All of them. In real time.**
+> **See everything your AI coding tools are doing — in one place, in real time.**
 
-[![CI](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml/badge.svg)](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/aisnitch?logo=npm&label=aisnitch)](https://www.npmjs.com/package/aisnitch)
-[![npm](https://img.shields.io/npm/v/@aisnitch/client?logo=npm&label=@aisnitch/client)](https://www.npmjs.com/package/@aisnitch/client)
-[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Claude Code    OpenCode    Gemini CLI    Aider    Codex       │
+│       │              │           │          │         │        │
+│       └──────────────┴───────────┴──────────┴─────────┘        │
+│                             │                                   │
+│                    ┌────────▼────────┐                          │
+│                    │   AISnitch      │                          │
+│                    │   ┌─────────┐   │                          │
+│                    │   │  TUI    │   │  ← Dashboard (real-time) │
+│                    │   └─────────┘   │                          │
+│                    │   ┌─────────┐   │                          │
+│                    │   │ Webhook │   │  ← Build anything        │
+│                    │   └─────────┘   │                          │
+│                    └─────────────────┘                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-AISnitch is a local daemon that captures activity from **every AI coding tool** running on your machine — Claude Code, OpenCode, Gemini CLI, Codex, Goose, Aider, Copilot CLI, OpenClaw, and any CLI via PTY fallback — normalizes everything into a single event stream, and broadcasts it over WebSocket.
-
-- **One stream, all tools** — no more switching between terminals to see what each agent is doing
-- **Zero storage** — pure memory transit, nothing persists to disk, ever
-- **Build anything on top** — dashboards, sound engines, animated companions, Slack bots, menu bar widgets
-
-<!-- TODO: Add TUI demo GIF here -->
-
----
-
-## Table of Contents
-
-- [Why AISnitch?](#why-aisnitch)
-- [Quick Start](#quick-start)
-- [Install](#install)
-- [Ecosystem](#ecosystem)
-- [How It Works](#how-it-works)
-- [Architecture](#architecture)
-- [Supported Tools](#supported-tools)
-- [Event Model](#event-model)
-- [Build on Top of AISnitch](#build-on-top-of-aisnitch)
-- [CLI Reference](#cli-reference)
-- [TUI Keybinds](#tui-keybinds)
-- [Config Reference](#config-reference)
-- [Development](#development)
-- [License](#license)
+**One command. Every agent. Every project. Live.**
 
 ---
 
-## Why AISnitch?
+## ⭐ Why AISnitch?
 
-You run Claude Code on your main project, Codex on the API, Aider reviewing a legacy repo. Three agents, three terminals, no shared visibility. You tab-switch constantly. You miss a permission prompt. You don't know which one is idle and which one is burning tokens.
+You have **multiple AI coding assistants** running at the same time:
 
-**AISnitch solves this in one line:**
+```
+🔵 Claude Code   → working on your main project
+🟡 OpenCode      → reviewing a PR
+🟣 Codex         → writing tests
+🟢 Aider         → refactoring legacy code
+```
+
+**The problem?** You have 4 terminals open, tabbing between them, missing things, context-switching like crazy.
+
+**The solution?**
 
 ```bash
 aisnitch start
 ```
 
-Now every tool's activity flows into one dashboard. You see who's thinking, who's coding, who needs input, and who's hit a rate limit — all at once, in real time.
+Now you see **everything in one dashboard**:
 
-Want to build your own UI instead? The entire stream is available on `ws://127.0.0.1:4820` — connect with the [Client SDK](#ecosystem) and build dashboards, sound engines, animated companions, or anything else.
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🤖 AISnitch                              [q] quit  [?] help │
+├─────────────────────────────────────────────────────────────┤
+│  🔵 Claude Code  ● thinking...      │ 📝 src/app.ts           │
+│  🟡 OpenCode     ✓ idle            │ 📁 /projects/api        │
+│  🟣 Codex        ⏳ coding...      │ 📄 tests/users.test.ts  │
+│  🟢 Aider        ● task: "cleanup" │ 📁 /legacy/db          │
+├─────────────────────────────────────────────────────────────┤
+│  Events (42)                     [Space] freeze  [c] clear   │
+│  ──────────────────────────────────────────────────────────── │
+│  🔵 14:30:01  agent.thinking   "Implementing user auth..."   │
+│  🔵 14:29:58  agent.coding      Edit → src/auth/login.ts      │
+│  🟡 14:29:55  agent.idle        waiting for prompt...          │
+│  🟣 14:29:52  tool_call         Bash → git status             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start (30 seconds)
+
+### 1. Install
 
 ```bash
-# Install and run
+# npm (recommended)
 npm i -g aisnitch
-aisnitch start
 
-# Try it without any AI tool — simulated events
+# or Homebrew
+brew install aisnitch
+```
+
+### 2. Run
+
+```bash
+aisnitch start
+```
+
+That's it! The dashboard opens with live events from all configured tools.
+
+**No AI tools yet?** Try the demo mode:
+
+```bash
 aisnitch start --mock all
 ```
 
-That's it. The TUI dashboard opens, and you see live activity from every configured AI tool.
-
-To set up tools:
+### 3. Connect your tools
 
 ```bash
-aisnitch setup claude-code    # hooks into Claude Code
-aisnitch setup opencode       # hooks into OpenCode
-aisnitch adapters             # check what's enabled
+# Pick your tools
+aisnitch setup claude-code   # hooks into Claude Code
+aisnitch setup opencode      # hooks into OpenCode
+aisnitch setup aider         # hooks into Aider
+
+# Verify everything
+aisnitch adapters
 ```
 
 ---
 
-## Install
+## 🎯 Common Use Cases
 
-**npm (recommended):**
+### "I want to see all my AI agents in real time"
+
+```bash
+aisnitch start
+```
+
+Opens the TUI dashboard. Live events stream in as your tools work.
+
+### "I want to build something on top of AISnitch"
+
+```bash
+# Start the daemon (runs in background)
+aisnitch start --daemon
+
+# Now connect your app to ws://127.0.0.1:4820
+```
+
+```typescript
+import { createAISnitchClient } from '@aisnitch/client';
+import WebSocket from 'ws';
+
+const client = createAISnitchClient({ WebSocketClass: WebSocket as any });
+
+client.on('event', (e) => {
+  console.log(`${e['aisnitch.tool']}: ${e.type}`);
+});
+```
+
+### "I want a fancy web dashboard on another computer"
+
+```bash
+aisnitch fs --daemon
+# → Opens http://127.0.0.1:5174 in browser
+# → Connects to daemon automatically
+```
+
+### "I want sound notifications when agents finish"
+
+```typescript
+const client = createAISnitchClient();
+
+client.on('event', (e) => {
+  if (e.type === 'task.complete') playSound('success.mp3');
+  if (e.type === 'agent.error')  playSound('error.mp3');
+  if (e.type === 'agent.asking_user') playSound('ping.mp3');
+});
+```
+
+---
+
+## 📦 Installation Options
+
+### npm (Recommended)
 
 ```bash
 npm i -g aisnitch
 ```
 
-**Homebrew:**
+### Homebrew (macOS/Linux)
 
 ```bash
 brew install aisnitch
 ```
 
-**From source:**
+### From Source
 
 ```bash
 git clone https://github.com/vava-nessa/AISnitch.git
@@ -99,151 +182,282 @@ pnpm install && pnpm build
 node dist/cli/index.js start
 ```
 
+### Upgrade
+
+```bash
+# npm
+npm update -g aisnitch
+
+# Homebrew
+brew upgrade aisnitch
+```
+
 ---
 
-## Ecosystem
+## 🛠️ Supported Tools
 
-AISnitch ships as two packages with distinct audiences:
+| Tool | Status | Setup Command |
+|:---|:---:|:---|
+| **Claude Code** | ✅ Active | `aisnitch setup claude-code` |
+| **OpenCode** | ✅ Active | `aisnitch setup opencode` |
+| **Gemini CLI** | ✅ Active | `aisnitch setup gemini-cli` |
+| **Aider** | ✅ Active | `aisnitch setup aider` |
+| **Codex** | ✅ Active | `aisnitch setup codex` |
+| **Goose** | ✅ Active | `aisnitch setup goose` |
+| **Copilot CLI** | ✅ Active | `aisnitch setup copilot-cli` |
+| **OpenClaw** | ✅ Active | `aisnitch setup openclaw` |
+| **Cursor** | ✅ Active | `aisnitch setup cursor` |
+| **Zed** | ✅ Active | `aisnitch setup zed` |
+| **Devin** | ✅ Active | `aisnitch setup devin` |
+| **Kilo** | ✅ Active | `aisnitch setup kilo` |
+| **Pi (zealncer)** | ✅ Active | `aisnitch setup pi` |
+| **Any CLI** | 🔧 Fallback | `aisnitch wrap <command>` |
 
-| Package | For | Install |
-|---|---|---|
-| [`aisnitch`](https://www.npmjs.com/package/aisnitch) | **Users** — the daemon, CLI, TUI dashboard, adapters | `npm i -g aisnitch` |
-| [`@aisnitch/client`](https://www.npmjs.com/package/@aisnitch/client) | **Developers** — TypeScript SDK to consume the event stream | `pnpm add @aisnitch/client zod` |
+> 💡 Run `aisnitch adapters` to see which tools are currently connected.
 
-**You're a user?** Install `aisnitch`, run `aisnitch start`, you're done.
+---
 
-**You're building something on top?** Install `@aisnitch/client` and connect in 3 lines:
+## 🔌 Web Dashboard
+
+Open a beautiful real-time dashboard in your browser:
+
+```bash
+aisnitch fs                    # Open dashboard (auto-starts daemon if needed)
+aisnitch fs --daemon           # Start daemon + open dashboard
+aisnitch fs --dashboard-port 8080  # Custom port
+aisnitch fs --no-browser       # Just start the server
+```
+
+**From another computer?** Make sure the host machine has the daemon running:
+
+```bash
+aisnitch start --daemon        # Start on host machine first
+aisnitch fs                    # Connect from any browser
+```
+
+---
+
+## 📡 WebSocket API (Build Anything)
+
+AISnitch exposes a WebSocket stream at `ws://127.0.0.1:4820`. Connect with the SDK:
+
+### Install the SDK
+
+```bash
+pnpm add @aisnitch/client zod
+```
+
+### Basic Usage
 
 ```typescript
 import { createAISnitchClient, describeEvent } from '@aisnitch/client';
 import WebSocket from 'ws';
 
 const client = createAISnitchClient({ WebSocketClass: WebSocket as any });
-client.on('event', (e) => console.log(describeEvent(e)));
-// → "claude-code is editing code → src/index.ts [myproject]"
+
+// Get notified when connected
+client.on('connected', (info) => {
+  console.log(`Connected to AISnitch ${info.version}`);
+  console.log(`Tools: ${info.activeTools.join(', ')}`);
+});
+
+// Receive all events
+client.on('event', (event) => {
+  console.log(describeEvent(event));
+  // → "claude-code is thinking... → user auth module"
+  // → "opencode is coding... → src/api/users.ts"
+});
+
+// Track sessions
+setInterval(() => {
+  const sessions = client.sessions?.getAll() ?? [];
+  console.log(`${sessions.length} active sessions`);
+}, 5000);
 ```
 
-Auto-reconnect, Zod-validated parsing, session tracking, filters, mascot state mapping — all included. See the full **[Client SDK documentation](./packages/client/README.md)**.
+### Sound Notifications
 
----
+```typescript
+import { createAISnitchClient } from '@aisnitch/client';
 
-## How It Works
+const SOUNDS = {
+  'session.start':     'sounds/boot.mp3',
+  'task.complete':     'sounds/done.mp3',
+  'agent.asking_user': 'sounds/ping.mp3',
+  'agent.error':       'sounds/error.mp3',
+  'agent.coding':      'sounds/keyboard.mp3',
+};
 
-```
-   Claude Code ──┐
-   OpenCode ─────┤
-   Gemini CLI ───┤── hooks / file watchers / process detection
-   Codex ────────┤
-   Goose ────────┤
-   Aider ────────┤
-   Copilot CLI ──┤
-   OpenClaw ─────┘
-                 │
-                 ▼
-        ┌─────────────────┐
-        │  AISnitch Core   │
-        │                  │
-        │  Validate (Zod)  │
-        │  Normalize       │
-        │  Enrich context  │
-        │  (terminal, cwd, │
-        │   pid, session)  │
-        └────────┬─────────┘
-                 │
-        ┌────────┴─────────┐
-        ▼                  ▼
-   ws://127.0.0.1:4820    TUI
-   (your consumers)    (built-in)
+const client = createAISnitchClient();
+client.on('event', (e) => {
+  if (SOUNDS[e.type]) playSound(SOUNDS[e.type]);
+});
 ```
 
-Each adapter captures tool activity using the best available strategy — hooks for tools that support them (Claude Code, OpenCode, Gemini CLI), file watching for log-based tools (Codex, Aider), process detection as universal fallback. Events are validated against Zod schemas, normalized into CloudEvents, enriched with context (terminal, working directory, PID, multi-instance tracking), then pushed through an in-memory EventBus. The WebSocket server broadcasts to all connected clients with per-client ring buffers (1,000 events, oldest-first drop).
+### Slack/Discord Bot
 
-**Nothing is stored on disk.** Events exist in memory during transit, then they're gone. Privacy-first by design.
+```typescript
+import { createAISnitchClient, formatStatusLine } from '@aisnitch/client';
 
----
+const client = createAISnitchClient();
 
-## Architecture
+client.on('event', (e) => {
+  // Notify on important events
+  if (e.type === 'agent.error') {
+    postToSlack(`🔴 Error: ${formatStatusLine(e)}`);
+  }
+  if (e.type === 'task.complete') {
+    postToDiscord(`✅ Done: ${formatStatusLine(e)}`);
+  }
+});
+```
 
-```mermaid
-flowchart LR
-  subgraph Tools["External AI tools"]
-    CC["Claude Code"]
-    OC["OpenCode"]
-    GM["Gemini CLI"]
-    CX["Codex"]
-    GS["Goose"]
-    AD["Aider"]
-    OCL["OpenClaw"]
-    PTY["Generic PTY"]
-  end
+### Direct WebSocket (No SDK)
 
-  subgraph AIS["AISnitch runtime"]
-    HTTP["HTTP hook receiver :4821"]
-    UDS["UDS ingest"]
-    REG["Adapter registry"]
-    BUS["Typed EventBus"]
-    WS["WebSocket server :4820"]
-    TUI["Ink TUI"]
-  end
-
-  subgraph SDK["Consumer ecosystem"]
-    CLIENT["@aisnitch/client SDK"]
-    DASH["Dashboards"]
-    SOUND["Sound engines"]
-    MASCOT["Companions"]
-    BOT["Bots"]
-  end
-
-  CC --> HTTP
-  OC --> HTTP
-  GM --> HTTP
-  OCL --> HTTP
-  CX --> REG
-  GS --> REG
-  AD --> REG
-  PTY --> UDS
-  HTTP --> BUS
-  UDS --> BUS
-  REG --> BUS
-  BUS --> WS
-  BUS --> TUI
-  WS --> CLIENT
-  CLIENT --> DASH
-  CLIENT --> SOUND
-  CLIENT --> MASCOT
-  CLIENT --> BOT
+```bash
+# See raw events in one line
+node -e "
+  const WebSocket = require('ws');
+  const ws = new WebSocket('ws://127.0.0.1:4820');
+  ws.on('message', m => console.log(JSON.parse(m.toString()).type));
+"
 ```
 
 ---
 
-## Supported Tools
+## ⌨️ CLI Reference
 
-| Tool | Strategy | Setup |
-|---|---|---|
-| **Claude Code** | Command hooks + JSONL transcript watching + process detection | `aisnitch setup claude-code` |
-| **OpenCode** | Local plugin + process detection | `aisnitch setup opencode` |
-| **Gemini CLI** | Command hooks + `logs.json` watching + process detection | `aisnitch setup gemini-cli` |
-| **Codex** | `codex-tui.log` parsing + process detection | `aisnitch setup codex` |
-| **Goose** | `goosed` API polling + SSE streams + SQLite fallback | `aisnitch setup goose` |
-| **Copilot CLI** | Repo hooks + session-state JSONL watching | `aisnitch setup copilot-cli` |
-| **Aider** | `.aider.chat.history.md` watching + notifications command | `aisnitch setup aider` |
-| **OpenClaw** | Managed hooks + command/memory/session watchers | `aisnitch setup openclaw` |
-| **Any other CLI** | PTY wrapper with output heuristics | `aisnitch wrap <command>` |
+### Dashboard & TUI
 
-Run `aisnitch setup <tool>` to configure each tool, then `aisnitch adapters` to verify what's active.
+```bash
+aisnitch start                     # Open TUI dashboard
+aisnitch start --tool claude-code  # Filter by tool
+aisnitch start --type agent.coding # Filter by event type
+aisnitch start --view full-data    # Show full JSON
+```
+
+### Web Dashboard
+
+```bash
+aisnitch fs                        # Open web dashboard
+aisnitch fs --daemon               # Start daemon + open
+aisnitch fs --dashboard-port 8080 # Custom port
+aisnitch fs --no-browser           # Server only
+```
+
+### Daemon Management
+
+```bash
+aisnitch start --daemon            # Start daemon in background
+aisnitch status                    # Check daemon status
+aisnitch attach                    # Attach TUI to running daemon
+aisnitch stop                      # Stop daemon
+```
+
+### Tool Setup
+
+```bash
+aisnitch setup claude-code         # Configure tool
+aisnitch setup opencode
+aisnitch setup aider
+aisnitch setup claude-code --revert  # Remove configuration
+```
+
+### Utilities
+
+```bash
+aisnitch adapters                  # Show enabled tools
+aisnitch logger                    # Stream raw events (no TUI)
+aisnitch mock claude-code          # Simulate events
+aisnitch mock all --speed 2        # Demo mode (2x speed)
+aisnitch wrap aider --model sonnet  # Wrap any CLI
+aisnitch setup claude-code          # Run setup wizard
+aisnitch self-update               # Update AISnitch
+```
 
 ---
 
-## Event Model
+## 🖥️ TUI Controls
 
-Every event is a [CloudEvents v1.0](https://cloudevents.io/) envelope with AISnitch extensions:
+| Key | Action |
+|:---:|:---|
+| `q` / `Ctrl+C` | Quit |
+| `d` | Toggle daemon |
+| `r` | Refresh |
+| `v` | Toggle JSON inspector |
+| `f` | Filter by tool |
+| `t` | Filter by event type |
+| `/` | Search |
+| `Esc` | Clear filters |
+| `Space` | Freeze/resume |
+| `c` | Clear buffer |
+| `?` | Help |
+| `Tab` | Switch panel |
+| `↑↓` / `jk` | Navigate |
+| `[]` | Page inspector |
 
-```jsonc
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     External AI Tools                            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐         │
+│  │ Claude   │ │ OpenCode │ │ Gemini   │ │ Aider    │  ...     │
+│  │  Code    │ │          │ │  CLI     │ │          │          │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘          │
+│       │            │            │            │                  │
+│       └────────────┴────────────┴────────────┘                  │
+│                        │                                        │
+│                        ▼                                        │
+│              ┌───────────────────┐                              │
+│              │   HTTP Receiver   │                              │
+│              │   :4821           │                              │
+│              └─────────┬─────────┘                              │
+│                        │                                        │
+│                        ▼                                        │
+│              ┌───────────────────┐                              │
+│              │   EventBus        │                              │
+│              │   (validation +  │                              │
+│              │    normalization) │                              │
+│              └─────────┬─────────┘                              │
+│                        │                                        │
+│          ┌─────────────┼─────────────┐                          │
+│          ▼             │             ▼                          │
+│   ┌─────────────┐      │      ┌─────────────┐                  │
+│   │  WebSocket  │      │      │    TUI      │                  │
+│   │  :4820      │      │      │  Dashboard  │                  │
+│   └──────┬──────┘      │      └─────────────┘                  │
+│          │              │                                       │
+│          ▼              ▼                                       │
+│   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │
+│   │   Client    │ │   Sound     │ │   Mascot    │              │
+│   │  Dashboard  │ │  Engine     │ │  Companion  │              │
+│   └─────────────┘ └─────────────┘ └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Points
+
+- **Zero storage**: Events live in memory only, never written to disk
+- **Privacy-first**: No data leaves your machine
+- **Multi-instance tracking**: Handles multiple sessions of the same tool
+- **Auto-reconnect**: SDK handles reconnection automatically
+- **Zod validation**: All events validated before processing
+
+---
+
+## 📊 Event Model
+
+Every event follows [CloudEvents v1.0](https://cloudevents.io/) format:
+
+```json
 {
   "specversion": "1.0",
-  "id": "019713a4-beef-7000-8000-deadbeef0042",  // UUIDv7
+  "id": "019713a4-beef-7000-8000-deadbeef0042",
   "source": "aisnitch://claude-code/myproject",
-  "type": "agent.coding",                          // one of 12 types below
+  "type": "agent.coding",
   "time": "2026-03-28T14:30:00.000Z",
 
   "aisnitch.tool": "claude-code",
@@ -256,174 +470,52 @@ Every event is a [CloudEvents v1.0](https://cloudevents.io/) envelope with AISni
     "projectPath": "/home/user/myproject",
     "activeFile": "src/index.ts",
     "toolName": "Edit",
-    "toolInput": { "filePath": "src/index.ts" },
-    "model": "claude-sonnet-4-5-20250514",
+    "model": "claude-sonnet-4-20250514",
     "tokensUsed": 1500,
+    "inputTokens": 450,
+    "outputTokens": 1050,
     "terminal": "iTerm2",
-    "cwd": "/home/user/myproject",
-    "pid": 12345,
-    "instanceIndex": 1,
-    "instanceTotal": 3,
-    "errorMessage": "Rate limit exceeded",       // only on agent.error
-    "errorType": "rate_limit",                    // only on agent.error
-    "raw": { /* original adapter payload */ }
+    "cwd": "/home/user/myproject"
   }
 }
 ```
 
-### The 12 Event Types
+### Event Types
 
-| Type | What it means |
-|---|---|
-| `session.start` | A tool session began |
-| `session.end` | Session closed |
-| `task.start` | User submitted a prompt |
+| Type | Description |
+|:---|:---|
+| `session.start` | Tool started |
+| `session.end` | Tool closed |
+| `task.start` | User submitted prompt |
 | `task.complete` | Task finished |
-| `agent.thinking` | Model is reasoning |
-| `agent.streaming` | Model is generating output |
-| `agent.coding` | Model is editing files |
-| `agent.tool_call` | Model is using a tool (Bash, Grep, etc.) |
-| `agent.asking_user` | Waiting for human input |
-| `agent.idle` | No activity (120s timeout, configurable) |
-| `agent.error` | Something went wrong (rate limit, API error, tool failure) |
-| `agent.compact` | Context compaction / memory cleanup |
+| `agent.thinking` | Model reasoning |
+| `agent.streaming` | Output being generated |
+| `agent.coding` | Editing files |
+| `agent.tool_call` | Using Bash, Grep, etc. |
+| `agent.asking_user` | Waiting for input |
+| `agent.idle` | No activity (2+ min) |
+| `agent.error` | Error occurred |
+| `agent.compact` | Context cleanup |
 
 ---
 
-## Build on Top of AISnitch
+## 📁 File Structure
 
-The whole point of AISnitch is to be a platform. Here are 5 things you can build with the [`@aisnitch/client`](./packages/client/README.md) SDK:
-
-### Live Dashboard
-
-```typescript
-import { createAISnitchClient, describeEvent } from '@aisnitch/client';
-import WebSocket from 'ws';
-
-const client = createAISnitchClient({ WebSocketClass: WebSocket as any });
-
-client.on('connected', (w) => {
-  console.log(`Connected to AISnitch v${w.version}`);
-  console.log(`Active tools: ${w.activeTools.join(', ')}`);
-});
-
-client.on('event', (e) => {
-  const line = describeEvent(e);
-  console.log(`[${e['aisnitch.tool']}] ${line}`);
-});
-
-// Track all active sessions
-setInterval(() => {
-  const sessions = client.sessions?.getAll() ?? [];
-  console.log(`\n--- ${sessions.length} active session(s) ---`);
-  for (const s of sessions) {
-    console.log(`  ${s.tool} → ${s.lastActivity} (${s.eventCount} events)`);
-  }
-}, 5000);
+```
+~/.aisnitch/
+├── config.json          # Your configuration
+├── aisnitch.pid         # Daemon PID
+├── daemon-state.json    # Connection info
+├── daemon.log          # Daemon logs (5MB max)
+└── aisnitch.sock       # Unix socket (IPC)
 ```
 
-### Sound Notifications (PeonPing-style)
+### Ports
 
-```typescript
-import { createAISnitchClient, filters } from '@aisnitch/client';
-
-const client = createAISnitchClient({ WebSocketClass: WebSocket as any });
-
-const SOUNDS: Record<string, string> = {
-  'session.start':     'boot.mp3',
-  'task.complete':     'success.mp3',
-  'agent.asking_user': 'alert.mp3',
-  'agent.error':       'error.mp3',
-  'agent.coding':      'keyboard.mp3',
-};
-
-client.on('event', (e) => {
-  const sound = SOUNDS[e.type];
-  if (sound) playSound(`./sounds/${sound}`);
-});
-```
-
-### Animated Mascot / Companion
-
-```typescript
-import { createAISnitchClient, eventToMascotState } from '@aisnitch/client';
-
-const client = createAISnitchClient();
-
-client.on('event', (e) => {
-  const state = eventToMascotState(e);
-  // state.mood    → 'thinking' | 'working' | 'celebrating' | 'panicking' | ...
-  // state.animation → 'ponder' | 'type' | 'dance' | 'shake' | ...
-  // state.color   → '#a855f7' (hex)
-  // state.label   → 'Thinking...'
-  // state.detail  → 'src/index.ts' (optional)
-  updateMySprite(state);
-});
-```
-
-### Slack / Discord Bot
-
-```typescript
-import { createAISnitchClient, filters, formatStatusLine } from '@aisnitch/client';
-import WebSocket from 'ws';
-
-const client = createAISnitchClient({ WebSocketClass: WebSocket as any });
-
-// Only notify on events that need attention
-client.on('event', (e) => {
-  if (filters.needsAttention(e)) {
-    postToSlack(`⚠️ ${formatStatusLine(e)}`);
-  }
-
-  if (e.type === 'task.complete') {
-    postToSlack(`✅ ${formatStatusLine(e)}`);
-  }
-});
-```
-
-### Menu Bar Widget (Electron / Tauri)
-
-```typescript
-import { createAISnitchClient, formatStatusLine } from '@aisnitch/client';
-
-const client = createAISnitchClient();
-let sessionCounter = 0;
-const sessionMap = new Map<string, number>();
-
-client.on('event', (e) => {
-  if (!sessionMap.has(e['aisnitch.sessionid'])) {
-    sessionMap.set(e['aisnitch.sessionid'], ++sessionCounter);
-  }
-  const num = sessionMap.get(e['aisnitch.sessionid'])!;
-
-  // Update your menu bar / tray icon
-  tray.setTitle(formatStatusLine(e, num));
-  tray.setToolTip(`${client.sessions?.count ?? 0} active sessions`);
-});
-```
-
-For complete API docs, React/Vue hooks, filters, TypeScript integration, and more examples, see the **[Client SDK README](./packages/client/README.md)**.
-
-<details>
-<summary>Raw WebSocket (without SDK)</summary>
-
-If you don't want the SDK, you can connect directly:
-
-```bash
-# One-liner to see raw events
-node -e "
-  const WebSocket = require('ws');
-  const ws = new WebSocket('ws://127.0.0.1:4820');
-  ws.on('message', m => {
-    const e = JSON.parse(m.toString());
-    if (e.type !== 'welcome') console.log(e.type, e['aisnitch.tool'], e.data?.project);
-  });
-"
-```
-
-The first message is always a `welcome` payload with version, active tools, and uptime. Every subsequent message is a CloudEvents event as described above.
-
-</details>
+| Port | Purpose |
+|:---:|:---|
+| `4820` | WebSocket (connect here) |
+| `4821` | HTTP webhook receiver + health |
 
 ### Health Check
 
@@ -431,145 +523,83 @@ The first message is always a `welcome` payload with version, active tools, and 
 curl http://127.0.0.1:4821/health
 ```
 
-```json
-{
-  "status": "ok",
-  "uptime": 3600,
-  "consumers": 2,
-  "events": 1542,
-  "droppedEvents": 0
-}
-```
-
 ---
 
-## CLI Reference
+## 🧪 Development
 
 ```bash
-# Dashboard mode (always opens the TUI)
-aisnitch start
-aisnitch start --tool claude-code      # pre-filter by tool
-aisnitch start --type agent.coding     # pre-filter by event type
-aisnitch start --view full-data        # expanded JSON inspector
-
-# Fullscreen web dashboard (from another computer)
-aisnitch fs                             # open dashboard in browser
-aisnitch fs --daemon                  # start daemon automatically if not running
-aisnitch fs --dashboard-port 8080     # use different port
-aisnitch fs --no-browser              # just start the server
-
-# Background daemon
-aisnitch start --daemon
-aisnitch status                        # check if daemon is running
-aisnitch attach                        # open TUI attached to running daemon
-aisnitch stop                          # kill daemon
-
-# Raw event logger (no TUI, full payload)
-aisnitch logger
-
-# Tool setup (run once per tool)
-aisnitch setup claude-code
-aisnitch setup opencode
-aisnitch setup gemini-cli
-aisnitch setup codex
-aisnitch setup goose
-aisnitch setup copilot-cli
-aisnitch setup aider
-aisnitch setup openclaw
-aisnitch setup claude-code --revert    # undo setup
-
-# Check enabled adapters
-aisnitch adapters
-
-# Demo mode (simulated events)
-aisnitch mock claude-code --speed 2 --duration 20
-aisnitch start --mock all
-
-# PTY wrapper (any unsupported CLI)
-aisnitch wrap aider --model sonnet
-aisnitch wrap goose session
-```
-
----
-
-## TUI Keybinds
-
-| Key | Action |
-|---|---|
-| `q` / `Ctrl+C` | Quit |
-| `d` | Start / stop the daemon |
-| `r` | Refresh daemon status |
-| `v` | Toggle full-data JSON inspector |
-| `f` | Tool filter picker |
-| `t` | Event type filter picker |
-| `/` | Free-text search |
-| `Esc` | Clear all filters |
-| `Space` | Freeze / resume live tailing |
-| `c` | Clear event buffer |
-| `?` | Help overlay |
-| `Tab` | Switch panel focus |
-| `↑↓` / `jk` | Navigate rows |
-| `[` `]` | Page inspector up / down |
-
----
-
-## Config Reference
-
-AISnitch state lives under `~/.aisnitch/` (override with `AISNITCH_HOME`).
-
-| Path | Purpose |
-|---|---|
-| `config.json` | User configuration |
-| `aisnitch.pid` | Daemon PID file |
-| `daemon-state.json` | Daemon connection info |
-| `daemon.log` | Daemon output log (5 MB max) |
-| `aisnitch.sock` | Unix domain socket (IPC) |
-
-| Port | Purpose |
-|---|---|
-| `4820` | WebSocket stream (consumers connect here) |
-| `4821` | HTTP hook receiver + `/health` endpoint |
-
----
-
-## Development
-
-```bash
+# Setup
+git clone https://github.com/vava-nessa/AISnitch.git
+cd AISnitch
 pnpm install
-pnpm build              # ESM + CJS + .d.ts (main + client SDK)
+
+# Build
+pnpm build              # ESM + CJS + TypeScript types
+
+# Quality
 pnpm lint               # ESLint
-pnpm typecheck          # tsc --noEmit
-pnpm test               # Vitest (156 tests)
-pnpm test:coverage
-pnpm test:e2e           # requires opencode installed
-
-# Client SDK only
-pnpm --filter @aisnitch/client build
-pnpm --filter @aisnitch/client test   # 48 tests
+pnpm typecheck          # TypeScript
+pnpm test               # 300+ tests
+pnpm test:coverage      # Coverage report
 ```
 
-Project structure:
+### Project Structure
 
 ```
-aisnitch/                  # main package — daemon, CLI, TUI, adapters
+aisnitch/
 ├── src/
-│   ├── adapters/          # 13 adapter implementations
-│   ├── cli/               # commander commands
-│   ├── core/              # events, pipeline, config
-│   └── tui/               # Ink dashboard
+│   ├── adapters/       # 13 tool adapters
+│   ├── cli/           # Commander CLI
+│   ├── core/          # Events, pipeline, config
+│   └── tui/           # Ink terminal dashboard
 ├── packages/
-│   └── client/            # @aisnitch/client SDK
-│       └── src/           # types, client, sessions, filters, helpers
-├── docs/                  # technical documentation
-└── tasks/                 # kanban task board
+│   └── client/        # @aisnitch/client SDK
+├── docs/              # Technical docs
+└── tasks/             # Task board
 ```
-
-Docs: [`docs/index.md`](./docs/index.md) | Tasks: [`tasks/tasks.md`](./tasks/tasks.md)
-
-Contributing: [`CONTRIBUTING.md`](./CONTRIBUTING.md) | [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md)
 
 ---
 
-## License
+## 📚 Resources
 
-Apache-2.0, © [Vanessa Depraute / vava-nessa](https://github.com/vava-nessa).
+- [Documentation](./docs/index.md) — Technical details
+- [Client SDK](./packages/client/README.md) — Build on top
+- [Tasks](./tasks/tasks.md) — What's being worked on
+- [Contributing](./CONTRIBUTING.md) — How to contribute
+
+---
+
+## ❓ FAQ
+
+**Q: Does AISnitch store my data?**
+
+No. Events transit through memory only and are never written to disk. Nothing leaves your machine.
+
+**Q: Which tools are supported?**
+
+13 tools out of the box: Claude Code, OpenCode, Gemini CLI, Aider, Codex, Goose, Copilot CLI, OpenClaw, Cursor, Zed, Devin, Kilo, Pi. Plus any CLI via the `wrap` command.
+
+**Q: Can I build my own dashboard?**
+
+Yes! Use the `@aisnitch/client` SDK or connect directly to `ws://127.0.0.1:4820`.
+
+**Q: How do I update AISnitch?**
+
+```bash
+npm update -g aisnitch   # npm
+brew upgrade aisnitch    # Homebrew
+```
+
+**Q: Why "Snitch"?**
+
+Because it snitches on your AI agents — tells you what they're doing! 🎭
+
+---
+
+## 📜 License
+
+Apache-2.0 — [Vanessa Depraute](https://github.com/vava-nessa)
+
+[![CI](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml/badge.svg)](https://github.com/vava-nessa/AISnitch/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/aisnitch?logo=npm)](https://www.npmjs.com/package/aisnitch)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js)](https://nodejs.org/)
