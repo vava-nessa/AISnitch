@@ -157,19 +157,23 @@ When a daemon is already running, `wrap` forwards events into that daemon over t
 
 `src/adapters/openclaw.ts` closes the secondary-adapter pass with a layered OpenClaw integration built around the signals that currently exist in the real product:
 
+- **Plugin SDK** (`aisnitch setup openclaw` installs `~/.openclaw/plugins/aisnitch-monitor/`): highest-fidelity strategy using Plugin SDK hooks (`before_tool_call`, `after_tool_call`, `agent_end`, `model_call_started`, `model_call_ended`, etc.) for real-time tool names, parameters, results, errors, durations, and model telemetry
 - managed global hooks under `~/.openclaw/hooks/aisnitch-forward/`
 - built-in `command-logger` output in `~/.openclaw/logs/commands.log`
 - transcript JSONL files under `~/.openclaw/agents/*/sessions/*.jsonl`
 - workspace memory markdown under `~/.openclaw/workspace*/memory/`
 - `pgrep -ifl openclaw` process fallback
 
-That stack matters because OpenClaw's current public docs expose rich hooks and workspace state, but not a stable native outbound AISnitch-style webhook section. AISnitch therefore installs one managed hook instead of pretending a nonexistent config block is available.
+That stack matters because OpenClaw's current public docs expose rich hooks and workspace state, but not a stable native outbound AISnitch-style webhook section. AISnitch therefore installs one managed hook plus a Plugin SDK plugin instead of pretending a nonexistent config block is available.
 
 The adapter maps OpenClaw activity like this:
 
 - `gateway:startup` / `agent:bootstrap` -> `session.start` + `agent.idle`
 - `command:new` / `/new` -> `task.start`
-- `tool_result_persist` -> `agent.tool_call` or `agent.coding`
+- `model_call_started` -> `agent.thinking` (with model/provider info)
+- `model_call_ended` -> `agent.streaming` (with duration/outcome)
+- `before_tool_call` -> `agent.tool_call` or `agent.coding` (early detection)
+- `tool_result_persist` -> `agent.tool_call` or `agent.coding` (with results, errors, duration)
 - `before_compaction` / `session:compact:before` -> `agent.compact`
 - `/stop` -> `task.complete`
 - `/reset` / `gateway:shutdown` -> `session.end`

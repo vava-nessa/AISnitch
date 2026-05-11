@@ -196,17 +196,15 @@ function getEventSpecificInfo(event: AISnitchEvent): string[] {
       break;
     default:
       if (data.raw) {
-        // Try to extract useful info from raw data
         const raw = data.raw as Record<string, unknown>;
-        if (raw.opencodeEvent) {
-          const oe = raw.opencodeEvent as Record<string, unknown>;
-          if (oe.type) info.push(`Event type: ${oe.type}`);
-          if (oe.properties) {
-            const props = oe.properties as Record<string, unknown>;
-            if (props.project) info.push(`Project: ${String(props.project)}`);
-            if (props.cwd) info.push(`CWD: ${String(props.cwd)}`);
-          }
-        }
+        // Generic extraction — works for any tool adapter
+        if (raw.event) info.push(`Raw event: ${String(raw.event)}`);
+        if (raw.toolName) info.push(`Tool: ${String(raw.toolName)}`);
+        if (raw.model) info.push(`Model: ${String(raw.model)}`);
+        if (raw.durationMs) info.push(`Duration: ${String(raw.durationMs)}ms`);
+        if (raw.outcome) info.push(`Outcome: ${String(raw.outcome)}`);
+        if (raw.error) info.push(`Error: ${String(raw.error)}`);
+        if (raw.reason) info.push(`Reason: ${String(raw.reason)}`);
       }
   }
 

@@ -46,6 +46,16 @@
 
 ## ✅ Done
 
+### t-openclaw-plugin-sdk
+**Added OpenClaw Plugin SDK strategy** with:
+- `'plugin'` strategy in `InterceptionStrategy` type
+- Plugin SDK plugin at `~/.openclaw/plugins/aisnitch-monitor/index.ts` via `aisnitch setup openclaw`
+- 11 hooked events: gateway_start/stop, before_agent_run, agent_end, model_call_started/ended, before_tool_call, after_tool_call, before/after_compaction, message_received
+- New event handlers: `model_call_started` → agent.thinking, `model_call_ended` → agent.streaming, `before_tool_call` → agent.coding/tool_call
+- Duration, error, and model extraction from plugin payloads
+- Full test coverage (9 tests) + setup test verifies plugin installation and revert
+- Updated fullscreen dashboard EventDisplay for generic raw data from any tool
+
 ### t-enhance-content
 **Enhanced EventDataSchema + Claude Code + OpenCode adapters** with:
 - `thinkingContent` field for AI reasoning chains

@@ -154,6 +154,15 @@ interface OpenClawHooksConfig extends Record<string, unknown> {
 
 interface OpenClawSettings extends Record<string, unknown> {
   readonly hooks?: OpenClawHooksConfig;
+  readonly plugins?: OpenClawPluginsConfig;
+}
+
+interface OpenClawPluginsConfig extends Record<string, unknown> {
+  readonly entries?: Record<string, OpenClawPluginEntryConfig>;
+}
+
+interface OpenClawPluginEntryConfig extends Record<string, unknown> {
+  readonly enabled?: boolean;
 }
 
 interface ToolSetupDependencies {
@@ -817,9 +826,10 @@ export class CopilotCLISetup implements ToolSetup {
 }
 
 /**
- * OpenClaw currently documents managed hooks plus bundled hook toggles, not a
- * native outbound AISnitch webhook block. AISnitch therefore installs one
- * managed hook directory and enables the relevant internal hooks in JSON5 config.
+ * OpenClaw currently documents managed hooks, bundled hook toggles, and a
+ * Plugin SDK — not a native outbound AISnitch webhook block. AISnitch therefore
+ * installs one managed hook directory, one managed plugin, and enables the
+ * relevant internal hooks in JSON5 config.
  */
 export class OpenClawSetup implements ToolSetup {
   private readonly binaryExists: (binaryName: string) => Promise<boolean>;
@@ -835,6 +845,12 @@ export class OpenClawSetup implements ToolSetup {
   private readonly hookUrl: string;
 
   private readonly openclawHomeDirectory: string;
+
+  private readonly pluginDirectory: string;
+
+  private readonly pluginFilePath: string;
+
+  private readonly pluginDocumentPath: string;
 
   public readonly toolName = 'openclaw' as const;
 
@@ -855,6 +871,13 @@ export class OpenClawSetup implements ToolSetup {
     this.hookDocumentPath = join(this.hookDirectory, 'HOOK.md');
     this.hookHandlerPath = join(this.hookDirectory, 'handler.ts');
     this.hookUrl = `http://localhost:${httpPort}/hooks/openclaw`;
+    this.pluginDirectory = join(
+      this.openclawHomeDirectory,
+      'plugins',
+      'aisnitch-monitor',
+    );
+    this.pluginFilePath = join(this.pluginDirectory, 'index.ts');
+    this.pluginDocumentPath = join(this.pluginDirectory, 'README.md');
   }
 
   public async detect(): Promise<boolean> {
@@ -873,9 +896,13 @@ export class OpenClawSetup implements ToolSetup {
     const currentConfigContent = await readOptionalFile(this.configPath);
     const currentHookDocument = await readOptionalFile(this.hookDocumentPath);
     const currentHookHandler = await readOptionalFile(this.hookHandlerPath);
+    const currentPluginDocument = await readOptionalFile(this.pluginDocumentPath);
+    const currentPluginFile = await readOptionalFile(this.pluginFilePath);
     const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
     const nextHookDocument = buildOpenClawHookDocumentSource();
     const nextHookHandler = buildOpenClawHookHandlerSource(this.hookUrl);
+    const nextPluginDocument = buildOpenClawPluginDocumentSource();
+    const nextPluginFile = buildOpenClawPluginSource(this.hookUrl);
 
     return [
       renderColoredDiff(
@@ -895,6 +922,18 @@ export class OpenClawSetup implements ToolSetup {
         currentHookHandler,
         nextHookHandler,
       ),
+      '',
+      renderColoredDiff(
+        this.pluginDocumentPath,
+        currentPluginDocument,
+        nextPluginDocument,
+      ),
+      '',
+      renderColoredDiff(
+        this.pluginFilePath,
+        currentPluginFile,
+        nextPluginFile,
+      ),
     ].join('\n');
   }
 
@@ -902,12 +941,17 @@ export class OpenClawSetup implements ToolSetup {
     const currentConfigContent = await readOptionalFile(this.configPath);
     const currentHookDocument = await readOptionalFile(this.hookDocumentPath);
     const currentHookHandler = await readOptionalFile(this.hookHandlerPath);
+    const currentPluginDocument = await readOptionalFile(this.pluginDocumentPath);
+    const currentPluginFile = await readOptionalFile(this.pluginFilePath);
     const nextConfigContent = this.buildNextConfigContent(currentConfigContent);
     const nextHookDocument = buildOpenClawHookDocumentSource();
     const nextHookHandler = buildOpenClawHookHandlerSource(this.hookUrl);
+    const nextPluginDocument = buildOpenClawPluginDocumentSource();
+    const nextPluginFile = buildOpenClawPluginSource(this.hookUrl);
 
     await mkdir(dirname(this.configPath), { recursive: true });
     await mkdir(this.hookDirectory, { recursive: true });
+    await mkdir(this.pluginDirectory, { recursive: true });
 
     if (currentConfigContent !== null) {
       await copyFile(this.configPath, this.getBackupPath(this.configPath));
@@ -927,15 +971,33 @@ export class OpenClawSetup implements ToolSetup {
       );
     }
 
+    if (currentPluginDocument !== null) {
+      await copyFile(
+        this.pluginDocumentPath,
+        this.getBackupPath(this.pluginDocumentPath),
+      );
+    }
+
+    if (currentPluginFile !== null) {
+      await copyFile(
+        this.pluginFilePath,
+        this.getBackupPath(this.pluginFilePath),
+      );
+    }
+
     await writeFile(this.configPath, nextConfigContent, 'utf8');
     await writeFile(this.hookDocumentPath, nextHookDocument, 'utf8');
     await writeFile(this.hookHandlerPath, nextHookHandler, 'utf8');
+    await writeFile(this.pluginDocumentPath, nextPluginDocument, 'utf8');
+    await writeFile(this.pluginFilePath, nextPluginFile, 'utf8');
   }
 
   public async revert(): Promise<void> {
     await restoreBackupOrRemove(this.configPath);
     await restoreBackupOrRemove(this.hookDocumentPath);
     await restoreBackupOrRemove(this.hookHandlerPath);
+    await restoreBackupOrRemove(this.pluginDocumentPath);
+    await restoreBackupOrRemove(this.pluginFilePath);
   }
 
   private buildNextConfigContent(currentContent: string | null): string {
@@ -958,6 +1020,17 @@ export class OpenClawSetup implements ToolSetup {
         enabled: true,
       },
     };
+
+    const currentPlugins = parsedConfig.plugins ?? {};
+    const currentPluginEntries = currentPlugins.entries ?? {};
+    const nextPluginEntries: Record<string, OpenClawPluginEntryConfig> = {
+      ...currentPluginEntries,
+      'aisnitch-monitor': {
+        ...(currentPluginEntries['aisnitch-monitor'] ?? {}),
+        enabled: true,
+      },
+    };
+
     const nextConfig: OpenClawSettings = {
       ...parsedConfig,
       hooks: {
@@ -967,6 +1040,10 @@ export class OpenClawSetup implements ToolSetup {
           enabled: true,
           entries: nextEntries,
         },
+      },
+      plugins: {
+        ...currentPlugins,
+        entries: nextPluginEntries,
       },
     };
 
@@ -1924,6 +2001,233 @@ export default async function aisnitchForward(event) {
     type: typeof event.type === "string" ? event.type : undefined
   });
 }
+`;
+}
+
+function buildOpenClawPluginDocumentSource(): string {
+  return `# AISnitch Monitor Plugin
+
+📖 This managed plugin uses OpenClaw's Plugin SDK to forward rich real-time
+events to the local AISnitch HTTP receiver. Unlike the internal hook handler,
+the plugin has access to tool-level hooks (before_tool_call, after_tool_call),
+model-level hooks (model_call_started, model_call_ended), and agent turn hooks
+(agent_end, before_agent_run) — providing maximum observability fidelity.
+
+## Hooked Events
+
+| Hook | AISnitch Event |
+|:---|:---|
+| gateway_start | session.start |
+| gateway_stop | session.end |
+| before_agent_run | task.start |
+| agent_end | task.complete |
+| before_tool_call | agent.coding / agent.tool_call |
+| after_tool_call | agent.coding / agent.tool_call + results |
+| model_call_started | agent.thinking |
+| model_call_ended | agent.streaming |
+| before_compaction | agent.compact |
+| after_compaction | agent.compact |
+| message_received | context info |
+
+## Managed by AISnitch
+
+This file is managed by \`aisnitch setup openclaw\`. Re-running setup will
+overwrite it. Use \`aisnitch setup openclaw --revert\` to remove it.
+`;
+}
+
+function buildOpenClawPluginSource(hookUrl: string): string {
+  return `/**
+ * AISnitch OpenClaw Plugin
+ *
+ * 📖 Uses OpenClaw's Plugin SDK to forward rich real-time events to AISnitch.
+ * Provides maximum visibility into tool calls, model usage, agent turns,
+ * and lifecycle events — far beyond what passive file-watching can achieve.
+ *
+ * Managed by \`aisnitch setup openclaw\`. Re-running setup overwrites this file.
+ */
+
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+
+const AISNITCH_ENDPOINT = ${JSON.stringify(hookUrl)};
+
+async function postToAISnitch(payload: Record<string, unknown>): Promise<void> {
+  try {
+    await fetch(AISNITCH_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Silently ignore transport errors so OpenClaw keeps running.
+  }
+}
+
+function getSessionKey(ctx: Record<string, unknown> | undefined): string | undefined {
+  if (!ctx) return undefined;
+  return (
+    (typeof ctx.sessionKey === "string" && ctx.sessionKey.length > 0 ? ctx.sessionKey : undefined) ??
+    (typeof ctx.sessionId === "string" && ctx.sessionId.length > 0 ? ctx.sessionId : undefined)
+  );
+}
+
+function getWorkspaceDir(ctx: Record<string, unknown> | undefined): string | undefined {
+  if (!ctx) return undefined;
+  return (
+    (typeof ctx.workspaceDir === "string" && ctx.workspaceDir.length > 0 ? ctx.workspaceDir : undefined) ??
+    (typeof ctx.cwd === "string" && ctx.cwd.length > 0 ? ctx.cwd : undefined)
+  );
+}
+
+export default definePluginEntry({
+  id: "aisnitch-monitor",
+  name: "AISnitch Monitor",
+  register(api) {
+    // ── Gateway lifecycle ──────────────────────────────────────────
+
+    api.on("gateway_start", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "gateway:startup",
+        sessionKey: getSessionKey(ctx),
+        context: ctx ?? {},
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    api.on("gateway_stop", () => {
+      void postToAISnitch({
+        event: "gateway:shutdown",
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ── Agent turn lifecycle ────────────────────────────────────────
+
+    api.on("before_agent_run", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "command:new",
+        sessionKey: getSessionKey(ctx),
+        context: {
+          ...ctx,
+          message: event.prompt ?? event.message ?? (ctx as any)?.bodyForAgent,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    api.on("agent_end", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "command:stop",
+        sessionKey: getSessionKey(ctx),
+        context: ctx ?? {},
+        success: event.success,
+        durationMs: event.durationMs,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ── Model calls → thinking / streaming ──────────────────────────
+
+    api.on("model_call_started", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "model_call_started",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        model: event.model,
+        provider: event.provider,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    api.on("model_call_ended", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "model_call_ended",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        model: event.model,
+        durationMs: event.durationMs,
+        outcome: event.outcome,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ── Tool calls — richest signal for AISnitch ────────────────────
+
+    api.on("before_tool_call", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "before_tool_call",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        toolName: event.toolName,
+        toolInput: event.params,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    api.on("after_tool_call", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "tool_result_persist",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        toolName: event.toolName,
+        toolInput: event.params,
+        error: event.error,
+        duration: event.duration,
+        result: event.result,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ── Compaction ──────────────────────────────────────────────────
+
+    api.on("before_compaction", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "before_compaction",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    api.on("after_compaction", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "session:compact:after",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    // ── Messages — user input context ───────────────────────────────
+
+    api.on("message_received", (event) => {
+      const ctx = event.ctx as Record<string, unknown> | undefined;
+      void postToAISnitch({
+        event: "message:received",
+        sessionKey: getSessionKey(ctx),
+        cwd: getWorkspaceDir(ctx),
+        context: ctx ?? {},
+        message: event.message,
+        timestamp: new Date().toISOString(),
+      });
+    });
+  },
+});
 `;
 }
 

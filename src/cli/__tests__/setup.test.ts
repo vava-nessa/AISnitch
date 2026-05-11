@@ -394,7 +394,7 @@ describe('setup command helpers', () => {
     }
   });
 
-  it('writes OpenClaw JSON5 hook config plus the managed hook files', async () => {
+  it('writes OpenClaw JSON5 hook config plus managed hook and plugin files', async () => {
     const homeDirectory = await createTempHome();
     const openclawHomeDirectory = join(homeDirectory, '.openclaw');
     const configPath = join(openclawHomeDirectory, 'openclaw.json');
@@ -437,6 +437,9 @@ describe('setup command helpers', () => {
             entries: Record<string, { enabled: boolean }>;
           };
         };
+        plugins: {
+          entries: Record<string, { enabled: boolean }>;
+        };
       };
       const hookDocumentPath = join(
         openclawHomeDirectory,
@@ -450,7 +453,20 @@ describe('setup command helpers', () => {
         'aisnitch-forward',
         'handler.ts',
       );
+      const pluginDocumentPath = join(
+        openclawHomeDirectory,
+        'plugins',
+        'aisnitch-monitor',
+        'README.md',
+      );
+      const pluginFilePath = join(
+        openclawHomeDirectory,
+        'plugins',
+        'aisnitch-monitor',
+        'index.ts',
+      );
 
+      // Hook config
       expect(nextConfig.hooks.internal.enabled).toBe(true);
       expect(nextConfig.hooks.internal.entries['aisnitch-forward']).toEqual({
         enabled: true,
@@ -461,10 +477,31 @@ describe('setup command helpers', () => {
       expect(nextConfig.hooks.internal.entries['session-memory']).toEqual({
         enabled: true,
       });
+
+      // Plugin config
+      expect(nextConfig.plugins.entries['aisnitch-monitor']).toEqual({
+        enabled: true,
+      });
+
+      // Hook files
       expect(await readFile(hookDocumentPath, 'utf8')).toContain(
         'Forward key OpenClaw lifecycle events to AISnitch',
       );
       expect(await readFile(hookHandlerPath, 'utf8')).toContain(
+        'http://localhost:4821/hooks/openclaw',
+      );
+
+      // Plugin files
+      expect(await readFile(pluginDocumentPath, 'utf8')).toContain(
+        'AISnitch Monitor Plugin',
+      );
+      expect(await readFile(pluginFilePath, 'utf8')).toContain(
+        'definePluginEntry',
+      );
+      expect(await readFile(pluginFilePath, 'utf8')).toContain(
+        'aisnitch-monitor',
+      );
+      expect(await readFile(pluginFilePath, 'utf8')).toContain(
         'http://localhost:4821/hooks/openclaw',
       );
 
@@ -475,6 +512,8 @@ describe('setup command helpers', () => {
       );
       await expect(readFile(hookDocumentPath, 'utf8')).rejects.toThrow();
       await expect(readFile(hookHandlerPath, 'utf8')).rejects.toThrow();
+      await expect(readFile(pluginDocumentPath, 'utf8')).rejects.toThrow();
+      await expect(readFile(pluginFilePath, 'utf8')).rejects.toThrow();
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }
@@ -537,6 +576,85 @@ describe('setup command helpers', () => {
 
       expect(aisnitchConfig.adapters.codex).toEqual({ enabled: true });
       expect(outputs.join('')).toContain('Configured codex for AISnitch');
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('writes OpenClaw Plugin SDK plugin config plus managed plugin files', async () => {
+    const homeDirectory = await createTempHome();
+    const openclawHomeDirectory = join(homeDirectory, '.openclaw');
+    const configPath = join(openclawHomeDirectory, 'openclaw.json');
+
+    try {
+      await mkdir(openclawHomeDirectory, { recursive: true });
+      await writeFile(
+        configPath,
+        `{
+  // Existing operator config
+  hooks: {
+    internal: {
+      enabled: false,
+    },
+  },
+}
+`,
+        'utf8',
+      );
+
+      const setup = new OpenClawSetup(4821, {
+        binaryExists: () => Promise.resolve(false),
+        homeDirectory,
+        openclawHomeDirectory,
+      });
+
+      expect(await setup.detect()).toBe(true);
+
+      await setup.apply();
+
+      const nextConfig = JSON.parse(await readFile(configPath, 'utf8')) as {
+        hooks: { internal: { enabled: boolean; entries: Record<string, { enabled: boolean }> } };
+        plugins: { entries: Record<string, { enabled: boolean }> };
+      };
+
+      // Verify plugin registration in config
+      expect(nextConfig.plugins.entries['aisnitch-monitor']).toEqual({
+        enabled: true,
+      });
+      expect(nextConfig.hooks.internal.enabled).toBe(true);
+
+      // Verify plugin files exist
+      const pluginFilePath = join(
+        openclawHomeDirectory,
+        'plugins',
+        'aisnitch-monitor',
+        'index.ts',
+      );
+      const pluginDocumentPath = join(
+        openclawHomeDirectory,
+        'plugins',
+        'aisnitch-monitor',
+        'README.md',
+      );
+
+      const pluginContent = await readFile(pluginFilePath, 'utf8');
+      expect(pluginContent).toContain('definePluginEntry');
+      expect(pluginContent).toContain('aisnitch-monitor');
+      expect(pluginContent).toContain('http://localhost:4821/hooks/openclaw');
+      expect(pluginContent).toContain('after_tool_call');
+      expect(pluginContent).toContain('model_call_started');
+
+      const pluginDoc = await readFile(pluginDocumentPath, 'utf8');
+      expect(pluginDoc).toContain('AISnitch Monitor Plugin');
+
+      // Verify revert cleans up plugin files
+      await setup.revert();
+
+      expect(await readFile(configPath, 'utf8')).toContain(
+        'Existing operator config',
+      );
+      await expect(readFile(pluginFilePath, 'utf8')).rejects.toThrow();
+      await expect(readFile(pluginDocumentPath, 'utf8')).rejects.toThrow();
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }

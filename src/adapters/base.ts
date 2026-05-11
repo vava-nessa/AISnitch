@@ -50,7 +50,8 @@ export type InterceptionStrategy =
   | 'stream-json'
   | 'process-detect'
   | 'pty-wrap'
-  | 'api-client';
+  | 'api-client'
+  | 'plugin';
 
 /**
  * Extra context that adapters can provide alongside emitted events.

@@ -23,13 +23,13 @@ import {
 
 /**
  * @file src/adapters/openclaw.ts
- * @description OpenClaw adapter combining managed hook ingestion, bundled command logs, transcript watching, workspace-memory watching, and process fallback detection.
+ * @description OpenClaw adapter combining managed hook ingestion, Plugin SDK events, bundled command logs, transcript watching, workspace-memory watching, and process fallback detection.
  * @functions
  *   → none
  * @exports OpenClawAdapter, OpenClawAdapterOptions
  * @see ./base.ts
  * @see ../cli/commands/setup.ts
- * @see ../../tasks/06-adapters-secondary/04_adapters-secondary_openclaw.md
+ * @see ../../tasks/tasks.md
  */
 
 const execFile = promisify(execFileCallback);
@@ -73,8 +73,17 @@ interface PendingThinkingState {
 
 /**
  * 📖 OpenClaw has several passive surfaces, but none of them is perfect alone.
- * AISnitch therefore merges the real managed hook path with filesystem and
- * process fallbacks so operators still get signal when setup is partial.
+ * AISnitch therefore merges the real managed hook path with a Plugin SDK
+ * integration, filesystem watchers, and process fallbacks so operators still
+ * get signal when setup is partial.
+ *
+ * The Plugin strategy (via `aisnitch setup openclaw`) installs a managed
+ * OpenClaw plugin at `~/.openclaw/plugins/aisnitch-monitor/` that uses the
+ * Plugin SDK hooks (`before_tool_call`, `after_tool_call`, `agent_end`,
+ * `model_call_started`, `model_call_ended`, etc.) to forward rich real-time
+ * payloads to the AISnitch HTTP receiver. This gives the highest-fidelity
+ * signal — tool names, parameters, results, errors, durations, model info —
+ * without any filesystem polling.
  */
 export class OpenClawAdapter extends BaseAdapter {
   public override readonly displayName = 'OpenClaw';
@@ -82,6 +91,7 @@ export class OpenClawAdapter extends BaseAdapter {
   public override readonly name = 'openclaw' as const;
 
   public override readonly strategies: readonly InterceptionStrategy[] = [
+    'plugin',
     'hooks',
     'log-watch',
     'jsonl-watch',
@@ -357,11 +367,34 @@ export class OpenClawAdapter extends BaseAdapter {
         await this.emitOpenClawSessionEnd(sharedData, context);
         return;
       }
-      case 'session:compact:before':
-      case 'before_compaction': {
+      case 'model_call_started': {
         await this.ensureSessionStarted(sharedData, context);
         this.clearThinking(sessionId);
-        await this.emitStateChange('agent.compact', sharedData, context);
+        await this.emitStateChange('agent.thinking', sharedData, context);
+        return;
+      }
+      case 'model_call_ended': {
+        await this.ensureSessionStarted(sharedData, context);
+        await this.emitStateChange('agent.streaming', {
+          ...sharedData,
+          raw: {
+            ...(sharedData.raw as Record<string, unknown> ?? {}),
+            durationMs: getNumber(payload, 'durationMs'),
+            outcome: getString(payload, 'outcome'),
+            source: 'plugin',
+          },
+        }, context);
+        return;
+      }
+      case 'before_tool_call': {
+        await this.ensureSessionStarted(sharedData, context);
+        await this.emitStateChange(
+          isOpenClawCodingTool(sharedData.toolName, sharedData.toolInput)
+            ? 'agent.coding'
+            : 'agent.tool_call',
+          sharedData,
+          context,
+        );
         return;
       }
       case 'tool_result_persist': {
@@ -374,6 +407,13 @@ export class OpenClawAdapter extends BaseAdapter {
           context,
         );
         this.scheduleThinking(sessionId, sharedData, context, POST_TOOL_THINKING_DELAY_MS);
+        return;
+      }
+      case 'session:compact:before':
+      case 'before_compaction': {
+        await this.ensureSessionStarted(sharedData, context);
+        this.clearThinking(sessionId);
+        await this.emitStateChange('agent.compact', sharedData, context);
         return;
       }
       case 'message:received':
@@ -992,6 +1032,7 @@ function buildOpenClawEventData(
   return {
     activeFile: extractOpenClawActiveFile(payload) ?? toolInput?.filePath,
     cwd,
+    duration: getNumber(payload, 'duration') ?? getNumber(payload, 'durationMs'),
     errorMessage: extractOpenClawErrorMessage(payload),
     errorType: inferOpenClawErrorType(payload),
     model: extractOpenClawModel(payload),
@@ -1138,9 +1179,11 @@ function extractOpenClawErrorMessage(
 ): string | undefined {
   return (
     getString(payload, 'error') ??
+    getString(payload, 'errorMessage') ??
     getString(payload, 'message') ??
     getString(getRecord(payload.error), 'message') ??
-    getString(getRecord(payload.result), 'error')
+    getString(getRecord(payload.result), 'error') ??
+    getString(getRecord(payload.result), 'message')
   );
 }
 

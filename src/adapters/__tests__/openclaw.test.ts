@@ -6,7 +6,7 @@ import { OpenClawAdapter } from '../openclaw.js';
 
 /**
  * @file src/adapters/__tests__/openclaw.test.ts
- * @description Unit coverage for OpenClaw hook mapping, transcript fallbacks, delayed thinking transitions, and process detection.
+ * @description Unit coverage for OpenClaw hook mapping, Plugin SDK events, transcript fallbacks, delayed thinking transitions, and process detection.
  * @functions
  *   → createOpenClawAdapter
  * @exports none
@@ -200,5 +200,122 @@ describe('OpenClawAdapter', () => {
       'agent.idle',
       'session.end',
     ]);
+  });
+
+  it('maps model_call_started plugin events to agent.thinking', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'model_call_started',
+      model: 'claude-sonnet-4-20250514',
+      provider: 'anthropic',
+      sessionKey: 'agent:main:main',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.thinking',
+    ]);
+    expect(publishedEvents[2]).toMatchObject({
+      data: {
+        model: 'claude-sonnet-4-20250514',
+      },
+      type: 'agent.thinking',
+    });
+  });
+
+  it('maps model_call_ended plugin events to agent.streaming with duration', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'model_call_ended',
+      durationMs: 1234,
+      model: 'claude-sonnet-4-20250514',
+      outcome: 'success',
+      sessionKey: 'agent:main:main',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.streaming',
+    ]);
+    expect(publishedEvents[2]).toMatchObject({
+      data: {
+        duration: 1234,
+        model: 'claude-sonnet-4-20250514',
+      },
+    });
+  });
+
+  it('maps before_tool_call plugin events to agent.tool_call for non-coding tools', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      event: 'before_tool_call',
+      params: {
+        query: 'search term',
+      },
+      sessionKey: 'agent:main:main',
+      toolName: 'web_search',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.tool_call',
+    ]);
+    expect(publishedEvents[2]).toMatchObject({
+      data: {
+        toolName: 'web_search',
+      },
+    });
+  });
+
+  it('maps after_tool_call plugin events with error to agent.tool_call', async () => {
+    const publishedEvents: AISnitchEvent[] = [];
+    const adapter = createOpenClawAdapter(publishedEvents);
+
+    await adapter.start();
+    await adapter.handleHook({
+      context: {
+        workspaceDir: '/Users/vava/.openclaw/workspace',
+      },
+      duration: 500,
+      error: 'Permission denied',
+      event: 'tool_result_persist',
+      sessionKey: 'agent:main:main',
+      toolName: 'grep',
+    });
+
+    expect(publishedEvents.map((event) => event.type)).toEqual([
+      'session.start',
+      'agent.idle',
+      'agent.tool_call',
+    ]);
+    expect(publishedEvents[2]).toMatchObject({
+      data: {
+        duration: 500,
+        errorMessage: 'Permission denied',
+        errorType: 'tool_failure',
+        toolName: 'grep',
+      },
+    });
   });
 });
