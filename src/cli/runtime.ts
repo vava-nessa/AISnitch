@@ -128,7 +128,7 @@ export interface AttachCliOptions extends CommonCliOptions {
  */
 export interface FullscreenCliOptions extends CommonCliOptions {
   readonly dashboardPort?: number;
-  readonly daemonMode?: boolean;
+  readonly daemon?: boolean;
   readonly noBrowser?: boolean;
 }
 
@@ -902,13 +902,13 @@ export function createCliRuntime(
     const snapshot = await getStatusSnapshot(options);
 
     // If daemon not running and we want daemon mode, start it
-    if (!snapshot.running && options.daemonMode) {
+    if (!snapshot.running && options.daemon) {
       output.stdout('Starting daemon...\n');
       await startDetachedDaemon(options);
     }
 
     // If daemon not running and not daemon mode, show error
-    if (!snapshot.running && !options.daemonMode) {
+    if (!snapshot.running && !options.daemon) {
       throw new Error(
         'AISnitch daemon is not running. Start one with `aisnitch start --daemon` or use `aisnitch fs --daemon` to start and open the dashboard.',
       );
