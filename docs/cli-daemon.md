@@ -15,6 +15,7 @@ The current commander-based CLI exposes:
 - `adapters` to list currently configured adapter toggles
 - `setup <tool>` to configure supported external tools for AISnitch ingestion
 - `attach` to open the same dashboard and connect to the daemon stream when it is active
+- `fs` / `fullscreen` to serve the fullscreen web dashboard and open it in a browser
 - `logger` to stream exhaustive live event output without the TUI
 - `wrap <command> [args...]` to observe an arbitrary interactive tool through the generic PTY fallback
 - `install` and `uninstall` for macOS LaunchAgent management
@@ -54,6 +55,12 @@ Detached `start --daemon` still exists for scripts, launchd, and explicit headle
 If startup fails before the daemon becomes healthy, the CLI now reads back the last daemon log line and surfaces that precise error to the caller. This avoids the old behavior where a real boot failure such as port exhaustion was masked by a vague readiness timeout. Port probing also searches a wider fallback range now, so stale local AISnitch listeners are less likely to brick a fresh daemon start immediately.
 
 `wrap` is different: it launches a child tool inside a PTY. If a daemon is already running, wrapped events go to that daemon over UDS. If not, AISnitch starts a temporary isolated local pipeline for that wrapped process only.
+
+## Fullscreen dashboard server
+
+`aisnitch fs` starts a small child Node process that imports Vite and serves the built dashboard from `examples/fullscreen-dashboard/dist`. The runtime first checks the daemon state, optionally starts it with `--daemon`, waits for the HTTP health endpoint, then opens `http://127.0.0.1:<dashboard-port>` unless `--no-browser` is used.
+
+The child process deliberately resolves the Node executable defensively. When package managers such as Homebrew upgrade Node, a long-lived global CLI can still have `process.execPath` pointing at an old Cellar path that has already been removed. In that case AISnitch falls back to `node` from `PATH` and always listens for the child process `error` event, so spawn failures become actionable CLI errors instead of hard unhandled crashes.
 
 ## Raw logger mode
 

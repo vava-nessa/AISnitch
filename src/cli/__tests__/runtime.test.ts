@@ -1,4 +1,5 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -321,6 +322,81 @@ describe('managed dashboard runtime', () => {
       await runtime.start({});
 
       expect(renderManagedTui).toHaveBeenCalledTimes(1);
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('reports fullscreen dashboard spawn failures without an unhandled child error', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
+    const stdout = vi.fn();
+
+    process.env.AISNITCH_HOME = homeDirectory;
+
+    try {
+      await writePid(process.pid, { env: process.env });
+      await writeDaemonState(
+        {
+          configPath: join(homeDirectory, 'config.json'),
+          httpPort: 4821,
+          logFilePath: join(homeDirectory, 'daemon.log'),
+          pid: process.pid,
+          socketPath: join(homeDirectory, 'aisnitch.sock'),
+          startedAt: new Date().toISOString(),
+          wsPort: 4820,
+        },
+        { env: process.env },
+      );
+
+      const childProcess = new EventEmitter() as EventEmitter & {
+        readonly stderr: EventEmitter;
+        readonly stdout: EventEmitter;
+        readonly pid?: number;
+      };
+      Object.assign(childProcess, {
+        pid: 1234,
+        stderr: new EventEmitter(),
+        stdout: new EventEmitter(),
+      });
+
+      const runtime = createCliRuntime({
+        fetch: vi.fn((url: Parameters<typeof globalThis.fetch>[0]) => {
+          const value = typeof url === 'string'
+            ? url
+            : url instanceof URL
+              ? url.href
+              : url.url;
+
+          if (value.includes(':4821')) {
+            return Promise.resolve(
+              new Response(JSON.stringify({ uptime: 1 }), { status: 200 }),
+            );
+          }
+
+          return Promise.reject(new Error('dashboard unavailable'));
+        }),
+        output: {
+          stderr: vi.fn(),
+          stdout,
+        },
+        spawn: vi.fn(() => {
+          queueMicrotask(() => {
+            childProcess.emit(
+              'error',
+              new Error('spawn /opt/homebrew/Cellar/node/missing/bin/node ENOENT'),
+            );
+          });
+
+          return childProcess as never;
+        }),
+      });
+
+      await expect(runtime.fullscreen({ noBrowser: true })).rejects.toThrow(
+        'Failed to start dashboard server process',
+      );
+      expect(stdout).toHaveBeenCalledWith(
+        expect.stringContaining('Dashboard server process failed'),
+      );
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }

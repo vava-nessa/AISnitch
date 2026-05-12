@@ -72,6 +72,7 @@
 - Header with agent selector
 - Event ticker for recent activity
 - Responsive design
+- Fixed `aisnitch fs` dashboard server spawn handling so stale Homebrew Node paths report a clean CLI error instead of crashing on an unhandled child-process `error` event
 
 ### t-new-adapters
 **Added Zed and Pi adapters** to AISnitch:

@@ -1,6 +1,6 @@
 import { execFile as execFileCallback, spawn as spawnChildProcess } from 'node:child_process';
-import { closeSync, openSync } from 'node:fs';
-import { mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { closeSync, constants as fsConstants, openSync } from 'node:fs';
+import { access, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
@@ -101,6 +101,25 @@ const DAEMON_READY_POLL_INTERVAL_MS = 100;
 const DAEMON_STOP_TIMEOUT_MS = 4_000;
 const DAEMON_LOG_MAX_BYTES = 5 * 1024 * 1024;
 const LAUNCH_AGENT_LABEL = 'com.aisnitch.daemon';
+
+async function resolveNodeExecutable(): Promise<string> {
+  try {
+    await access(process.execPath, fsConstants.X_OK);
+    return process.execPath;
+  } catch {
+    // 📖 Homebrew upgrades can remove the exact Cellar path that launched AISnitch.
+    // Falling back to PATH keeps `aisnitch fs` usable when `node` is still installed.
+    return 'node';
+  }
+}
+
+function formatSpawnError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
 
 /**
  * Shared CLI output abstraction for commands and monitor rendering.
@@ -928,8 +947,10 @@ export function createCliRuntime(
 
     output.stdout(`Starting dashboard server on port ${dashboardPort}...\n`);
 
-    // Use vite preview to serve static files
-    const viteProcess = spawnImplementation(process.execPath, [
+    const nodeExecutable = await resolveNodeExecutable();
+
+    // Use Vite's dev server API to serve the built static dashboard.
+    const viteProcess = spawnImplementation(nodeExecutable, [
       '-e',
       `
 import { createServer } from 'vite';
@@ -963,6 +984,12 @@ process.stdin.resume();
 
     // Capture output
     let serverOutput = '';
+    let serverSpawnError: Error | undefined;
+
+    viteProcess.on('error', (error: Error) => {
+      serverSpawnError = error;
+      serverOutput += `Dashboard server process failed: ${formatSpawnError(error)}\n`;
+    });
      
     viteProcess.stdout?.on('data', (data: { toString: () => string }) => {
       serverOutput += data.toString();
@@ -985,11 +1012,21 @@ process.stdin.resume();
       } catch {
         // Server not ready yet
       }
+      if (serverSpawnError !== undefined) {
+        break;
+      }
+
       if (!viteProcess.pid) break; // Process died
     }
 
     if (!serverReady) {
       output.stdout(`Server output: ${serverOutput}\n`);
+      if (serverSpawnError !== undefined) {
+        throw new Error(
+          `Failed to start dashboard server process with ${nodeExecutable}: ${formatSpawnError(serverSpawnError)}`,
+        );
+      }
+
       throw new Error('Failed to start dashboard server');
     }
 
