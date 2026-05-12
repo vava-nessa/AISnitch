@@ -44,6 +44,7 @@
   },
   "files": [
     "dist",
+    "examples/fullscreen-dashboard/dist",
     "LICENSE",
     "README.md"
   ],
@@ -51,7 +52,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "pnpm --filter @aisnitch/client build && pnpm --filter aisnitch-fullscreen-dashboard build && tsup",
     "bump": "node scripts/bump.mjs",
     "clean": "rm -rf coverage dist",
     "formula:update": "node ./scripts/update-homebrew-formula.mjs",

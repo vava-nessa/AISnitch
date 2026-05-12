@@ -73,6 +73,7 @@
 - Event ticker for recent activity
 - Responsive design
 - Fixed `aisnitch fs` dashboard server spawn handling so stale Homebrew Node paths report a clean CLI error instead of crashing on an unhandled child-process `error` event
+- Fixed packaged `aisnitch fs` serving so the dashboard assets are built, included in npm, resolved from the installed package, and served without requiring Vite at runtime
 
 ### t-new-adapters
 **Added Zed and Pi adapters** to AISnitch:

@@ -1,9 +1,9 @@
 import { execFile as execFileCallback, spawn as spawnChildProcess } from 'node:child_process';
 import { closeSync, constants as fsConstants, openSync } from 'node:fs';
-import { access, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
  
  
@@ -119,6 +119,48 @@ function formatSpawnError(error: unknown): string {
   }
 
   return String(error);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path, fsConstants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveDashboardDistPath(): Promise<string> {
+  if (process.env.AISNITCH_DASHBOARD_DIST) {
+    const overridePath = process.env.AISNITCH_DASHBOARD_DIST;
+    if (await pathExists(join(overridePath, 'index.html'))) {
+      return overridePath;
+    }
+
+    throw new Error(
+      `Fullscreen dashboard assets are missing at ${overridePath}. Reinstall AISnitch or run \`pnpm --filter aisnitch-fullscreen-dashboard build\` from the repository checkout.`,
+    );
+  }
+
+  const cliEntryPath = process.argv[1]
+    ? await realpath(process.argv[1]).catch(() => process.argv[1] ?? '')
+    : '';
+  const moduleDirectory = dirname(cliEntryPath);
+  const packageRoot = dirname(dirname(moduleDirectory));
+  const candidates = [
+    join(packageRoot, 'examples', 'fullscreen-dashboard', 'dist'),
+    join(process.cwd(), 'examples', 'fullscreen-dashboard', 'dist'),
+  ];
+
+  for (const candidate of candidates) {
+    if (await pathExists(join(candidate, 'index.html'))) {
+      return candidate;
+    }
+  }
+
+  throw new Error(
+    'Fullscreen dashboard assets are missing. Reinstall AISnitch or run `pnpm --filter aisnitch-fullscreen-dashboard build` from the repository checkout.',
+  );
 }
 
 /**
@@ -943,37 +985,80 @@ export function createCliRuntime(
     // Start the dashboard server
     const dashboardPort = options.dashboardPort ?? 5174;
     const dashboardUrl = `http://127.0.0.1:${dashboardPort}`;
-    const distPath = join(process.cwd(), 'examples', 'fullscreen-dashboard', 'dist');
+    const distPath = await resolveDashboardDistPath();
 
     output.stdout(`Starting dashboard server on port ${dashboardPort}...\n`);
 
     const nodeExecutable = await resolveNodeExecutable();
 
-    // Use Vite's dev server API to serve the built static dashboard.
+    // Serve the packaged static dashboard without relying on Vite at runtime.
     const viteProcess = spawnImplementation(nodeExecutable, [
       '-e',
       `
-import { createServer } from 'vite';
-import path from 'path';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { extname, join, normalize, resolve } from 'node:path';
 
-const distPath = '${distPath}';
+const distPath = ${JSON.stringify(distPath)};
 const port = ${dashboardPort};
+const root = resolve(distPath);
+const contentTypes = new Map([
+  ['.css', 'text/css; charset=utf-8'],
+  ['.html', 'text/html; charset=utf-8'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.map', 'application/json; charset=utf-8'],
+  ['.svg', 'image/svg+xml'],
+]);
 
-const server = await createServer({
-  root: distPath,
-  server: {
-    port,
-    strictPort: true,
-    allowedHosts: true,
-  },
-  preview: {
-    port,
-    strictPort: true,
-  },
+function safePath(url) {
+  const parsed = new URL(url ?? '/', 'http://127.0.0.1');
+  const pathname = parsed.pathname === '/' ? '/index.html' : parsed.pathname;
+  const decoded = decodeURIComponent(pathname);
+  const normalized = normalize(decoded).replace(/^[/\\]+/, '');
+  const absolute = resolve(join(root, normalized));
+
+  if (absolute !== root && !absolute.startsWith(root + '/')) {
+    return null;
+  }
+
+  return absolute;
+}
+
+await stat(join(root, 'index.html'));
+
+const server = createServer(async (request, response) => {
+  const requestedPath = safePath(request.url);
+
+  if (requestedPath === null) {
+    response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
+    response.end('Forbidden');
+    return;
+  }
+
+  try {
+    const fileStat = await stat(requestedPath);
+    const filePath = fileStat.isFile() ? requestedPath : join(root, 'index.html');
+    const contentType = contentTypes.get(extname(filePath)) ?? 'application/octet-stream';
+
+    response.writeHead(200, { 'content-type': contentType });
+    createReadStream(filePath).pipe(response);
+  } catch {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    createReadStream(join(root, 'index.html')).pipe(response);
+  }
 });
 
-await server.listen();
-console.log('READY');
+server.on('error', (error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
+
+await new Promise((resolveListen, rejectListen) => {
+  server.once('error', rejectListen);
+  server.listen(port, '127.0.0.1', resolveListen);
+});
 
 process.stdin.resume();
 `,

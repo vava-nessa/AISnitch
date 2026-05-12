@@ -57,14 +57,20 @@ describe('buildLaunchAgentPlist', () => {
 
 describe('managed dashboard runtime', () => {
   const previousAISnitchHome = process.env.AISNITCH_HOME;
+  const previousDashboardDist = process.env.AISNITCH_DASHBOARD_DIST;
 
   afterEach(() => {
     if (previousAISnitchHome === undefined) {
       delete process.env.AISNITCH_HOME;
-      return;
+    } else {
+      process.env.AISNITCH_HOME = previousAISnitchHome;
     }
 
-    process.env.AISNITCH_HOME = previousAISnitchHome;
+    if (previousDashboardDist === undefined) {
+      delete process.env.AISNITCH_DASHBOARD_DIST;
+    } else {
+      process.env.AISNITCH_DASHBOARD_DIST = previousDashboardDist;
+    }
   });
 
   it('opens the managed dashboard even when the daemon is offline', async () => {
@@ -329,11 +335,14 @@ describe('managed dashboard runtime', () => {
 
   it('reports fullscreen dashboard spawn failures without an unhandled child error', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
+    const dashboardDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-dashboard-'));
     const stdout = vi.fn();
 
     process.env.AISNITCH_HOME = homeDirectory;
+    process.env.AISNITCH_DASHBOARD_DIST = dashboardDirectory;
 
     try {
+      await writeFile(join(dashboardDirectory, 'index.html'), '<!doctype html>', 'utf8');
       await writePid(process.pid, { env: process.env });
       await writeDaemonState(
         {
@@ -399,6 +408,43 @@ describe('managed dashboard runtime', () => {
       );
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
+      await rm(dashboardDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('reports missing fullscreen dashboard assets before starting the server', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
+    const dashboardDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-dashboard-'));
+
+    process.env.AISNITCH_HOME = homeDirectory;
+    process.env.AISNITCH_DASHBOARD_DIST = join(dashboardDirectory, 'missing');
+
+    try {
+      await writePid(process.pid, { env: process.env });
+      await writeDaemonState(
+        {
+          configPath: join(homeDirectory, 'config.json'),
+          httpPort: 4821,
+          logFilePath: join(homeDirectory, 'daemon.log'),
+          pid: process.pid,
+          socketPath: join(homeDirectory, 'aisnitch.sock'),
+          startedAt: new Date().toISOString(),
+          wsPort: 4820,
+        },
+        { env: process.env },
+      );
+
+      const runtime = createCliRuntime({
+        fetch: vi.fn(() => Promise.resolve(new Response('{}', { status: 200 }))),
+        spawn: vi.fn(),
+      });
+
+      await expect(runtime.fullscreen({ noBrowser: true })).rejects.toThrow(
+        'Fullscreen dashboard assets are missing',
+      );
+    } finally {
+      await rm(homeDirectory, { recursive: true, force: true });
+      await rm(dashboardDirectory, { recursive: true, force: true });
     }
   });
 });

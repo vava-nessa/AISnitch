@@ -58,9 +58,11 @@ If startup fails before the daemon becomes healthy, the CLI now reads back the l
 
 ## Fullscreen dashboard server
 
-`aisnitch fs` starts a small child Node process that imports Vite and serves the built dashboard from `examples/fullscreen-dashboard/dist`. The runtime first checks the daemon state, optionally starts it with `--daemon`, waits for the HTTP health endpoint, then opens `http://127.0.0.1:<dashboard-port>` unless `--no-browser` is used.
+`aisnitch fs` starts a small child Node process that serves the built dashboard from the package's `examples/fullscreen-dashboard/dist` assets. The runtime first checks the daemon state, optionally starts it with `--daemon`, waits for the HTTP health endpoint, then opens `http://127.0.0.1:<dashboard-port>` unless `--no-browser` is used.
 
-The child process deliberately resolves the Node executable defensively. When package managers such as Homebrew upgrade Node, a long-lived global CLI can still have `process.execPath` pointing at an old Cellar path that has already been removed. In that case AISnitch falls back to `node` from `PATH` and always listens for the child process `error` event, so spawn failures become actionable CLI errors instead of hard unhandled crashes.
+The dashboard assets are packaged with the npm release. The CLI resolves them relative to the installed package, not relative to the user's current working directory, so `aisnitch fs` behaves the same from `/tmp`, a project folder, or a global shell. If the assets are missing, startup fails before spawning the server and reports a direct reinstall/build hint instead of silently leaving port 5174 unreachable.
+
+The child process deliberately resolves the Node executable defensively. When package managers such as Homebrew upgrade Node, a long-lived global CLI can still have `process.execPath` pointing at an old Cellar path that has already been removed. In that case AISnitch falls back to `node` from `PATH` and always listens for the child process `error` event, so spawn failures become actionable CLI errors instead of hard unhandled crashes. The static server uses only Node's built-in HTTP and filesystem modules, avoiding a runtime dependency on Vite in the installed CLI.
 
 ## Raw logger mode
 
