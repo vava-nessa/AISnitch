@@ -46,3 +46,14 @@ The version number lives in ONE place: `package.json`. Everything else reads fro
 - **CI** (`.github/workflows/ci.yml`): 2 jobs — `aisnitch` and `client`, both on Node 22. Runs lint, typecheck, test, build, coverage. The `aisnitch` job also runs a release preflight (`npm publish --dry-run`).
 - **Release** (`.github/workflows/release.yml`): triggered by `v*` tags. Builds and publishes both packages to npm with provenance, creates a GitHub release with tarball + Homebrew formula.
 - After bumping, verify a few minutes later that npm really exposes the new version for both packages, and report the result clearly.
+
+
+<!-- kandown:agent-ref -->
+## Task management
+
+**IMPORTANT:** Before touching any task files, you MUST read `AGENT_KANDOWN.md`.
+
+This project uses a file-based kanban:
+- **Tasks live in `.kandown/tasks/t-xxx.md`** — each task file owns its status
+- **Columns live in `.kandown/kandown.json`** under `board.columns`
+- **Completion workflow:** set task frontmatter `status: Done` + write the completion report
