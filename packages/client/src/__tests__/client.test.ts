@@ -20,16 +20,16 @@ describe('AISnitchClient', () => {
       WebSocketClass: MockWebSocket as never,
     });
 
-    let receivedWelcome: WelcomeMessage | null = null;
-    client.on('connected', (w: any) => { receivedWelcome = w; });
+    const receivedWelcome: WelcomeMessage[] = [];
+    client.on('connected', (welcome) => { receivedWelcome.push(welcome); });
 
     client.connect();
     const ws = MockWebSocket.instances[0]!;
     ws.simulateOpen();
-    ws.simulateMessage(makeWelcome());
+    const welcome = makeWelcome();
+    ws.simulateMessage(welcome);
 
-    expect(receivedWelcome).not.toBeNull();
-    expect(receivedWelcome?.version).toBe('0.2.12');
+    expect(receivedWelcome[0]?.version).toBe(welcome.version);
     expect(client.welcome).not.toBeNull();
     client.destroy();
   });

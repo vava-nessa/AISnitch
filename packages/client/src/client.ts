@@ -320,7 +320,7 @@ export class AISnitchClient {
   ): void {
     for (const cb of this._listeners[eventName]) {
       try {
-        (cb as EventCallback<K>)(payload);
+        cb(payload);
       } catch {
         // 📖 Swallow listener errors to prevent one bad listener from breaking others
       }
