@@ -16,6 +16,7 @@ import type { AISnitchConfig } from './schema.js';
 export const DEFAULT_CONFIG: AISnitchConfig = {
   wsPort: 4820,
   httpPort: 4821,
+  dashboardPort: 5174,
   adapters: {},
   autoUpdate: {
     enabled: true,

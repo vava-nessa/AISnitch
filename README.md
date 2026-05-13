@@ -82,10 +82,16 @@ brew install aisnitch
 ### 2. Run
 
 ```bash
-aisnitch start
+aisnitch
 ```
 
-That's it! The dashboard opens with live events from all configured tools.
+That's it! `aisnitch` (no argument) starts the daemon, launches the dashboard server in the background, and opens the web dashboard in your browser.
+
+Want the in-terminal TUI instead?
+
+```bash
+aisnitch start
+```
 
 **No AI tools yet?** Try the demo mode:
 
@@ -222,8 +228,8 @@ brew upgrade aisnitch
 Open a beautiful real-time dashboard in your browser:
 
 ```bash
-aisnitch fs                    # Open dashboard (auto-starts daemon if needed)
-aisnitch fs --daemon           # Start daemon + open dashboard
+aisnitch                       # Default: start daemon + dashboard + open browser
+aisnitch fs                    # Same as `aisnitch`
 aisnitch fs --dashboard-port 8080  # Custom port
 aisnitch fs --no-browser       # Just start the server
 ```
@@ -336,12 +342,12 @@ aisnitch start --type agent.coding # Filter by event type
 aisnitch start --view full-data    # Show full JSON
 ```
 
-### Web Dashboard
+### Web Dashboard (Default)
 
 ```bash
-aisnitch fs                        # Open web dashboard
-aisnitch fs --daemon               # Start daemon + open
-aisnitch fs --dashboard-port 8080 # Custom port
+aisnitch                           # Default: daemon + dashboard + browser
+aisnitch fs                        # Explicit form (same effect)
+aisnitch fs --dashboard-port 8080  # Custom port
 aisnitch fs --no-browser           # Server only
 ```
 

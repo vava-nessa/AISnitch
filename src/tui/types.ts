@@ -36,6 +36,7 @@ export interface TuiInitialFilters {
 export interface TuiDaemonSnapshot {
   readonly active: boolean;
   readonly busyAction?: 'starting' | 'stopping' | null;
+  readonly dashboardUrl: string;
   readonly httpUrl: string;
   readonly pid: number | null;
   readonly socketPath: string | null;

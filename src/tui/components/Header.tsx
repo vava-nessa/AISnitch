@@ -120,6 +120,7 @@ export function Header({
               <Text color={connected ? TUI_THEME.success : TUI_THEME.warning}>
                 {connected ? `● ${connectionLabel}` : `○ ${connectionLabel}`}
               </Text>
+              <Text color={TUI_THEME.success}>Web {daemon.dashboardUrl}</Text>
               <Text color={TUI_THEME.muted}>WS {daemon.wsUrl}</Text>
             </>
           ) : null}

@@ -100,6 +100,7 @@ const DAEMON_READY_TIMEOUT_MS = 4_000;
 const DAEMON_READY_POLL_INTERVAL_MS = 100;
 const DAEMON_STOP_TIMEOUT_MS = 4_000;
 const DAEMON_LOG_MAX_BYTES = 5 * 1024 * 1024;
+const DEFAULT_DASHBOARD_PORT = 5174;
 const LAUNCH_AGENT_LABEL = 'com.aisnitch.daemon';
 
 async function resolveNodeExecutable(): Promise<string> {
@@ -197,6 +198,7 @@ export interface FullscreenCliOptions extends CommonCliOptions {
  * Options accepted by `aisnitch start`.
  */
 export interface StartCliOptions extends AttachCliOptions {
+  readonly dashboardPort?: number;
   readonly daemon?: boolean;
   readonly httpPort?: number;
   readonly logLevel?: AISnitchConfig['logLevel'];
@@ -282,6 +284,7 @@ interface CliRuntimeDependencies {
 
 interface StatusSnapshot {
   readonly configuredAdapters: readonly ToolName[];
+  readonly dashboardPort: number;
   readonly daemonPid: number | null;
   readonly health: HealthSnapshot | null;
   readonly httpPort: number;
@@ -294,6 +297,11 @@ interface StatusSnapshot {
 interface SocketEventPublisher {
   readonly close: () => Promise<void>;
   readonly publish: (event: AISnitchEvent) => Promise<boolean>;
+}
+
+interface DashboardServerProcess {
+  readonly kill: () => void;
+  readonly pid: number | undefined;
 }
 
 /**
@@ -339,6 +347,7 @@ export function createCliRuntime(
       ...baseConfig,
       ...(isStartCliOptions(options)
         ? {
+            dashboardPort: options.dashboardPort ?? baseConfig.dashboardPort,
             httpPort: options.httpPort ?? baseConfig.httpPort,
             logLevel: options.logLevel ?? baseConfig.logLevel,
             wsPort: options.wsPort ?? baseConfig.wsPort,
@@ -368,6 +377,167 @@ export function createCliRuntime(
     } catch {
       return null;
     }
+  }
+
+  async function fetchOk(url: string): Promise<boolean> {
+    try {
+      const response = await fetchImplementation(url);
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function waitForDashboardReady(port: number): Promise<boolean> {
+    const dashboardUrl = `http://127.0.0.1:${port}`;
+
+    for (let i = 0; i < 100; i++) {
+      if (await fetchOk(dashboardUrl)) {
+        return true;
+      }
+
+      await sleep(100);
+    }
+
+    return false;
+  }
+
+  async function startDashboardServerProcess(
+    port: number,
+  ): Promise<DashboardServerProcess> {
+    const dashboardUrl = `http://127.0.0.1:${port}`;
+
+    if (await fetchOk(dashboardUrl)) {
+      return {
+        kill: () => undefined,
+        pid: undefined,
+      };
+    }
+
+    const distPath = await resolveDashboardDistPath();
+    const nodeExecutable = await resolveNodeExecutable();
+    const serverProcess = spawnImplementation(nodeExecutable, [
+      '-e',
+      buildDashboardServerScript(distPath, port),
+    ], {
+      cwd: distPath,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let serverOutput = '';
+    let serverSpawnError: Error | undefined;
+
+    serverProcess.on('error', (error: Error) => {
+      serverSpawnError = error;
+      serverOutput += `Dashboard server process failed: ${formatSpawnError(error)}\n`;
+    });
+
+    serverProcess.stdout?.on('data', (data: { toString: () => string }) => {
+      serverOutput += data.toString();
+    });
+
+    serverProcess.stderr?.on('data', (data: { toString: () => string }) => {
+      serverOutput += data.toString();
+    });
+
+    for (let i = 0; i < 100; i++) {
+      if (await fetchOk(dashboardUrl)) {
+        return {
+          kill: () => {
+            if (serverProcess.pid !== undefined) {
+              try {
+                process.kill(serverProcess.pid, 'SIGTERM');
+              } catch {
+                // Process may already be dead.
+              }
+            }
+          },
+          pid: serverProcess.pid,
+        };
+      }
+
+      if (serverSpawnError !== undefined) {
+        throw new Error(
+          `Failed to start dashboard server process with ${nodeExecutable}: ${formatSpawnError(serverSpawnError)}`,
+        );
+      }
+
+      await sleep(100);
+    }
+
+    throw new Error(
+      `Failed to start dashboard server at ${dashboardUrl}. Server output: ${serverOutput}`,
+    );
+  }
+
+  function buildDashboardServerScript(distPath: string, port: number): string {
+    return `
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { extname, join, normalize, resolve } from 'node:path';
+
+const distPath = ${JSON.stringify(distPath)};
+const port = ${port};
+const root = resolve(distPath);
+const contentTypes = new Map([
+  ['.css', 'text/css; charset=utf-8'],
+  ['.html', 'text/html; charset=utf-8'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.map', 'application/json; charset=utf-8'],
+  ['.svg', 'image/svg+xml'],
+]);
+
+function safePath(url) {
+  const parsed = new URL(url ?? '/', 'http://127.0.0.1');
+  const pathname = parsed.pathname === '/' ? '/index.html' : parsed.pathname;
+  const decoded = decodeURIComponent(pathname);
+  const normalized = normalize(decoded).replace(/^[/\\]+/, '');
+  const absolute = resolve(join(root, normalized));
+
+  if (absolute !== root && !absolute.startsWith(root + '/')) {
+    return null;
+  }
+
+  return absolute;
+}
+
+await stat(join(root, 'index.html'));
+
+const server = createServer(async (request, response) => {
+  const requestedPath = safePath(request.url);
+
+  if (requestedPath === null) {
+    response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
+    response.end('Forbidden');
+    return;
+  }
+
+  try {
+    const fileStat = await stat(requestedPath);
+    const filePath = fileStat.isFile() ? requestedPath : join(root, 'index.html');
+    const contentType = contentTypes.get(extname(filePath)) ?? 'application/octet-stream';
+
+    response.writeHead(200, { 'content-type': contentType });
+    createReadStream(filePath).pipe(response);
+  } catch {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    createReadStream(join(root, 'index.html')).pipe(response);
+  }
+});
+
+server.on('error', (error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});
+
+await new Promise((resolveListen, rejectListen) => {
+  server.once('error', rejectListen);
+  server.listen(port, '127.0.0.1', resolveListen);
+});
+
+process.stdin.resume();
+`;
   }
 
   async function ensureDaemonNotRunning(
@@ -416,7 +586,10 @@ export function createCliRuntime(
       throw new Error('Failed to obtain the AISnitch daemon PID.');
     }
 
-    return await waitForDaemonReady(daemonPathOptions);
+    return await waitForDaemonReady(
+      daemonPathOptions,
+      options.dashboardPort ?? DEFAULT_DASHBOARD_PORT,
+    );
   }
 
   async function stopDetachedDaemon(options: CommonCliOptions): Promise<void> {
@@ -457,6 +630,7 @@ export function createCliRuntime(
         consumerCount: snapshot.health?.consumers ?? 0,
         daemon: {
           active: snapshot.running,
+          dashboardUrl: `http://127.0.0.1:${snapshot.dashboardPort}`,
           httpUrl: `http://127.0.0.1:${snapshot.httpPort}/health`,
           pid: snapshot.daemonPid,
           socketPath: snapshot.socketPath,
@@ -517,6 +691,7 @@ export function createCliRuntime(
 
   async function waitForDaemonReady(
     pathOptions: DaemonPathOptions,
+    dashboardPort = DEFAULT_DASHBOARD_PORT,
   ): Promise<StatusSnapshot> {
     const deadline = Date.now() + DAEMON_READY_TIMEOUT_MS;
 
@@ -529,6 +704,7 @@ export function createCliRuntime(
         if (health !== null) {
           return {
             configuredAdapters: [],
+            dashboardPort,
             daemonPid: daemonState.pid,
             health,
             httpPort: daemonState.httpPort,
@@ -679,6 +855,10 @@ export function createCliRuntime(
 
     startMockEmitter(pipeline, options);
 
+    const dashboardServer = daemonMode
+      ? await startDashboardServerProcess(config.dashboardPort)
+      : null;
+
     if (daemonMode) {
       const daemonPathOptions = toPathOptions(options);
 
@@ -726,6 +906,7 @@ export function createCliRuntime(
         wsServer: pipeline.getWsServer(),
         eventBus: pipeline.getEventBus(),
         cleanupFns: daemonMode ? [async () => {
+          dashboardServer?.kill();
           await Promise.all([
             removePid(toPathOptions(options)),
             removeDaemonState(toPathOptions(options)),
@@ -814,7 +995,7 @@ export function createCliRuntime(
       const snapshot = await startDetachedDaemon(options);
 
       output.stdout(
-        `AISnitch daemon started (PID: ${snapshot.daemonPid ?? 'unknown'}) on ws://${'127.0.0.1'}:${snapshot.wsPort}\n`,
+        `AISnitch daemon started (PID: ${snapshot.daemonPid ?? 'unknown'}) on ws://${'127.0.0.1'}:${snapshot.wsPort}\nDashboard: http://127.0.0.1:${snapshot.dashboardPort}\n`,
       );
 
       return;
@@ -822,12 +1003,11 @@ export function createCliRuntime(
 
     let initialSnapshot = await getStatusSnapshot(options);
 
-    if (options.mock) {
-      if (!initialSnapshot.running) {
-        await startDetachedDaemon(options);
-        initialSnapshot = await getStatusSnapshot(options);
-      }
+    if (!initialSnapshot.running) {
+      initialSnapshot = await startDetachedDaemon(options);
+    }
 
+    if (options.mock) {
       output.stdout(
         `Starting mock scenario ${options.mock} (${options.mockSpeed ?? 1}x, ${options.mockDuration ?? 60}s${options.mockLoop ? ', loop' : ''}).\n`,
       );
@@ -894,6 +1074,7 @@ export function createCliRuntime(
     output.stdout(`PID: ${snapshot.daemonPid ?? 'none'}\n`);
     output.stdout(`WebSocket port: ${snapshot.wsPort}\n`);
     output.stdout(`HTTP port: ${snapshot.httpPort}\n`);
+    output.stdout(`Dashboard: http://127.0.0.1:${snapshot.dashboardPort}\n`);
     output.stdout(`Socket path: ${snapshot.socketPath ?? 'none'}\n`);
     output.stdout(`Configured adapters: ${enabledAdapters}\n`);
     output.stdout(`Daemon log: ${snapshot.logFilePath}\n`);
@@ -951,208 +1132,66 @@ export function createCliRuntime(
   }
 
   /**
-   * 📖 Opens the fullscreen dashboard (web UI) in a browser.
+   * 📖 Default `aisnitch` entrypoint: ensures the daemon is up, makes sure the
+   * fullscreen dashboard server is reachable (spawning a standalone one if
+   * needed), then opens the user's browser. Designed to be self-healing when an
+   * older daemon is still running without the dashboard child process.
    *
    * Flow:
-   * 1. Check if daemon is running (start if not in daemonMode)
-   * 2. Start the dashboard server (vite preview or serve)
-   * 3. Open browser with the dashboard URL
-   * 4. Wait for user to close browser or Ctrl+C
+   * 1. Check daemon state, start a detached daemon if missing.
+   * 2. Probe the dashboard URL; if unreachable, spawn a standalone server.
+   * 3. Open the browser unless `--no-browser` was passed.
    */
   async function fullscreen(options: FullscreenCliOptions): Promise<void> {
-    const snapshot = await getStatusSnapshot(options);
+    let snapshot = await getStatusSnapshot(options);
 
-    // If daemon not running and we want daemon mode, start it
-    if (!snapshot.running && options.daemon) {
+    if (!snapshot.running) {
       output.stdout('Starting daemon...\n');
-      await startDetachedDaemon(options);
+      snapshot = await startDetachedDaemon({
+        ...options,
+        dashboardPort: options.dashboardPort,
+      });
     }
 
-    // If daemon not running and not daemon mode, show error
-    if (!snapshot.running && !options.daemon) {
-      throw new Error(
-        'AISnitch daemon is not running. Start one with `aisnitch start --daemon` or use `aisnitch fs --daemon` to start and open the dashboard.',
-      );
-    }
-
-    // Wait for daemon to be fully ready
-    for (let i = 0; i < 20; i++) {
-      const health = await fetchHealth(snapshot.httpPort);
-      if (health) break;
-      await new Promise<void>((resolve) => setTimeout(resolve, 200).unref());
-    }
-
-    // Start the dashboard server
-    const dashboardPort = options.dashboardPort ?? 5174;
+    const dashboardPort = options.dashboardPort ?? snapshot.dashboardPort;
     const dashboardUrl = `http://127.0.0.1:${dashboardPort}`;
-    const distPath = await resolveDashboardDistPath();
 
-    output.stdout(`Starting dashboard server on port ${dashboardPort}...\n`);
+    if (!(await waitForDashboardReady(dashboardPort))) {
+      output.stdout(
+        `Dashboard not reachable at ${dashboardUrl}, starting a standalone server...\n`,
+      );
 
-    const nodeExecutable = await resolveNodeExecutable();
-
-    // Serve the packaged static dashboard without relying on Vite at runtime.
-    const viteProcess = spawnImplementation(nodeExecutable, [
-      '-e',
-      `
-import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { createServer } from 'node:http';
-import { extname, join, normalize, resolve } from 'node:path';
-
-const distPath = ${JSON.stringify(distPath)};
-const port = ${dashboardPort};
-const root = resolve(distPath);
-const contentTypes = new Map([
-  ['.css', 'text/css; charset=utf-8'],
-  ['.html', 'text/html; charset=utf-8'],
-  ['.js', 'text/javascript; charset=utf-8'],
-  ['.json', 'application/json; charset=utf-8'],
-  ['.map', 'application/json; charset=utf-8'],
-  ['.svg', 'image/svg+xml'],
-]);
-
-function safePath(url) {
-  const parsed = new URL(url ?? '/', 'http://127.0.0.1');
-  const pathname = parsed.pathname === '/' ? '/index.html' : parsed.pathname;
-  const decoded = decodeURIComponent(pathname);
-  const normalized = normalize(decoded).replace(/^[/\\]+/, '');
-  const absolute = resolve(join(root, normalized));
-
-  if (absolute !== root && !absolute.startsWith(root + '/')) {
-    return null;
-  }
-
-  return absolute;
-}
-
-await stat(join(root, 'index.html'));
-
-const server = createServer(async (request, response) => {
-  const requestedPath = safePath(request.url);
-
-  if (requestedPath === null) {
-    response.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
-    response.end('Forbidden');
-    return;
-  }
-
-  try {
-    const fileStat = await stat(requestedPath);
-    const filePath = fileStat.isFile() ? requestedPath : join(root, 'index.html');
-    const contentType = contentTypes.get(extname(filePath)) ?? 'application/octet-stream';
-
-    response.writeHead(200, { 'content-type': contentType });
-    createReadStream(filePath).pipe(response);
-  } catch {
-    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-    createReadStream(join(root, 'index.html')).pipe(response);
-  }
-});
-
-server.on('error', (error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
-
-await new Promise((resolveListen, rejectListen) => {
-  server.once('error', rejectListen);
-  server.listen(port, '127.0.0.1', resolveListen);
-});
-
-process.stdin.resume();
-`,
-    ], {
-      cwd: distPath,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    // Capture output
-    let serverOutput = '';
-    let serverSpawnError: Error | undefined;
-
-    viteProcess.on('error', (error: Error) => {
-      serverSpawnError = error;
-      serverOutput += `Dashboard server process failed: ${formatSpawnError(error)}\n`;
-    });
-     
-    viteProcess.stdout?.on('data', (data: { toString: () => string }) => {
-      serverOutput += data.toString();
-    });
-     
-    viteProcess.stderr?.on('data', (data: { toString: () => string }) => {
-      serverOutput += data.toString();
-    });
-
-    // Wait for server to be ready
-    let serverReady = false;
-    for (let i = 0; i < 100; i++) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 100).unref());
       try {
-        const response = await fetchImplementation(dashboardUrl);
-        if (response.ok) {
-          serverReady = true;
-          break;
-        }
-      } catch {
-        // Server not ready yet
-      }
-      if (serverSpawnError !== undefined) {
-        break;
-      }
-
-      if (!viteProcess.pid) break; // Process died
-    }
-
-    if (!serverReady) {
-      output.stdout(`Server output: ${serverOutput}\n`);
-      if (serverSpawnError !== undefined) {
+        await startDashboardServerProcess(dashboardPort);
+      } catch (error: unknown) {
         throw new Error(
-          `Failed to start dashboard server process with ${nodeExecutable}: ${formatSpawnError(serverSpawnError)}`,
+          `Dashboard did not become reachable at ${dashboardUrl}: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+          { cause: error },
         );
       }
 
-      throw new Error('Failed to start dashboard server');
+      if (!(await waitForDashboardReady(dashboardPort))) {
+        throw new Error(
+          `Dashboard did not become reachable at ${dashboardUrl}.`,
+        );
+      }
     }
 
     output.stdout(`Dashboard ready at ${dashboardUrl}\n`);
 
-    // Open browser (unless noBrowser option)
     if (!options.noBrowser) {
       output.stdout('Opening browser...\n');
-      const openModule = await openPromise;
-      await (openModule as { default: (url: string) => Promise<unknown> }).default(dashboardUrl);
+      try {
+        const openModule = await openPromise;
+        await (openModule as { default: (url: string) => Promise<unknown> }).default(dashboardUrl);
+      } catch (error: unknown) {
+        output.stderr(
+          `Failed to open browser automatically (${error instanceof Error ? error.message : 'unknown error'}). Open ${dashboardUrl} manually.\n`,
+        );
+      }
     }
-
-    output.stdout('Press Ctrl+C to stop\n');
-
-    // Wait for user to stop
-    await new Promise<void>((resolve) => {
-      const shutdown = () => {
-        process.off('SIGINT', handleSigint);
-        process.off('SIGTERM', handleSigterm);
-
-        if (viteProcess.pid !== undefined) {
-          try {
-            process.kill(viteProcess.pid, 'SIGTERM');
-          } catch {
-            // Process may already be dead
-          }
-        }
-
-        resolve();
-      };
-
-      const handleSigint = () => {
-        shutdown();
-      };
-      const handleSigterm = () => {
-        shutdown();
-      };
-
-      process.once('SIGINT', handleSigint);
-      process.once('SIGTERM', handleSigterm);
-    });
   }
 
   async function logger(options: AttachCliOptions): Promise<void> {
@@ -1485,6 +1524,7 @@ process.stdin.resume();
 
     return {
       configuredAdapters: getEnabledAdapters(config),
+      dashboardPort: config.dashboardPort ?? DEFAULT_DASHBOARD_PORT,
       daemonPid,
       health,
       httpPort: daemonState?.httpPort ?? config.httpPort,

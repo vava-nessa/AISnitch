@@ -40,6 +40,7 @@ export const AutoUpdateConfigSchema = z.strictObject({
 export const ConfigSchema = z.strictObject({
   wsPort: z.number().int().min(1024).max(65535).default(4820),
   httpPort: z.number().int().min(1024).max(65535).default(4821),
+  dashboardPort: z.number().int().min(1024).max(65535).default(5174),
   /**
    * 📖 This is intentionally a partial record because most users will only
    * override a couple of adapters instead of all supported tools at once.

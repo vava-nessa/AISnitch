@@ -67,8 +67,8 @@ export function StatusBar({
       : daemon.busyAction
         ? `Daemon ${daemon.busyAction}`
         : daemon.active
-          ? `Daemon active · ${daemon.wsUrl}`
-          : `Daemon not active · ${daemon.wsUrl}`;
+          ? `Daemon active · Web ${daemon.dashboardUrl}`
+          : `Daemon not active · Web ${daemon.dashboardUrl}`;
 
   return (
     <Box

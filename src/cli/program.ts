@@ -67,13 +67,13 @@ export function createProgram(
       'after',
       `
 Examples:
-  aisnitch start
+  aisnitch                       (default: starts daemon + dashboard server, opens browser)
+  aisnitch fs --dashboard-port 8080
+  aisnitch fs --no-browser
+  aisnitch start                 (TUI dashboard)
   aisnitch start --daemon
   aisnitch start --view full-data
   aisnitch start --mock
-  aisnitch fs
-  aisnitch fs --daemon
-  aisnitch fs --dashboard-port 8080
   aisnitch status
   aisnitch attach
   aisnitch attach --view full-data
@@ -121,8 +121,8 @@ function addCommonOptions(command: Command): Command {
 function addStartCommand(program: Command, runtime: CliRuntime): void {
   addCommonOptions(
     program
-      .command('start', { isDefault: true })
-      .description('Open the AISnitch dashboard and manage the daemon')
+      .command('start')
+      .description('Open the AISnitch TUI dashboard and manage the daemon')
       .option('--daemon', 'Run AISnitch as a detached daemon')
       .option(
         '--mock [tool]',
@@ -163,6 +163,11 @@ function addStartCommand(program: Command, runtime: CliRuntime): void {
       .option(
         '--http-port <port>',
         'Override the HTTP hook port',
+        wrapOptionParser(parsePortOption),
+      )
+      .option(
+        '--dashboard-port <port>',
+        'Override the web dashboard port',
         wrapOptionParser(parsePortOption),
       )
       .option(
@@ -272,12 +277,12 @@ function addAttachCommand(program: Command, runtime: CliRuntime): void {
 function addFullscreenCommand(program: Command, runtime: CliRuntime): void {
   addCommonOptions(
     program
-      .command('fs')
-      .description('Open the fullscreen web dashboard in browser (starts daemon if needed with --daemon)')
+      .command('fs', { isDefault: true })
+      .description('Start the daemon, the dashboard server, and open the web dashboard in browser')
       .alias('fullscreen')
       .option(
         '--daemon',
-        'Start the daemon automatically if not running',
+        'Deprecated: daemon is now started automatically when needed',
       )
       .option(
         '--dashboard-port <port>',

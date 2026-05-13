@@ -1,5 +1,4 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -73,15 +72,51 @@ describe('managed dashboard runtime', () => {
     }
   });
 
-  it('opens the managed dashboard even when the daemon is offline', async () => {
+  it('starts the daemon automatically before opening the managed dashboard', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
     const renderManagedTui = vi.fn(() => Promise.resolve());
+    let pollCount = 0;
 
     process.env.AISNITCH_HOME = homeDirectory;
 
     try {
       const runtime = createCliRuntime({
+        fetch: vi.fn(() =>
+          Promise.resolve(
+            new Response(JSON.stringify({
+              consumers: 0,
+              droppedEvents: 0,
+              events: 0,
+              uptime: 10,
+            }), { status: 200 }),
+          ),
+        ),
         renderManagedTui,
+        sleep: async () => {
+          pollCount += 1;
+
+          if (pollCount === 1) {
+            await writePid(process.pid, { env: process.env });
+            await writeDaemonState(
+              {
+                configPath: join(homeDirectory, 'config.json'),
+                httpPort: 4821,
+                logFilePath: join(homeDirectory, 'daemon.log'),
+                pid: process.pid,
+                socketPath: join(homeDirectory, 'aisnitch.sock'),
+                startedAt: new Date().toISOString(),
+                wsPort: 4820,
+              },
+              { env: process.env },
+            );
+          }
+        },
+        spawn: vi.fn(() => {
+          return {
+            pid: 1234,
+            unref: () => undefined,
+          } as never;
+        }),
       });
 
       await runtime.start({});
@@ -97,7 +132,7 @@ describe('managed dashboard runtime', () => {
 
       const firstArgument = firstCall.at(0) as unknown as ManagedDashboardCall;
 
-      expect(firstArgument.initialSnapshot.status.daemon?.active).toBe(false);
+      expect(firstArgument.initialSnapshot.status.daemon?.active).toBe(true);
       expect(firstArgument.initialSnapshot.status.daemon?.wsUrl).toBe(
         'ws://127.0.0.1:4820',
       );
@@ -168,6 +203,7 @@ describe('managed dashboard runtime', () => {
             intervalMs: 0,
             manager: 'auto',
           },
+          dashboardPort: 5174,
           httpPort: 4821,
           idleTimeoutMs: 120000,
           logLevel: 'info',
@@ -214,13 +250,7 @@ describe('managed dashboard runtime', () => {
   it('surfaces the daemon log failure instead of a generic startup timeout', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
     let pollCount = 0;
-    const renderManagedTui = vi.fn(async (input: {
-      readonly toggleDaemon: () => Promise<ManagedDashboardCall['initialSnapshot']>;
-    }) => {
-      await expect(input.toggleDaemon()).rejects.toThrow(
-        'AISnitch CLI failed: Unable to find an available port from 4820 to 4919.',
-      );
-    });
+    const renderManagedTui = vi.fn(() => Promise.resolve());
 
     process.env.AISNITCH_HOME = homeDirectory;
 
@@ -246,9 +276,10 @@ describe('managed dashboard runtime', () => {
         }),
       });
 
-      await runtime.start({});
-
-      expect(renderManagedTui).toHaveBeenCalledTimes(1);
+      await expect(runtime.start({})).rejects.toThrow(
+        'AISnitch CLI failed: Unable to find an available port from 4820 to 4919.',
+      );
+      expect(renderManagedTui).not.toHaveBeenCalled();
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
     }
@@ -257,18 +288,7 @@ describe('managed dashboard runtime', () => {
   it('ignores daemon info logs while waiting for a healthy daemon', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
     let pollCount = 0;
-    const renderManagedTui = vi.fn(async (input: {
-      readonly toggleDaemon: () => Promise<ManagedDashboardCall['initialSnapshot']>;
-    }) => {
-      await expect(input.toggleDaemon()).resolves.toMatchObject({
-        status: {
-          daemon: {
-            active: true,
-            wsUrl: 'ws://127.0.0.1:4820',
-          },
-        },
-      });
-    });
+    const renderManagedTui = vi.fn(() => Promise.resolve());
 
     process.env.AISNITCH_HOME = homeDirectory;
 
@@ -333,41 +353,14 @@ describe('managed dashboard runtime', () => {
     }
   });
 
-  it('reports fullscreen dashboard spawn failures without an unhandled child error', async () => {
+  it('fullscreen starts the daemon and returns after the dashboard is reachable', async () => {
     const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
-    const dashboardDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-dashboard-'));
     const stdout = vi.fn();
+    let pollCount = 0;
 
     process.env.AISNITCH_HOME = homeDirectory;
-    process.env.AISNITCH_DASHBOARD_DIST = dashboardDirectory;
 
     try {
-      await writeFile(join(dashboardDirectory, 'index.html'), '<!doctype html>', 'utf8');
-      await writePid(process.pid, { env: process.env });
-      await writeDaemonState(
-        {
-          configPath: join(homeDirectory, 'config.json'),
-          httpPort: 4821,
-          logFilePath: join(homeDirectory, 'daemon.log'),
-          pid: process.pid,
-          socketPath: join(homeDirectory, 'aisnitch.sock'),
-          startedAt: new Date().toISOString(),
-          wsPort: 4820,
-        },
-        { env: process.env },
-      );
-
-      const childProcess = new EventEmitter() as EventEmitter & {
-        readonly stderr: EventEmitter;
-        readonly stdout: EventEmitter;
-        readonly pid?: number;
-      };
-      Object.assign(childProcess, {
-        pid: 1234,
-        stderr: new EventEmitter(),
-        stdout: new EventEmitter(),
-      });
-
       const runtime = createCliRuntime({
         fetch: vi.fn((url: Parameters<typeof globalThis.fetch>[0]) => {
           const value = typeof url === 'string'
@@ -376,75 +369,49 @@ describe('managed dashboard runtime', () => {
               ? url.href
               : url.url;
 
-          if (value.includes(':4821')) {
-            return Promise.resolve(
-              new Response(JSON.stringify({ uptime: 1 }), { status: 200 }),
-            );
+          if (value.includes(':4821') || value.includes(':5174')) {
+            return Promise.resolve(new Response(JSON.stringify({ uptime: 1 }), { status: 200 }));
           }
 
-          return Promise.reject(new Error('dashboard unavailable'));
+          return Promise.reject(new Error('unavailable'));
         }),
         output: {
           stderr: vi.fn(),
           stdout,
         },
-        spawn: vi.fn(() => {
-          queueMicrotask(() => {
-            childProcess.emit(
-              'error',
-              new Error('spawn /opt/homebrew/Cellar/node/missing/bin/node ENOENT'),
-            );
-          });
+        sleep: async () => {
+          pollCount += 1;
 
-          return childProcess as never;
+          if (pollCount === 1) {
+            await writePid(process.pid, { env: process.env });
+            await writeDaemonState(
+              {
+                configPath: join(homeDirectory, 'config.json'),
+                httpPort: 4821,
+                logFilePath: join(homeDirectory, 'daemon.log'),
+                pid: process.pid,
+                socketPath: join(homeDirectory, 'aisnitch.sock'),
+                startedAt: new Date().toISOString(),
+                wsPort: 4820,
+              },
+              { env: process.env },
+            );
+          }
+        },
+        spawn: vi.fn(() => {
+          return {
+            pid: 1234,
+            unref: () => undefined,
+          } as never;
         }),
       });
 
-      await expect(runtime.fullscreen({ noBrowser: true })).rejects.toThrow(
-        'Failed to start dashboard server process',
-      );
+      await runtime.fullscreen({ noBrowser: true });
       expect(stdout).toHaveBeenCalledWith(
-        expect.stringContaining('Dashboard server process failed'),
+        expect.stringContaining('Dashboard ready at http://127.0.0.1:5174'),
       );
     } finally {
       await rm(homeDirectory, { recursive: true, force: true });
-      await rm(dashboardDirectory, { recursive: true, force: true });
-    }
-  });
-
-  it('reports missing fullscreen dashboard assets before starting the server', async () => {
-    const homeDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-runtime-'));
-    const dashboardDirectory = await mkdtemp(join(tmpdir(), 'aisnitch-dashboard-'));
-
-    process.env.AISNITCH_HOME = homeDirectory;
-    process.env.AISNITCH_DASHBOARD_DIST = join(dashboardDirectory, 'missing');
-
-    try {
-      await writePid(process.pid, { env: process.env });
-      await writeDaemonState(
-        {
-          configPath: join(homeDirectory, 'config.json'),
-          httpPort: 4821,
-          logFilePath: join(homeDirectory, 'daemon.log'),
-          pid: process.pid,
-          socketPath: join(homeDirectory, 'aisnitch.sock'),
-          startedAt: new Date().toISOString(),
-          wsPort: 4820,
-        },
-        { env: process.env },
-      );
-
-      const runtime = createCliRuntime({
-        fetch: vi.fn(() => Promise.resolve(new Response('{}', { status: 200 }))),
-        spawn: vi.fn(),
-      });
-
-      await expect(runtime.fullscreen({ noBrowser: true })).rejects.toThrow(
-        'Fullscreen dashboard assets are missing',
-      );
-    } finally {
-      await rm(homeDirectory, { recursive: true, force: true });
-      await rm(dashboardDirectory, { recursive: true, force: true });
     }
   });
 });
