@@ -7,7 +7,9 @@ All notable changes to this project will be documented in this file.
 ## [0.2.26] / [@aisnitch/client 0.2.26] - 2026-05-13
 
 ### Changed
-- Bump to 0.2.26.
+- `aisnitch` (no command) is now the default and opens the web dashboard in the browser directly: it starts the daemon, ensures the dashboard server is running, and opens the URL automatically. The previous default (`aisnitch start`) is still available for the TUI experience. (task: t3)
+- `aisnitch fs` is now self-healing: if a daemon is already running without the dashboard server (e.g., started by an older version or crashed), `fs` will spawn a standalone dashboard server instead of timing out.
+- Browser-open failures no longer crash the command; the user is told to open the dashboard URL manually.
 
 ## [0.2.25] / [@aisnitch/client 0.2.25] - 2026-05-12
 
